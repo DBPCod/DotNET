@@ -1,26 +1,31 @@
-Dự án Quản Lý Store Management
-🎯 1. Mục tiêu dự án
+# 🏬 Store Management System
 
-Xây dựng ứng dụng quản lý với các thành phần chính:
+## 🎯 1. Mục tiêu dự án
+Xây dựng ứng dụng **quản lý cửa hàng** với các thành phần chính:
 
-🧭 Frontend: Giao diện người dùng chạy trực tiếp trên trình duyệt bằng Blazor WebAssembly (WASM).
+- 🧭 **Frontend:** Giao diện người dùng chạy trực tiếp trên trình duyệt bằng **Blazor WebAssembly (WASM)**.  
+- ⚙️ **Backend:** Cung cấp API và xử lý nghiệp vụ bằng **ASP.NET Core MVC / Web API**.  
+- 💾 **Cơ sở dữ liệu:** Sử dụng **MySQL**, được quản lý thông qua **Laragon**.  
 
-⚙️ Backend: Cung cấp API và xử lý nghiệp vụ bằng ASP.NET Core MVC / Web API.
+Ứng dụng cho phép quản lý dữ liệu như **người dùng**, **sản phẩm**, **đội hình**, v.v...  
+một cách **linh hoạt, thân thiện và hiện đại**.
 
-💾 Cơ sở dữ liệu: Sử dụng MySQL được quản lý thông qua Laragon.
+---
 
-Ứng dụng cho phép quản lý dữ liệu (người dùng, sản phẩm, đội hình, v.v.) một cách linh hoạt, thân thiện và hiện đại.
+## 🧱 2. Kiến trúc & Công nghệ sử dụng
 
-2. Kiến trúc & Công nghệ sử dụng
-Thành phần	Công nghệ / Công cụ	Mô tả
-Frontend	🧠 Blazor WebAssembly	Ứng dụng client-side chạy trên trình duyệt
-Backend	⚙️ ASP.NET Core MVC / Web API	Xử lý logic, cung cấp API cho frontend
-ORM	🗃️ Entity Framework Core (EF Core)	Quản lý dữ liệu, migration, seeding
-Database	🐬 MySQL	Lưu trữ dữ liệu, kết nối qua EF Core
-DB Connector	🔌 Pomelo.EntityFrameworkCore.MySql	Thư viện kết nối MySQL cho EF Core
-Local Server	🧰 Laragon	Môi trường phát triển backend + DB
-DB Manager	🪶 HeidiSQL / phpMyAdmin	Giao diện quản lý MySQL
-IDE / CLI	🧑‍💻 Visual Studio / VS Code / dotnet CLI	Dùng để chạy và quản lý project
+| Thành phần | Công nghệ / Công cụ | Mô tả |
+|-------------|---------------------|--------|
+| **Frontend** | 🧠 Blazor WebAssembly | Ứng dụng client-side chạy trên trình duyệt |
+| **Backend** | ⚙️ ASP.NET Core MVC / Web API | Xử lý logic và cung cấp API cho frontend |
+| **ORM** | 🗃️ Entity Framework Core (EF Core) | Quản lý dữ liệu, migration và seeding |
+| **Database** | 🐬 MySQL | Lưu trữ dữ liệu, kết nối thông qua EF Core |
+| **DB Connector** | 🔌 Pomelo.EntityFrameworkCore.MySql | Thư viện kết nối MySQL cho EF Core |
+| **Local Server** | 🧰 Laragon | Môi trường phát triển backend + cơ sở dữ liệu |
+| **DB Manager** | 🪶 HeidiSQL / phpMyAdmin | Giao diện trực quan để quản lý MySQL |
+| **IDE / CLI** | 🧑‍💻 Visual Studio / VS Code / dotnet CLI | Dùng để phát triển, build và chạy project |
+
+---
 
 3. Cách chạy dự án
 # Store Management System
