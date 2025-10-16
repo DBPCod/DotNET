@@ -69,19 +69,33 @@ backend/
 - Redis Server
 - SMTP Server (cho gửi email)
 
-### Chạy với Docker Compose
+### Hướng dẫn chạy MySQL với Docker
 
 1. Đảm bảo Docker và Docker Compose đã được cài đặt.
 
-2. Sao chép file `.env.example` thành `.env` và điền các biến môi trường cần thiết (xem phần Biến môi trường bên dưới).
-
-3. Chạy lệnh:
+2. Khởi chạy:
 
    ```bash
-   docker-compose up --build
+   docker-compose up -d 
    ```
 
-   Điều này sẽ khởi động backend cùng với MySQL và Redis.
+3. Khởi chạy:
+
+   ```bash
+   docker ps
+   ```
+
+4. Tắt docker:
+
+   ```bash
+   docker-compose down -v
+   ```
+
+#### Chi tiết về Docker Compose
+
+File `docker-compose.yml` định nghĩa các services:
+
+- **mysql**: Database MySQL, với volume để persist data.
 
 ### Chạy mà không dùng Docker
 
