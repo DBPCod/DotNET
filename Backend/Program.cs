@@ -1,42 +1,20 @@
-using Backend.Contexts;
-using Microsoft.EntityFrameworkCore;
-var builder = WebApplication.CreateBuilder(args);
+using DotNetEnv;
 
-// Đăng ký DbContext
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("DefaultConnection"))
-    ));
+Env.Load();
 
-// Add services to the container
-builder.Services.AddControllersWithViews();
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-var app = builder.Build();
+ConfigureExtensions.ConfigureAllBuilder(builder);
 
-// Tự động migrate (tạo DB và bảng nếu chưa có)
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
-}
+WebApplication app = builder.Build();
 
-// Configure middleware
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
-}
-
-app.UseHttpsRedirection();
-app.UseStaticFiles();
-app.UseRouting();
+// Middleware
+app.UseCors(Variable.Constants.MyAllowSpecificOrigins);
+app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+// Controllers
+app.MapControllers();
+app.MapGet("/", () => "Hello World!");
 
-// Gọi hàm SeedData
-await Backend.Data.SeedData.SeedAsync(app);
 app.Run();
