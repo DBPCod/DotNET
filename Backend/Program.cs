@@ -37,6 +37,6 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// Gọi hàm SeedData
-await Backend.Data.SeedData.SeedAsync(app);
+// // Gọi hàm SeedData
+// await Backend.Data.SeedData.SeedAsync(app);
 app.Run();
