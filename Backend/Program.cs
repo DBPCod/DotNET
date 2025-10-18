@@ -17,4 +17,7 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapGet("/", () => "Hello World!");
 
+// // Gọi hàm SeedData
+// await Backend.Data.SeedData.SeedAsync(app);
+
 app.Run();
