@@ -16,18 +16,26 @@ public class RootUserInitializer(
 
         var userService = scope.ServiceProvider.GetRequiredService<UserService>();
 
+        string rootUsername = Variable.Enviroments.ROOT_USERNAME;
         string rootEmail = Variable.Enviroments.ROOT_EMAIL;
         string rootPassword = Variable.Enviroments.ROOT_PASSWORD;
         string rootFullname = Variable.Enviroments.ROOT_FULLNAME;
 
-        var user = await userService.HandleCreateUser(rootEmail, rootPassword, "ADMIN", rootFullname);
-        if (user != null)
+        try
         {
-            _logger.LogInformation("Root user created successfully");
+            var user = await userService.HandleCreateUser(rootUsername, rootEmail, rootPassword, "ADMIN", rootFullname);
+            if (user != null)
+            {
+                _logger.LogInformation("Root user created successfully");
+            }
         }
-        else
+        catch (ExceptionCustom ex)
         {
-            _logger.LogInformation("Root user already exists. Skipping creation.");
+            _logger.LogInformation($"Root user creation skipped: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error creating root user: {ex.Message}");
         }
     }
 

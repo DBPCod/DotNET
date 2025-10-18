@@ -82,6 +82,9 @@ public class AuthService(UserService userService, RedisHelper redisHelper)
 
         try
         {
+            if (string.IsNullOrEmpty(request.Username))
+                throw new ExceptionCustom(400, "Username is required");
+
             if (string.IsNullOrEmpty(request.Email))
                 throw new ExceptionCustom(400, "Email is required");
 
@@ -94,7 +97,7 @@ public class AuthService(UserService userService, RedisHelper redisHelper)
             if (request.Password != request.ConfirmPassword)
                 throw new ExceptionCustom(400, "Passwords do not match");
 
-            var user = await _userService.HandleCreateUser(request.Email, request.Password, "", "") ?? throw new ExceptionCustom(400, "Failed to create user");
+            var user = await _userService.HandleCreateUser(request.Username, request.Email, request.Password, "", "") ?? throw new ExceptionCustom(400, "Failed to create user");
             var userDto = UserMapper.MapEntityToDto(user);
 
             response.Message = "User registered successfully";
@@ -123,10 +126,13 @@ public class AuthService(UserService userService, RedisHelper redisHelper)
 
         try
         {
-            if (string.IsNullOrEmpty(Request.Email))
-                throw new ExceptionCustom(400, "Email is required");
+            if (string.IsNullOrEmpty(Request.UsernameOrEmail))
+                throw new ExceptionCustom(400, "Username or Email is required");
 
-            var user = await _userService.HandleGetUserByEmail(Request.Email) ?? throw new ExceptionCustom(404, "User not found");
+            if (string.IsNullOrEmpty(Request.Password))
+                throw new ExceptionCustom(400, "Password is required");
+
+            var user = await _userService.HandleGetUserByUsernameOrEmail(Request.UsernameOrEmail) ?? throw new ExceptionCustom(404, "User not found");
 
             if (!BCrypt.Net.BCrypt.Verify(Request.Password, user.Password))
                 throw new ExceptionCustom(403, "Invalid credentials");

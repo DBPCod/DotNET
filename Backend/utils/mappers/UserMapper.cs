@@ -9,8 +9,11 @@ public static class UserMapper
         return new UserDto
         {
             Id = entity.Id.ToString(),
+            Username = entity.Username,
             Email = entity.Email,
+            FullName = entity.FullName,
             Role = entity.Role.ToString(),
+            CreatedAt = entity.CreatedAt,
         };
     }
 
@@ -28,8 +31,11 @@ public static class UserMapper
         return new User
         {
             Id = string.IsNullOrEmpty(dto.Id) ? Guid.NewGuid() : Guid.Parse(dto.Id),
+            Username = dto.Username ?? null!,
             Email = dto.Email ?? null!,
+            FullName = dto.FullName ?? "",
             Role = Enum.TryParse<UserRole>(dto.Role, out var role) ? role : UserRole.STAFF,
+            CreatedAt = dto.CreatedAt,
         };
     }
 

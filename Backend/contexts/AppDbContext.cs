@@ -14,6 +14,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasIndex(u => u.Email)
             .IsUnique(true);
 
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.Username)
+            .IsUnique(true);
+
+        modelBuilder.Entity<User>()
+            .HasMany(u => u.Orders)
+            .WithOne(o => o.User)
+            .HasForeignKey(o => o.UserId);
+
         modelBuilder.Entity<Order>()
             .HasOne(o => o.Customer)
             .WithMany()
@@ -21,7 +30,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         modelBuilder.Entity<Order>()
             .HasOne(o => o.User)
-            .WithMany()
+            .WithMany(u => u.Orders)
             .HasForeignKey(o => o.UserId);
 
         modelBuilder.Entity<Order>()
