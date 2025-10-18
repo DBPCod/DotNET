@@ -33,7 +33,7 @@ public class RedisHosted(RedisHelper redisHelper) : IHostedService
                 }
             );
             var db = muxer.GetDatabase();
-            await _redisHelper.SetDatabase(muxer);
+            _redisHelper.SetDatabase(muxer);
         }
         catch (Exception ex)
         {

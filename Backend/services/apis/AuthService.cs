@@ -3,7 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace Backend.Services;
+namespace Backend.Services.Apis;
 
 public class AuthService(UserService userService, RedisHelper redisHelper)
 {
@@ -83,16 +83,16 @@ public class AuthService(UserService userService, RedisHelper redisHelper)
         try
         {
             if (string.IsNullOrEmpty(request.Email))
-                throw new ExceptionCustom("Email is required");
+                throw new ExceptionCustom(400, "Email is required");
 
             if (string.IsNullOrEmpty(request.Password))
-                throw new ExceptionCustom("Password is required");
+                throw new ExceptionCustom(400, "Password is required");
 
             if (string.IsNullOrEmpty(request.ConfirmPassword))
-                throw new ExceptionCustom("Confirm Password is required");
+                throw new ExceptionCustom(400, "Confirm Password is required");
 
             if (request.Password != request.ConfirmPassword)
-                throw new ExceptionCustom("Passwords do not match");
+                throw new ExceptionCustom(400, "Passwords do not match");
 
             var user = await _userService.HandleCreateUser(request.Email, request.Password, "", "") ?? throw new ExceptionCustom(400, "Failed to create user");
             var userDto = UserMapper.MapEntityToDto(user);
@@ -124,12 +124,12 @@ public class AuthService(UserService userService, RedisHelper redisHelper)
         try
         {
             if (string.IsNullOrEmpty(Request.Email))
-                throw new ExceptionCustom("Email is required");
+                throw new ExceptionCustom(400, "Email is required");
 
-            var user = await _userService.HandleGetUserByEmail(Request.Email) ?? throw new ExceptionCustom("User not found");
+            var user = await _userService.HandleGetUserByEmail(Request.Email) ?? throw new ExceptionCustom(404, "User not found");
 
             if (!BCrypt.Net.BCrypt.Verify(Request.Password, user.Password))
-                throw new ExceptionCustom("Invalid credentials");
+                throw new ExceptionCustom(403, "Invalid credentials");
 
             var userDto = UserMapper.MapEntityToDto(user);
 
@@ -193,14 +193,15 @@ public class AuthService(UserService userService, RedisHelper redisHelper)
         try
         {
             if (string.IsNullOrEmpty(email))
-                throw new ExceptionCustom("Email is required");
+                throw new ExceptionCustom(400, "Email is required");
 
             var otp = await HandleCreateAndStoreOtp(email);
 
-            await MailHelper.SendMail(email, "Your OTP Code", MailHelper.Template.OTP, new Dictionary<string, string>
+            await MailHelper.SendMail(email, "Your OTP Code", MailHelper.Template.SEND_OTP, new Dictionary<string, string>
             {
                 { "EMAIL", email },
                 { "OTP", otp },
+                { "EXPIRE_MINUTES", "5" },
             });
 
             response.Message = "OTP sent successfully";
@@ -229,17 +230,17 @@ public class AuthService(UserService userService, RedisHelper redisHelper)
         try
         {
             if (string.IsNullOrEmpty(email))
-                throw new ExceptionCustom("Email is required");
+                throw new ExceptionCustom(400, "Email is required");
 
             if (string.IsNullOrEmpty(request.Otp))
-                throw new ExceptionCustom("OTP is required");
+                throw new ExceptionCustom(400, "OTP is required");
 
             var otpKey = $"otp:{email}";
 
             var storedOTP = await _redisHelper.GetValue(otpKey);
 
             if (string.IsNullOrEmpty(storedOTP))
-                throw new ExceptionCustom("Invalid OTP");
+                throw new ExceptionCustom(400, "Invalid OTP");
 
             response.Message = "OTP verified successfully";
             response.StatusCode = 200;
@@ -267,18 +268,18 @@ public class AuthService(UserService userService, RedisHelper redisHelper)
         try
         {
             if (string.IsNullOrEmpty(email))
-                throw new ExceptionCustom("Email is required");
+                throw new ExceptionCustom(400, "Email is required");
 
             if (string.IsNullOrEmpty(request.Password))
-                throw new ExceptionCustom("Password is required");
+                throw new ExceptionCustom(400, "Password is required");
 
             if (string.IsNullOrEmpty(request.ConfirmPassword))
-                throw new ExceptionCustom("Confirm Password is required");
+                throw new ExceptionCustom(400, "Confirm Password is required");
 
             if (request.Password != request.ConfirmPassword)
-                throw new ExceptionCustom("Passwords do not match");
+                throw new ExceptionCustom(400, "Passwords do not match");
 
-            var user = await _userService.HandleGetUserByEmail(email) ?? throw new ExceptionCustom("User not found");
+            var user = await _userService.HandleGetUserByEmail(email) ?? throw new ExceptionCustom(404, "User not found");
 
             await _userService.HandleUpdateUserPassword(user, request.Password);
 
@@ -308,27 +309,27 @@ public class AuthService(UserService userService, RedisHelper redisHelper)
         try
         {
             if (string.IsNullOrEmpty(email))
-                throw new ExceptionCustom("Email is required");
+                throw new ExceptionCustom(400, "Email is required");
 
             if (string.IsNullOrEmpty(request.OldPassword))
-                throw new ExceptionCustom("Old Password is required");
+                throw new ExceptionCustom(400, "Old Password is required");
 
             if (string.IsNullOrEmpty(request.Password))
-                throw new ExceptionCustom("Password is required");
+                throw new ExceptionCustom(400, "Password is required");
 
             if (string.IsNullOrEmpty(request.ConfirmPassword))
-                throw new ExceptionCustom("Confirm Password is required");
+                throw new ExceptionCustom(400, "Confirm Password is required");
 
             if (request.Password != request.ConfirmPassword)
-                throw new ExceptionCustom("Passwords do not match");
+                throw new ExceptionCustom(400, "Passwords do not match");
 
             if (request.OldPassword == request.Password)
-                throw new ExceptionCustom("New password must be different from old password");
+                throw new ExceptionCustom(400, "New password must be different from old password");
 
-            var user = await _userService.HandleGetUserByEmail(email) ?? throw new ExceptionCustom("User not found");
+            var user = await _userService.HandleGetUserByEmail(email) ?? throw new ExceptionCustom(404, "User not found");
 
             if (!BCrypt.Net.BCrypt.Verify(request.OldPassword, user.Password))
-                throw new ExceptionCustom("Invalid credentials");
+                throw new ExceptionCustom(403, "Invalid credentials");
 
             await _userService.HandleUpdateUserPassword(user, request.Password);
 

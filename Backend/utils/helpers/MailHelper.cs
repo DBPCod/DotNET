@@ -9,7 +9,7 @@ namespace Backend.Utils.Helpers
         {
             return template switch
             {
-                Template.OTP => Path.Combine(Directory.GetCurrentDirectory(), "templates/mails", "otpTemplate.html"),
+                Template.SEND_OTP => Path.Combine(Directory.GetCurrentDirectory(), "templates/mails", "sendOtpTemplate.html"),
                 _ => throw new ExceptionCustom("Template not found"),
             };
         }
@@ -29,7 +29,7 @@ namespace Backend.Utils.Helpers
 
         public enum Template
         {
-            OTP
+            SEND_OTP
         }
 
         public static async Task SendMail(string to, string subject, Template templatePath, Dictionary<string, string> data)

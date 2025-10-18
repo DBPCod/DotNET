@@ -1,6 +1,6 @@
 global using Backend.Models;
 global using Backend.Contexts;
-global using Backend.Services;
+global using Backend.Services.Apis;
 global using Backend.Dtos;
 global using Backend.Utils.Customs;
 global using Backend.Utils.Helpers;

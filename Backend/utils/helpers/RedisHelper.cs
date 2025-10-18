@@ -1,58 +1,50 @@
 using StackExchange.Redis;
 
-namespace Backend.Utils.Helpers
+namespace Backend.Utils.Helpers;
+
+public class RedisHelper
 {
-    public class RedisHelper
+    private ConnectionMultiplexer? _connectionMultiplexer;
+
+    public void SetDatabase(ConnectionMultiplexer connectionMultiplexer)
     {
-        private ConnectionMultiplexer? _connection;
-        public IDatabase Database = null!;
+        _connectionMultiplexer = connectionMultiplexer;
+    }
 
-        public async Task SetDatabase(
-            ConnectionMultiplexer connection)
+    public IDatabase GetDatabase()
+    {
+        if (_connectionMultiplexer == null)
         {
-            _connection = connection;
-            Database = connection.GetDatabase();
+            throw new InvalidOperationException("Redis connection is not initialized.");
         }
+        return _connectionMultiplexer.GetDatabase();
+    }
 
-        public async Task StoreValue(string key, string value, TimeSpan timeSpan)
-        {
-            try
-            {
-                await Database.StringSetAsync(key, value, timeSpan);
-            }
-            catch (Exception ex)
-            {
-                throw new ExceptionCustom(ex.Message);
-            }
-        }
+    public async Task<bool> SetStringAsync(string key, string value, TimeSpan? expiry = null)
+    {
+        var db = GetDatabase();
+        return await db.StringSetAsync(key, value, expiry);
+    }
 
-        public async Task<string> GetValue(string key)
-        {
-            try
-            {
-                if (_connection == null)
-                {
-                    Console.WriteLine($"❌ Redis connection is null when getting key: {key}");
-                    throw new ExceptionCustom("Redis connection is not established");
-                }
+    public async Task<string?> GetStringAsync(string key)
+    {
+        var db = GetDatabase();
+        return await db.StringGetAsync(key);
+    }
 
-                if (!_connection.IsConnected)
-                {
-                    Console.WriteLine($"❌ Redis connection is not connected when getting key: {key}");
-                    throw new ExceptionCustom("Redis connection is not connected");
-                }
+    public async Task<bool> DeleteKeyAsync(string key)
+    {
+        var db = GetDatabase();
+        return await db.KeyDeleteAsync(key);
+    }
 
-                Console.WriteLine($"🔍 Getting Redis key: {key}");
-                var redisValue = await Database.StringGetAsync(key);
-                Console.WriteLine($"📄 Redis key {key} value: {(redisValue.IsNullOrEmpty ? "empty" : "found")}");
+    public async Task StoreValue(string key, string value, TimeSpan? expiry = null)
+    {
+        await SetStringAsync(key, value, expiry);
+    }
 
-                return redisValue.IsNullOrEmpty ? "" : redisValue.ToString();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ Redis GetValue error for key {key}: {ex.Message}");
-                throw new ExceptionCustom(ex.Message);
-            }
-        }
+    public async Task<string?> GetValue(string key)
+    {
+        return await GetStringAsync(key);
     }
 }

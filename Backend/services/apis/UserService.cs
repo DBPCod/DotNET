@@ -1,4 +1,4 @@
-namespace Backend.Services;
+namespace Backend.Services.Apis;
 
 public class UserService(UserRepository userRepository)
 {

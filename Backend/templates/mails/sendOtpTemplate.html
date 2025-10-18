@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>OTP Verification</title>
+
+  <!-- Basic styles (email clients vary in support) -->
+  <style>
+    /* Mobile responsiveness */
+    @media only screen and (max-width: 620px) {
+      .container { width: 100% !important; padding: 16px !important; }
+      .content { padding: 18px !important; }
+      .otp-box { font-size: 26px !important; padding: 14px 18px !important; }
+    }
+    /* Ensure button looks good in Gmail */
+    a.button { text-decoration: none; display: inline-block; }
+  </style>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f7fb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;">
+
+  <!-- Preheader (invisible but shown in inbox preview) -->
+  <span style="display:none; font-size:0; line-height:0; max-height:0; max-width:0; opacity:0; overflow:hidden;">
+    Your OTP code for verification — valid for {{EXPIRE_MINUTES}} minutes.
+  </span>
+
+  <!-- Wrapper table for best email client compatibility -->
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#f4f7fb; padding:24px 0;">
+    <tr>
+      <td align="center">
+        <!-- Main container -->
+        <table class="container" width="600" cellpadding="0" cellspacing="0" role="presentation" style="width:600px; max-width:600px; background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 6px 18px rgba(10,61,98,0.08);">
+          
+          <!-- Header (nav/logo area) -->
+          <tr>
+            <td style="background: linear-gradient(90deg,#0a3d62 0%, #0f4c81 100%); padding:18px 24px; text-align:left;">
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                <tr>
+                  <td style="text-align:right; color:#ffffff; font-size:14px; vertical-align:middle;">
+                    <strong>Secure Login</strong>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td class="content" style="padding:28px 42px; color:#102a43;">
+              <h2 style="margin:0 0 12px 0; color:#0a3d62; font-size:22px;">Xin chào {{EMAIL}},</h2>
+              <p style="margin:0 0 18px 0; color:#334e68; font-size:15px; line-height:1.5;">
+                Bạn (hoặc ai đó) đã yêu cầu mã xác thực. Vui lòng sử dụng mã bên dưới để hoàn tất quá trình đăng nhập. Mã sẽ hết hạn sau <strong>{{EXPIRE_MINUTES}} phút</strong>.
+              </p>
+
+              <!-- OTP box -->
+              <div style="margin:18px 0 18px 0; text-align:center;">
+                <div class="otp-box" style="display:inline-block; padding:16px 22px; border-radius:10px; background:linear-gradient(180deg,#eaf3fb, #ffffff); border:1px solid rgba(10,61,98,0.08); font-weight:700; letter-spacing:4px; font-size:28px; color:#0a3d62;">
+                  {{OTP}}
+                </div>
+              </div>
+
+              <hr style="border:none; border-top:1px solid rgba(16,42,67,0.06); margin:22px 0;" />
+
+              <p style="font-size:12px; color:#7b98ac; margin:0;">
+                Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email. Mã OTP chỉ dùng một lần.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f7fbff; padding:16px 42px; color:#4b6478; font-size:12px;">
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                <tr>
+                  <td style="vertical-align:middle;">
+                    © <span id="year">2025</span> Your Company. All rights reserved.
+                  </td>
+                  <td style="text-align:right; vertical-align:middle;">
+                    <a href="#" style="color:#0a3d62; text-decoration:none; font-weight:600; font-size:12px;">Support</a>
+                    <span style="margin:0 6px; color:#c6d7e6;">•</span>
+                    <a href="#" style="color:#0a3d62; text-decoration:none; font-weight:600; font-size:12px;">Privacy</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Small script to update year for preview clients that allow JS (most email clients will ignore JS) -->
+  <script>
+    try { document.getElementById('year').innerText = new Date().getFullYear(); } catch(e) {}
+  </script>
+</body>
+</html>

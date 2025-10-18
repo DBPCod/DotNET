@@ -27,14 +27,30 @@ public class ConfigureExtensions
 
     private static void ConfigureAddScoped(WebApplicationBuilder builder)
     {
-        builder.Services.AddScoped<MailHelper>();
-
         // Repositories
+        builder.Services.AddScoped<CategoryRepository>();
+        builder.Services.AddScoped<CustomerRepository>();
+        builder.Services.AddScoped<InventoryRepository>();
+        builder.Services.AddScoped<OrderRepository>();
+        builder.Services.AddScoped<OrderItemRepository>();
+        builder.Services.AddScoped<PaymentRepository>();
+        builder.Services.AddScoped<ProductRepository>();
+        builder.Services.AddScoped<PromotionRepository>();
+        builder.Services.AddScoped<SupplierRepository>();
         builder.Services.AddScoped<UserRepository>();
 
         // Services
-        builder.Services.AddScoped<UserService>();
         builder.Services.AddScoped<AuthService>();
+        builder.Services.AddScoped<CategoryService>();
+        builder.Services.AddScoped<CustomerService>();
+        builder.Services.AddScoped<InventoryService>();
+        builder.Services.AddScoped<OrderService>();
+        builder.Services.AddScoped<OrderItemService>();
+        builder.Services.AddScoped<PaymentService>();
+        builder.Services.AddScoped<ProductService>();
+        builder.Services.AddScoped<PromotionService>();
+        builder.Services.AddScoped<SupplierService>();
+        builder.Services.AddScoped<UserService>();
     }
 
     private static void ConfigureDevelopment(WebApplicationBuilder builder)
