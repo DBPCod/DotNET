@@ -4,19 +4,22 @@
     "http": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "launchBrowser": true,
-      "applicationUrl": "http://localhost:5105",
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:${PORT_HTTP}",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "PORT_HTTP": "4040"
       }
     },
     "https": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "launchBrowser": true,
-      "applicationUrl": "https://localhost:7017;http://localhost:5105",
+      "launchBrowser": false,
+      "applicationUrl": "https://localhost:${PORT_HTTPS};http://localhost:${PORT_HTTP_SECONDARY}",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "PORT_HTTPS": "7106",
+        "PORT_HTTP_SECONDARY": "5001"
       }
     }
   }
