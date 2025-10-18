@@ -1,5 +1,5 @@
 using DotNetEnv;
-
+using Backend.Data;
 Env.Load();
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -7,6 +7,8 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 ConfigureExtensions.ConfigureAllBuilder(builder);
 
 WebApplication app = builder.Build();
+
+await SeedData.SeedAsync(app);
 
 // Middleware
 app.UseCors(Variable.Constants.MyAllowSpecificOrigins);

@@ -16,16 +16,33 @@ public static class SeedData
 
         // Seed data in order to respect foreign key dependencies
         await SeedUsers.SeedAsync(context);
-        await SeedCustomers.SeedAsync(context);
-        await SeedCategories.SeedAsync(context);
-        await SeedSuppliers.SeedAsync(context);
-        await SeedProducts.SeedAsync(context);
-        await SeedInventory.SeedAsync(context);
-        await SeedPromotions.SeedAsync(context);
-        await SeedOrders.SeedAsync(context);
-        await SeedOrderItems.SeedAsync(context);
-        await SeedPayments.SeedAsync(context);
+        await context.SaveChangesAsync();
 
+        await SeedCustomers.SeedAsync(context);
+        await context.SaveChangesAsync();
+
+        await SeedCategories.SeedAsync(context);
+        await context.SaveChangesAsync();
+
+        await SeedSuppliers.SeedAsync(context);
+        await context.SaveChangesAsync();
+
+        await SeedProducts.SeedAsync(context);
+        await context.SaveChangesAsync();
+
+        await SeedInventory.SeedAsync(context);
+        await context.SaveChangesAsync();
+
+        await SeedPromotions.SeedAsync(context);
+        await context.SaveChangesAsync();
+
+        await SeedOrders.SeedAsync(context);
+        await context.SaveChangesAsync();
+
+        await SeedOrderItems.SeedAsync(context);
+        await context.SaveChangesAsync();
+
+        await SeedPayments.SeedAsync(context);
         await context.SaveChangesAsync();
     }
 }
