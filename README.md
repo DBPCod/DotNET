@@ -49,35 +49,21 @@ cd DotNet
 #### Sử dụng Laragon (Khuyến nghị)
 1. Tải và cài đặt [Laragon](https://laragon.org/)
 2. Khởi động Laragon
-3. Tạo database mới tên `store_management` trong phpMyAdmin
+3. Tạo database mới tên `spot247` trong phpMyAdmin
 
 #### Hoặc MySQL thủ công
 ```sql
-CREATE DATABASE store_management;
+CREATE DATABASE spot247;
 ```
 
-### 3. Cấu Hình Connection String
-
-Kiểm tra file `backend/appsettings.json`:
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Port=3306;Database=store_management;Uid=root;Pwd=;"
-  }
-}
-```
-
-**Lưu ý:** Thay đổi `Pwd` nếu MySQL có password.
-
-### 4. Cài Đặt Entity Framework Tools
+### 3. Cài Đặt Entity Framework Tools
 
 ```bash
 cd backend
 dotnet tool install --global dotnet-ef
 ```
 
-### 5. Chạy Migration và Seed Data
+### 4. Chạy Migration và Seed Data
 
 ## Giới thiệu
 
