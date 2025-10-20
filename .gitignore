@@ -1,0 +1,26 @@
+# Build artifacts
+bin/
+obj/
+
+# Build caches and intermediates
+*.cache
+*.pdb
+*.dll
+*.exe
+*.assets.cache
+*.FileListAbsolute.txt
+*.nuget.cache
+*.nuget.g.props
+*.nuget.g.targets
+
+# VS and Rider
+.vs/
+.idea/
+
+# ASP.NET + Blazor + WebAssembly build outputs
+*.wasm
+*.tmp-webcil/
+
+# Node frontend (if applicable)
+node_modules/
+dist/
