@@ -45,6 +45,7 @@ public class EnviromentVariables
 
     // Mail
     public string ROOT_FULLNAME { get; } = Environment.GetEnvironmentVariable("ROOT_FULLNAME") ?? "";
+    public string ROOT_USERNAME { get; } = Environment.GetEnvironmentVariable("ROOT_USERNAME") ?? "";
     public string ROOT_EMAIL { get; } = Environment.GetEnvironmentVariable("ROOT_EMAIL") ?? "";
     public string ROOT_PASSWORD { get; } = Environment.GetEnvironmentVariable("ROOT_PASSWORD") ?? "";
 }

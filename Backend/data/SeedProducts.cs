@@ -1,0 +1,69 @@
+using Microsoft.EntityFrameworkCore;
+using Backend.Contexts;
+using Backend.Models;
+
+namespace Backend.Data;
+
+public static class SeedProducts
+{
+    public static async Task SeedAsync(AppDbContext context)
+    {
+        if (!await context.Product.AnyAsync())
+        {
+            var products = new List<Product>
+            {
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Bánh kẹo").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty ABC").Id, ProductName = "Coca Cola lon", Barcode = "8900000000001", Price = 314838, Unit = "hộp" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Đồ uống").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty 123").Id, ProductName = "Pepsi lon", Barcode = "8900000000002", Price = 114807, Unit = "cái" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Gia vị").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty 123").Id, ProductName = "Trà Xanh 0 độ", Barcode = "8900000000003", Price = 415725, Unit = "tuýp" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Bánh kẹo").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty ABC").Id, ProductName = "Sting dâu", Barcode = "8900000000004", Price = 351670, Unit = "cái" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Gia vị").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty XYZ").Id, ProductName = "Red Bull", Barcode = "8900000000005", Price = 402179, Unit = "lon" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Bánh kẹo").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty XYZ").Id, ProductName = "Bánh Oreo", Barcode = "8900000000006", Price = 209283, Unit = "chai" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Mỹ phẩm").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty 123").Id, ProductName = "Bánh Chocopie", Barcode = "8900000000007", Price = 212528, Unit = "lon" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Đồ uống").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty XYZ").Id, ProductName = "Kẹo Alpenliebe", Barcode = "8900000000008", Price = 34313, Unit = "lon" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Mỹ phẩm").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty ABC").Id, ProductName = "Kẹo bạc hà", Barcode = "8900000000009", Price = 316289, Unit = "cái" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Đồ uống").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty XYZ").Id, ProductName = "Socola KitKat", Barcode = "8900000000010", Price = 139959, Unit = "chai" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Mỹ phẩm").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty ABC").Id, ProductName = "Nước mắm Nam Ngư", Barcode = "8900000000011", Price = 51792, Unit = "chai" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Bánh kẹo").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty XYZ").Id, ProductName = "Nước tương Maggi", Barcode = "8900000000012", Price = 462539, Unit = "lon" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Mỹ phẩm").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty 123").Id, ProductName = "Muối i-ốt", Barcode = "8900000000013", Price = 173302, Unit = "cái" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Đồ uống").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty ABC").Id, ProductName = "Bột ngọt Ajinomoto", Barcode = "8900000000014", Price = 443069, Unit = "cái" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Bánh kẹo").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty XYZ").Id, ProductName = "Dầu ăn Tường An", Barcode = "8900000000015", Price = 281354, Unit = "tuýp" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Bánh kẹo").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty ABC").Id, ProductName = "Nồi cơm điện", Barcode = "8900000000016", Price = 405347, Unit = "hộp" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Đồ uống").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty 123").Id, ProductName = "Ấm siêu tốc", Barcode = "8900000000017", Price = 113087, Unit = "chai" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Gia vị").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty XYZ").Id, ProductName = "Quạt máy", Barcode = "8900000000018", Price = 69968, Unit = "hộp" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Gia vị").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty 123").Id, ProductName = "Bếp gas mini", Barcode = "8900000000019", Price = 416845, Unit = "lon" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Gia vị").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty 123").Id, ProductName = "Máy xay sinh tố", Barcode = "8900000000020", Price = 334564, Unit = "hộp" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Đồ uống").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty ABC").Id, ProductName = "Sữa rửa mặt Hazeline", Barcode = "8900000000021", Price = 188475, Unit = "lon" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Đồ gia dụng").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty ABC").Id, ProductName = "Kem dưỡng da Pond's", Barcode = "8900000000022", Price = 413840, Unit = "hộp" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Gia vị").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty 123").Id, ProductName = "Dầu gội Sunsilk", Barcode = "8900000000023", Price = 158950, Unit = "tuýp" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Đồ gia dụng").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty XYZ").Id, ProductName = "Sữa tắm Dove", Barcode = "8900000000024", Price = 336928, Unit = "chai" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Đồ uống").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty ABC").Id, ProductName = "Nước hoa Romano", Barcode = "8900000000025", Price = 352508, Unit = "cái" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Đồ uống").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty ABC").Id, ProductName = "Cà phê G7", Barcode = "8900000000026", Price = 201228, Unit = "lon" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Bánh kẹo").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty ABC").Id, ProductName = "Trà Lipton", Barcode = "8900000000027", Price = 38039, Unit = "cái" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Bánh kẹo").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty XYZ").Id, ProductName = "Sữa Vinamilk", Barcode = "8900000000028", Price = 252845, Unit = "chai" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Gia vị").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty ABC").Id, ProductName = "Sữa TH True Milk", Barcode = "8900000000029", Price = 35278, Unit = "hộp" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Gia vị").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty XYZ").Id, ProductName = "Nước suối Lavie", Barcode = "8900000000030", Price = 331637, Unit = "lon" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Mỹ phẩm").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty 123").Id, ProductName = "Khăn giấy Tempo", Barcode = "8900000000031", Price = 102525, Unit = "chai" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Đồ gia dụng").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty 123").Id, ProductName = "Giấy vệ sinh Pulppy", Barcode = "8900000000032", Price = 495429, Unit = "chai" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Gia vị").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty XYZ").Id, ProductName = "Bình nước Lock&Lock", Barcode = "8900000000033", Price = 354771, Unit = "gói" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Bánh kẹo").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty ABC").Id, ProductName = "Hộp nhựa Tupperware", Barcode = "8900000000034", Price = 297415, Unit = "cái" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Đồ uống").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty ABC").Id, ProductName = "Dao Inox", Barcode = "8900000000035", Price = 47523, Unit = "hộp" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Gia vị").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty ABC").Id, ProductName = "Bàn chải Colgate", Barcode = "8900000000036", Price = 136417, Unit = "chai" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Bánh kẹo").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty XYZ").Id, ProductName = "Kem đánh răng P/S", Barcode = "8900000000037", Price = 93713, Unit = "hộp" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Bánh kẹo").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty 123").Id, ProductName = "Nước súc miệng Listerine", Barcode = "8900000000038", Price = 223906, Unit = "gói" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Đồ uống").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty XYZ").Id, ProductName = "Bông tẩy trang", Barcode = "8900000000039", Price = 317819, Unit = "tuýp" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Đồ gia dụng").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty ABC").Id, ProductName = "Khẩu trang 3M", Barcode = "8900000000040", Price = 464252, Unit = "gói" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Gia vị").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty ABC").Id, ProductName = "Bánh mì sandwich", Barcode = "8900000000041", Price = 279350, Unit = "cái" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Mỹ phẩm").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty XYZ").Id, ProductName = "Mì gói Hảo Hảo", Barcode = "8900000000042", Price = 9413, Unit = "hộp" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Đồ uống").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty XYZ").Id, ProductName = "Mì Omachi", Barcode = "8900000000043", Price = 26616, Unit = "hộp" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Mỹ phẩm").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty XYZ").Id, ProductName = "Bún khô", Barcode = "8900000000044", Price = 350911, Unit = "gói" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Gia vị").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty ABC").Id, ProductName = "Phở ăn liền", Barcode = "8900000000045", Price = 407779, Unit = "tuýp" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Đồ uống").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty ABC").Id, ProductName = "Nước ngọt Sprite", Barcode = "8900000000046", Price = 230083, Unit = "hộp" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Đồ uống").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty 123").Id, ProductName = "Trà sữa đóng chai", Barcode = "8900000000047", Price = 15130, Unit = "cái" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Gia vị").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty 123").Id, ProductName = "Snack Oishi", Barcode = "8900000000048", Price = 43415, Unit = "cái" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Đồ gia dụng").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty XYZ").Id, ProductName = "Snack Lay's", Barcode = "8900000000049", Price = 83536, Unit = "tuýp" },
+                new Product { CategoryId = context.Category.First(c => c.CategoryName == "Đồ uống").Id, SupplierId = context.Supplier.First(s => s.Name == "Công ty XYZ").Id, ProductName = "Kẹo dẻo Haribo", Barcode = "8900000000050", Price = 328680, Unit = "cái" }
+            };
+            await context.Product.AddRangeAsync(products);
+        }
+    }
+}

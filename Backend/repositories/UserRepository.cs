@@ -19,6 +19,19 @@ public class UserRepository(AppDbContext context)
         }
     }
 
+    public async Task<User?> HandleGetUserByUsername(string username)
+    {
+        try
+        {
+            return await _context.User
+                .FirstOrDefaultAsync(c => c.Username == username);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception(ex.Message);
+        }
+    }
+
     public async Task<User> HandleCreateUser(User user)
     {
         try
