@@ -8,6 +8,8 @@ ConfigureExtensions.ConfigureAllBuilder(builder);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<UserRepository>();
 
 WebApplication app = builder.Build();
 
