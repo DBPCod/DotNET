@@ -1,3 +1,4 @@
+
 # 🏬 Store Management System
 
 ## 🎯 1. Mục tiêu dự án
@@ -52,6 +53,7 @@ cd DotNet
 3. Tạo database mới tên `spot247` trong phpMyAdmin
 
 #### Hoặc MySQL thủ công
+>>>>>>> main
 ```sql
 CREATE DATABASE spot247;
 ```
