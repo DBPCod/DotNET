@@ -1,0 +1,32 @@
+# Blazor WebAssembly build artifacts
+wwwroot/css/
+wwwroot/js/
+wwwroot/*.map
+wwwroot/*.gz
+wwwroot/*.br
+
+# Local HTTPS development certificates
+*.pfx
+*.p12
+
+#bin
+bin
+
+# VS-generated static web assets
+obj
+obj/Debug/net*/staticwebassets/
+obj/Release/net*/staticwebassets/
+
+# Application cache and local publish
+wwwroot/_framework/
+wwwroot/_content/
+wwwroot/service-worker-assets.js
+wwwroot/service-worker.js
+wwwroot/service-worker.published.js
+wwwroot/assets.manifest.json
+
+# Node modules if using npm for client assets
+**/node_modules/
+
+# Coverage (if using test with wasm)
+*.lcov
