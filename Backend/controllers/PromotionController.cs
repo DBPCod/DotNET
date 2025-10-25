@@ -86,9 +86,7 @@ public class PromotionController(PromotionService promotionService) : Controller
                 CurrentPage = request.Page,
                 PageSize = request.PageSize,
                 TotalCount = totalCount,
-                TotalPages = totalPages,
-                HasPreviousPage = request.Page > 1,
-                HasNextPage = request.Page < totalPages
+                TotalPages = totalPages
             };
         }
         catch (ExceptionCustom ex)

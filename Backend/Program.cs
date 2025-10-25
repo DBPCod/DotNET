@@ -8,7 +8,8 @@ ConfigureExtensions.ConfigureAllBuilder(builder);
 
 WebApplication app = builder.Build();
 
-await SeedData.SeedAsync(app);
+// Tắt seed data
+// await SeedData.SeedAsync(app);
 
 // Middleware
 app.UseCors(Variable.Constants.MyAllowSpecificOrigins);
