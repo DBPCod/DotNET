@@ -1,0 +1,253 @@
+@page "/admin/inventory"
+@layout AdminLayout
+
+<div class="admin-page">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2>Quản lý tồn kho</h2>
+                <p class="text-muted">Theo dõi và quản lý kho hàng</p>
+            </div>
+            <div>
+                <button class="btn btn-outline-success me-2">
+                    <i class="bi bi-download"></i> Xuất báo cáo
+                </button>
+                <button class="btn btn-primary">
+                    <i class="bi bi-plus"></i> Nhập kho
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="inventory-stats">
+        <div class="row">
+            <div class="col-md-3">  
+                <div class="stat-card">
+                    <div class="stat-icon bg-success">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>1,234</h3>
+                        <p>Còn hàng</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>45</h3>
+                        <p>Sắp hết hàng</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-danger">
+                        <i class="bi bi-x-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>12</h3>
+                        <p>Hết hàng</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-info">
+                        <i class="bi bi-box"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>$89,500</h3>
+                        <p>Giá trị tồn kho</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="page-filters">
+        <div class="row">
+            <div class="col-md-3">
+                <input type="text" class="form-control" placeholder="Tìm kiếm sản phẩm..." />
+            </div>
+            <div class="col-md-2">
+                <select class="form-select">
+                    <option>Tất cả trạng thái</option>
+                    <option>Còn hàng</option>
+                    <option>Sắp hết hàng</option>
+                    <option>Hết hàng</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select">
+                    <option>Tất cả danh mục</option>
+                    <option>Điện tử</option>
+                    <option>Thời trang</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <input type="number" class="form-control" placeholder="Số lượng tối thiểu" />
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary w-100">Lọc</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="page-content">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Sản phẩm</th>
+                                <th>SKU</th>
+                                <th>Tồn kho</th>
+                                <th>Giá nhập</th>
+                                <th>Giá bán</th>
+                                <th>Trạng thái</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="product-image me-3">
+                                            <i class="bi bi-image"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">iPhone 15 Pro</div>
+                                            <small class="text-muted">Điện tử</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>IP15P-001</td>
+                                <td>
+                                    <span class="badge bg-success">25</span>
+                                </td>
+                                <td>$800.00</td>
+                                <td>$999.00</td>
+                                <td><span class="badge bg-success">Còn hàng</span></td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-info">
+                                            <i class="bi bi-arrow-up"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .admin-page {
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .page-header {
+        margin-bottom: 2rem;
+    }
+    
+    .page-header h2 {
+        margin-bottom: 0.5rem;
+        color: #2c3e50;
+    }
+    
+    .inventory-stats {
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: transform 0.2s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+    }
+    
+    .stat-content h3 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+    
+    .stat-content p {
+        margin: 0;
+        color: #7f8c8d;
+        font-weight: 500;
+    }
+    
+    .page-filters {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .page-content .card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .product-image {
+        width: 50px;
+        height: 50px;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+        font-size: 1.5rem;
+    }
+    
+    .table th {
+        background-color: #f8f9fa;
+        border-top: none;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .btn-group .btn {
+        margin: 0 2px;
+    }
+</style>

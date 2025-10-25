@@ -1,7 +1,197 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Cửa hàng bán lẻ - Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <div class="hero-content">
+                    <h1 class="hero-title">Cửa hàng bán lẻ</h1>
+                    <p class="hero-subtitle">Hệ thống quản lý cửa hàng bán lẻ hiện đại với đầy đủ các sản phẩm từ đồ uống, bánh kẹo, gia vị đến đồ gia dụng và mỹ phẩm</p>
+                    <div class="hero-actions">
+                        <a href="/admin-access" class="btn btn-primary btn-lg me-3">
+                            <i class="bi bi-shield-check"></i> Quản trị cửa hàng
+                        </a>
+                        <a href="/counter" class="btn btn-outline-primary btn-lg">
+                            <i class="bi bi-info-circle"></i> Tìm hiểu thêm
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="hero-image">
+                    <div class="feature-cards">
+                        <div class="feature-card">
+                            <i class="bi bi-cup-hot"></i>
+                            <h4>Đồ uống</h4>
+                            <p>Coca Cola, Pepsi, Trà xanh, Cà phê...</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="bi bi-cake"></i>
+                            <h4>Bánh kẹo</h4>
+                            <p>Oreo, Chocopie, Kẹo, Socola...</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="bi bi-shop"></i>
+                            <h4>Gia vị</h4>
+                            <p>Nước mắm, Tương, Muối, Bột ngọt...</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="bi bi-house-gear"></i>
+                            <h4>Gia dụng</h4>
+                            <p>Nồi cơm, Ấm siêu tốc, Quạt máy...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-Welcome to your new app.
+<div class="stats-section">
+    <div class="container">
+        <div class="row text-center">
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <h3>50+</h3>
+                    <p>Sản phẩm đa dạng</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <h3>5</h3>
+                    <p>Danh mục chính</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <h3>20+</h3>
+                    <p>Khách hàng</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <h3>30+</h3>
+                    <p>Đơn hàng</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hero-section {
+        min-height: 80vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        padding: 4rem 0;
+    }
+    
+    .hero-content {
+        text-align: left;
+    }
+    
+    .hero-title {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        color: white;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.25rem;
+        margin-bottom: 2rem;
+        color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .hero-actions .btn {
+        font-weight: 600;
+        padding: 0.75rem 2rem;
+    }
+    
+    .hero-image {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .feature-cards {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+        max-width: 500px;
+    }
+    
+    .feature-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: transform 0.3s ease;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .feature-card i {
+        font-size: 2rem;
+        color: #e74c3c;
+        margin-bottom: 1rem;
+    }
+    
+    .feature-card h4 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: white;
+    }
+    
+    .feature-card p {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.8);
+        margin: 0;
+    }
+    
+    .stats-section {
+        padding: 4rem 0;
+        background-color: #f8f9fa;
+    }
+    
+    .stat-item {
+        padding: 2rem 1rem;
+    }
+    
+    .stat-item h3 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-item p {
+        color: #7f8c8d;
+        font-weight: 500;
+        margin: 0;
+    }
+    
+    @@media (max-width: 768px) {
+        .hero-title {
+            font-size: 2rem;
+        }
+        
+        .feature-cards {
+            grid-template-columns: 1fr;
+            margin-top: 2rem;
+        }
+        
+        .hero-content {
+            text-align: center;
+        }
+    }
+</style>

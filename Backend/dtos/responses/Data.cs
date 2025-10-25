@@ -9,9 +9,12 @@ public class Data
     // Promotion
     public PromotionDto? Promotion { get; set; }
     public ICollection<PromotionDto>? Promotions { get; set; }
+
+    // Promotion utilities
     public ValidatePromotionResponse? ValidationResult { get; set; }
     public ApplyPromoResponse? ApplyPromoResult { get; set; }
 
+    // Pagination (áp dụng khi list nhiều item)
     public PaginationInfo? Pagination { get; set; }
 }
 
@@ -21,6 +24,6 @@ public class PaginationInfo
     public int PageSize { get; set; }
     public int TotalCount { get; set; }
     public int TotalPages { get; set; }
-    public bool HasPreviousPage { get; set; }
-    public bool HasNextPage { get; set; }
+    public bool HasPreviousPage => CurrentPage > 1;
+    public bool HasNextPage => CurrentPage < TotalPages;
 }

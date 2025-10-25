@@ -1,0 +1,155 @@
+@page "/admin/customers"
+@layout AdminLayout
+
+<div class="admin-page">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2>Quản lý khách hàng</h2>
+                <p class="text-muted">Danh sách và thông tin khách hàng</p>
+            </div>
+            <button class="btn btn-primary">
+                <i class="bi bi-plus"></i> Thêm khách hàng
+            </button>
+        </div>
+    </div>
+    
+    <div class="page-filters">
+        <div class="row">
+            <div class="col-md-4">
+                <input type="text" class="form-control" placeholder="Tìm kiếm khách hàng..." />
+            </div>
+            <div class="col-md-3">
+                <select class="form-select">
+                    <option>Tất cả trạng thái</option>
+                    <option>Hoạt động</option>
+                    <option>Không hoạt động</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select">
+                    <option>Sắp xếp theo</option>
+                    <option>Tên A-Z</option>
+                    <option>Ngày đăng ký</option>
+                    <option>Số đơn hàng</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary w-100">Lọc</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="page-content">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Khách hàng</th>
+                                <th>Liên hệ</th>
+                                <th>Địa chỉ</th>
+                                <th>Số đơn hàng</th>
+                                <th>Tổng chi tiêu</th>
+                                <th>Trạng thái</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar me-3">A</div>
+                                        <div>
+                                            <div class="fw-bold">Nguyễn Văn A</div>
+                                            <small class="text-muted">ID: CUS001</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div>
+                                        <div>nguyenvana@email.com</div>
+                                        <small class="text-muted">0123456789</small>
+                                    </div>
+                                </td>
+                                <td>123 Đường ABC, Quận 1, TP.HCM</td>
+                                <td><span class="badge bg-primary">5</span></td>
+                                <td>
+                                    <div class="fw-bold text-success">$2,500.00</div>
+                                </td>
+                                <td><span class="badge bg-success">Hoạt động</span></td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-info">
+                                            <i class="bi bi-chat"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .admin-page {
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .page-header {
+        margin-bottom: 2rem;
+    }
+    
+    .page-header h2 {
+        margin-bottom: 0.5rem;
+        color: #2c3e50;
+    }
+    
+    .page-filters {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .page-content .card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .avatar {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    .table th {
+        background-color: #f8f9fa;
+        border-top: none;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .btn-group .btn {
+        margin: 0 2px;
+    }
+</style>
