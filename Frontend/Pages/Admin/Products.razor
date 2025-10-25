@@ -20,11 +20,13 @@
                 <input type="text" class="form-control" placeholder="Tìm kiếm sản phẩm..." />
             </div>
             <div class="col-md-2">
-                <select class="form-select">
+                <select class="form-select">    
                     <option>Tất cả danh mục</option>
-                    <option>Điện tử</option>
-                    <option>Thời trang</option>
-                    <option>Gia dụng</option>
+                    <option>Đồ uống</option>
+                    <option>Bánh kẹo</option>
+                    <option>Gia vị</option>
+                    <option>Đồ gia dụng</option>
+                    <option>Mỹ phẩm</option>
                 </select>
             </div>
             <div class="col-md-2">
@@ -77,20 +79,20 @@
                                 <td><input type="checkbox" class="form-check-input" /></td>
                                 <td>
                                     <div class="product-image">
-                                        <i class="bi bi-image"></i>
+                                        <i class="bi bi-cup-hot"></i>
                                     </div>
                                 </td>
                                 <td>
                                     <div>
-                                        <div class="fw-bold">iPhone 15 Pro</div>
-                                        <small class="text-muted">SKU: IP15P-001</small>
+                                        <div class="fw-bold">Coca Cola lon</div>
+                                        <small class="text-muted">Barcode: 8900000000001</small>
                                     </div>
                                 </td>
-                                <td><span class="badge bg-info">Điện tử</span></td>
+                                <td><span class="badge bg-primary">Đồ uống</span></td>
                                 <td>
                                     <div>
-                                        <div class="fw-bold text-success">$999.00</div>
-                                        <small class="text-muted">$1,199.00</small>
+                                        <div class="fw-bold text-success">314,838 VNĐ</div>
+                                        <small class="text-muted">Đơn vị: hộp</small>
                                     </div>
                                 </td>
                                 <td>
@@ -115,24 +117,62 @@
                                 <td><input type="checkbox" class="form-check-input" /></td>
                                 <td>
                                     <div class="product-image">
-                                        <i class="bi bi-image"></i>
+                                        <i class="bi bi-cake"></i>
                                     </div>
                                 </td>
                                 <td>
                                     <div>
-                                        <div class="fw-bold">Samsung Galaxy S24</div>
-                                        <small class="text-muted">SKU: SGS24-002</small>
+                                        <div class="fw-bold">Bánh Oreo</div>
+                                        <small class="text-muted">Barcode: 8900000000006</small>
                                     </div>
                                 </td>
-                                <td><span class="badge bg-info">Điện tử</span></td>
+                                <td><span class="badge bg-warning">Bánh kẹo</span></td>
                                 <td>
                                     <div>
-                                        <div class="fw-bold text-success">$899.00</div>
-                                        <small class="text-muted">$999.00</small>
+                                        <div class="fw-bold text-success">209,283 VNĐ</div>
+                                        <small class="text-muted">Đơn vị: chai</small>
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="badge bg-warning">5</span>
+                                    <span class="badge bg-success">105</span>
+                                </td>
+                                <td><span class="badge bg-success">Còn hàng</span></td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="form-check-input" /></td>
+                                <td>
+                                    <div class="product-image">
+                                        <i class="bi bi-shop"></i>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div>
+                                        <div class="fw-bold">Nước mắm Nam Ngư</div>
+                                        <small class="text-muted">Barcode: 8900000000011</small>
+                                    </div>
+                                </td>
+                                <td><span class="badge bg-info">Gia vị</span></td>
+                                <td>
+                                    <div>
+                                        <div class="fw-bold text-success">51,792 VNĐ</div>
+                                        <small class="text-muted">Đơn vị: chai</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-warning">69</span>
                                 </td>
                                 <td><span class="badge bg-warning">Sắp hết hàng</span></td>
                                 <td>
@@ -174,6 +214,8 @@
 <style>
     .admin-page {
         max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
     }
     
     .page-header {
