@@ -19,17 +19,18 @@ public class Promotion
     public string? Description { get; set; }
 
     [Required]
+    [MaxLength(20)]
     [Column("discount_type")]
     public string DiscountType { get; set; } = ""; // 'percent' or 'fixed'
 
     [Column("discount_value", TypeName = "decimal(10,2)")]
-    public decimal DiscountValue { get; set; }
+    public decimal DiscountValue { get; set; } = 0;
 
     [Column("start_date", TypeName = "date")]
-    public DateTime StartDate { get; set; }
+    public DateTime StartDate { get; set; } = DateTime.Today;
 
     [Column("end_date", TypeName = "date")]
-    public DateTime EndDate { get; set; }
+    public DateTime EndDate { get; set; } = DateTime.Today.AddDays(30);
 
     [Column("min_order_amount", TypeName = "decimal(10,2)")]
     public decimal MinOrderAmount { get; set; } = 0;
@@ -40,6 +41,7 @@ public class Promotion
     [Column("used_count")]
     public int UsedCount { get; set; } = 0;
 
+    [MaxLength(20)]
     [Column("status")]
     public string Status { get; set; } = "active"; // 'active' or 'inactive'
 }

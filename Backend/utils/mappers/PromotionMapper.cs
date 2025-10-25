@@ -2,7 +2,7 @@ namespace Backend.Utils.Mappers;
 
 public static class PromotionMapper
 {
-    public static PromotionDto MapEntityToDto(Promotion entity)
+    public static PromotionDto MapEntityToDto(Promotion entity, bool canEdit = true)
     {
         if (entity == null) return null!;
 
@@ -19,14 +19,15 @@ public static class PromotionMapper
             UsageLimit = entity.UsageLimit,
             UsedCount = entity.UsedCount,
             Status = entity.Status,
+            CanEdit = canEdit
         };
     }
 
-    public static List<PromotionDto> MapListEntityToListDto(IEnumerable<Promotion> entities)
+    public static List<PromotionDto> MapListEntityToListDto(IEnumerable<Promotion> entities, bool canEdit = true)
     {
         return [.. entities
                 .Where(p => p != null)
-                .Select(MapEntityToDto)];
+                .Select(p => MapEntityToDto(p, canEdit))];
     }
 
     public static Promotion MapDtoToEntity(PromotionDto dto)

@@ -13,4 +13,5 @@ public class PromotionDto
     public int UsageLimit { get; set; }
     public int UsedCount { get; set; }
     public string Status { get; set; } = "";
+    public bool CanEdit { get; set; } = true; // Có thể sửa promo_code hay không
 }
