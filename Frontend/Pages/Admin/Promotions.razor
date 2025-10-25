@@ -1,0 +1,215 @@
+@page "/admin/promotions"
+@layout AdminLayout
+
+<div class="admin-page">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2>Quản lý khuyến mãi</h2>
+                <p class="text-muted">Tạo và quản lý các chương trình khuyến mãi</p>
+            </div>
+            <button class="btn btn-primary">
+                <i class="bi bi-plus"></i> Tạo khuyến mãi
+            </button>
+        </div>
+    </div>
+    
+    <div class="page-filters">
+        <div class="row">
+            <div class="col-md-4">
+                <input type="text" class="form-control" placeholder="Tìm kiếm khuyến mãi..." />
+            </div>
+            <div class="col-md-3">
+                <select class="form-select">
+                    <option>Tất cả trạng thái</option>
+                    <option>Đang hoạt động</option>
+                    <option>Sắp bắt đầu</option>
+                    <option>Đã kết thúc</option>
+                    <option>Tạm dừng</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select">
+                    <option>Tất cả loại</option>
+                    <option>Giảm giá %</option>
+                    <option>Giảm giá cố định</option>
+                    <option>Mua 1 tặng 1</option>
+                    <option>Miễn phí vận chuyển</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary w-100">Lọc</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="page-content">
+        <div class="row">
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card promotion-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h5 class="card-title">Black Friday 2024</h5>
+                            <span class="badge bg-success">Đang hoạt động</span>
+                        </div>
+                        <p class="card-text text-muted">Giảm giá 50% cho tất cả sản phẩm điện tử</p>
+                        <div class="promotion-details">
+                            <div class="detail-item">
+                                <i class="bi bi-calendar"></i>
+                                <span>01/11/2024 - 30/11/2024</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-percent"></i>
+                                <span>Giảm 50%</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-people"></i>
+                                <span>1,234 lượt sử dụng</span>
+                            </div>
+                        </div>
+                        <div class="card-actions mt-3">
+                            <button class="btn btn-sm btn-outline-primary me-2">
+                                <i class="bi bi-eye"></i> Xem
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning me-2">
+                                <i class="bi bi-pencil"></i> Sửa
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i> Xóa
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card promotion-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h5 class="card-title">Mùa hè 2024</h5>
+                            <span class="badge bg-warning">Sắp bắt đầu</span>
+                        </div>
+                        <p class="card-text text-muted">Giảm giá 30% cho sản phẩm thời trang</p>
+                        <div class="promotion-details">
+                            <div class="detail-item">
+                                <i class="bi bi-calendar"></i>
+                                <span>01/06/2024 - 31/08/2024</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-percent"></i>
+                                <span>Giảm 30%</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-people"></i>
+                                <span>0 lượt sử dụng</span>
+                            </div>
+                        </div>
+                        <div class="card-actions mt-3">
+                            <button class="btn btn-sm btn-outline-primary me-2">
+                                <i class="bi bi-eye"></i> Xem
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning me-2">
+                                <i class="bi bi-pencil"></i> Sửa
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i> Xóa
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card promotion-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h5 class="card-title">Mua 1 tặng 1</h5>
+                            <span class="badge bg-secondary">Đã kết thúc</span>
+                        </div>
+                        <p class="card-text text-muted">Mua 1 sản phẩm bất kỳ tặng 1 sản phẩm tương tự</p>
+                        <div class="promotion-details">
+                            <div class="detail-item">
+                                <i class="bi bi-calendar"></i>
+                                <span>01/01/2024 - 31/01/2024</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-gift"></i>
+                                <span>Mua 1 tặng 1</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-people"></i>
+                                <span>567 lượt sử dụng</span>
+                            </div>
+                        </div>
+                        <div class="card-actions mt-3">
+                            <button class="btn btn-sm btn-outline-primary me-2">
+                                <i class="bi bi-eye"></i> Xem
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning me-2">
+                                <i class="bi bi-pencil"></i> Sửa
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i> Xóa
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .admin-page {
+        max-width: 1200px;
+    }
+    
+    .page-header {
+        margin-bottom: 2rem;
+    }
+    
+    .page-header h2 {
+        margin-bottom: 0.5rem;
+        color: #2c3e50;
+    }
+    
+    .page-filters {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .promotion-card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease;
+    }
+    
+    .promotion-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .promotion-details {
+        margin: 1rem 0;
+    }
+    
+    .detail-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    .detail-item i {
+        margin-right: 0.5rem;
+        width: 16px;
+    }
+    
+    .card-actions .btn {
+        font-size: 0.8rem;
+    }
+</style>

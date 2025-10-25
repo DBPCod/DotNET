@@ -1,0 +1,276 @@
+@page "/admin/discount-codes"
+@layout AdminLayout
+
+<div class="admin-page">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2>Quản lý mã giảm giá</h2>
+                <p class="text-muted">Tạo và quản lý các mã giảm giá</p>
+            </div>
+            <button class="btn btn-primary">
+                <i class="bi bi-plus"></i> Tạo mã giảm giá
+            </button>
+        </div>
+    </div>
+    
+    <div class="page-filters">
+        <div class="row">
+            <div class="col-md-3">
+                <input type="text" class="form-control" placeholder="Tìm kiếm mã giảm giá..." />
+            </div>
+            <div class="col-md-2">
+                <select class="form-select">
+                    <option>Tất cả trạng thái</option>
+                    <option>Hoạt động</option>
+                    <option>Hết hạn</option>
+                    <option>Chưa kích hoạt</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select">
+                    <option>Tất cả loại</option>
+                    <option>Phần trăm</option>
+                    <option>Số tiền cố định</option>
+                    <option>Miễn phí vận chuyển</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <input type="date" class="form-control" placeholder="Ngày hết hạn" />
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary w-100">Lọc</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="page-content">
+        <div class="row">
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card discount-card">
+                    <div class="card-body">
+                        <div class="discount-header">
+                            <div class="discount-code">
+                                <h5>BLACKFRIDAY50</h5>
+                                <span class="badge bg-success">Hoạt động</span>
+                            </div>
+                            <div class="discount-type">
+                                <i class="bi bi-percent"></i>
+                                <span>Giảm 50%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="discount-details">
+                            <div class="detail-item">
+                                <i class="bi bi-calendar"></i>
+                                <span>Hết hạn: 30/11/2024</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-people"></i>
+                                <span>Đã sử dụng: 234/1000</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-currency-dollar"></i>
+                                <span>Giá trị tối thiểu: $100</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-tag"></i>
+                                <span>Áp dụng: Tất cả sản phẩm</span>
+                            </div>
+                        </div>
+                        
+                        <div class="discount-actions">
+                            <button class="btn btn-sm btn-outline-primary me-2">
+                                <i class="bi bi-eye"></i> Xem
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning me-2">
+                                <i class="bi bi-pencil"></i> Sửa
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i> Xóa
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card discount-card">
+                    <div class="card-body">
+                        <div class="discount-header">
+                            <div class="discount-code">
+                                <h5>WELCOME10</h5>
+                                <span class="badge bg-success">Hoạt động</span>
+                            </div>
+                            <div class="discount-type">
+                                <i class="bi bi-currency-dollar"></i>
+                                <span>Giảm $10</span>
+                            </div>
+                        </div>
+                        
+                        <div class="discount-details">
+                            <div class="detail-item">
+                                <i class="bi bi-calendar"></i>
+                                <span>Hết hạn: 31/12/2024</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-people"></i>
+                                <span>Đã sử dụng: 89/500</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-currency-dollar"></i>
+                                <span>Giá trị tối thiểu: $50</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-tag"></i>
+                                <span>Áp dụng: Khách hàng mới</span>
+                            </div>
+                        </div>
+                        
+                        <div class="discount-actions">
+                            <button class="btn btn-sm btn-outline-primary me-2">
+                                <i class="bi bi-eye"></i> Xem
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning me-2">
+                                <i class="bi bi-pencil"></i> Sửa
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i> Xóa
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card discount-card">
+                    <div class="card-body">
+                        <div class="discount-header">
+                            <div class="discount-code">
+                                <h5>FREESHIP</h5>
+                                <span class="badge bg-warning">Hết hạn</span>
+                            </div>
+                            <div class="discount-type">
+                                <i class="bi bi-truck"></i>
+                                <span>Miễn phí ship</span>
+                            </div>
+                        </div>
+                        
+                        <div class="discount-details">
+                            <div class="detail-item">
+                                <i class="bi bi-calendar"></i>
+                                <span>Hết hạn: 15/01/2024</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-people"></i>
+                                <span>Đã sử dụng: 156/200</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-currency-dollar"></i>
+                                <span>Giá trị tối thiểu: $30</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-tag"></i>
+                                <span>Áp dụng: Tất cả sản phẩm</span>
+                            </div>
+                        </div>
+                        
+                        <div class="discount-actions">
+                            <button class="btn btn-sm btn-outline-primary me-2">
+                                <i class="bi bi-eye"></i> Xem
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning me-2">
+                                <i class="bi bi-pencil"></i> Sửa
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i> Xóa
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .admin-page {
+        max-width: 1200px;
+    }
+    
+    .page-header {
+        margin-bottom: 2rem;
+    }
+    
+    .page-header h2 {
+        margin-bottom: 0.5rem;
+        color: #2c3e50;
+    }
+    
+    .page-filters {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .discount-card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .discount-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    
+    .discount-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+    
+    .discount-code h5 {
+        margin-bottom: 0.5rem;
+        color: #2c3e50;
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+    }
+    
+    .discount-type {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #3498db;
+        font-weight: 600;
+    }
+    
+    .discount-type i {
+        font-size: 1.2rem;
+    }
+    
+    .discount-details {
+        margin: 1rem 0;
+    }
+    
+    .detail-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    .detail-item i {
+        margin-right: 0.75rem;
+        width: 16px;
+        color: #3498db;
+    }
+    
+    .discount-actions .btn {
+        font-size: 0.8rem;
+    }
+</style>

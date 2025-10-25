@@ -1,0 +1,221 @@
+<div class="admin-nav">
+    <div class="admin-nav-header">
+        <h3>Quản trị</h3>
+    </div>
+    
+    <nav class="admin-nav-menu">
+        <!-- Dashboard & Statistics -->
+        <div class="nav-section">
+            <div class="nav-section-title">Tổng quan</div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="/admin" Match="NavLinkMatch.All">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Dashboard</span>
+                </NavLink>
+            </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="/admin/statistics">
+                    <i class="bi bi-graph-up"></i>
+                    <span>Thống kê</span>
+                </NavLink>
+            </div>
+        </div>
+
+        <!-- User Management -->
+        <div class="nav-section">
+            <div class="nav-section-title">Quản lý người dùng</div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="/admin/users">
+                    <i class="bi bi-people"></i>
+                    <span>Người dùng</span>
+                </NavLink>
+            </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="/admin/roles">
+                    <i class="bi bi-shield-check"></i>
+                    <span>Phân quyền</span>
+                </NavLink>
+            </div>
+        </div>
+
+        <!-- Customer Management -->
+        <div class="nav-section">
+            <div class="nav-section-title">Quản lý khách hàng</div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="/admin/customers">
+                    <i class="bi bi-person-badge"></i>
+                    <span>Khách hàng</span>
+                </NavLink>
+            </div>
+        </div>
+
+        <!-- Product Management -->
+        <div class="nav-section">
+            <div class="nav-section-title">Quản lý sản phẩm</div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="/admin/products">
+                    <i class="bi bi-box"></i>
+                    <span>Sản phẩm</span>
+                </NavLink>
+            </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="/admin/categories">
+                    <i class="bi bi-tags"></i>
+                    <span>Loại sản phẩm</span>
+                </NavLink>
+            </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="/admin/suppliers">
+                    <i class="bi bi-truck"></i>
+                    <span>Nhà cung cấp</span>
+                </NavLink>
+            </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="/admin/inventory">
+                    <i class="bi bi-boxes"></i>
+                    <span>Tồn kho</span>
+                </NavLink>
+            </div>
+        </div>
+
+        <!-- Order Management -->
+        <div class="nav-section">
+            <div class="nav-section-title">Quản lý đơn hàng</div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="/admin/orders">
+                    <i class="bi bi-cart-check"></i>
+                    <span>Đơn hàng</span>
+                </NavLink>
+            </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="/admin/order-items">
+                    <i class="bi bi-list-ul"></i>
+                    <span>Chi tiết đơn hàng</span>
+                </NavLink>
+            </div>
+        </div>
+
+        <!-- Marketing & Promotions -->
+        <div class="nav-section">
+            <div class="nav-section-title">Marketing</div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="/admin/promotions">
+                    <i class="bi bi-percent"></i>
+                    <span>Khuyến mãi</span>
+                </NavLink>
+            </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="/admin/discount-codes">
+                    <i class="bi bi-ticket-perforated"></i>
+                    <span>Mã giảm giá</span>
+                </NavLink>
+            </div>
+        </div>
+
+        <!-- System Settings -->
+        <div class="nav-section">
+            <div class="nav-section-title">Hệ thống</div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="/admin/settings">
+                    <i class="bi bi-gear"></i>
+                    <span>Cài đặt</span>
+                </NavLink>
+            </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="/admin/logs">
+                    <i class="bi bi-file-text"></i>
+                    <span>Nhật ký</span>
+                </NavLink>
+            </div>
+        </div>
+    </nav>
+</div>
+
+<style>
+    .admin-nav {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .admin-nav-header {
+        padding: 1.5rem 1rem;
+        border-bottom: 1px solid #34495e;
+        background-color: #34495e;
+    }
+    
+    .admin-nav-header h3 {
+        margin: 0;
+        color: white;
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+    
+    .admin-nav-menu {
+        flex: 1;
+        padding: 1rem 0;
+        overflow-y: auto;
+    }
+    
+    .nav-section {
+        margin-bottom: 1.5rem;
+    }
+    
+    .nav-section-title {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #bdc3c7;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+    }
+    
+    .nav-item {
+        margin: 0.2rem 0;
+    }
+    
+    .nav-link {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        color: #ecf0f1;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        border-left: 3px solid transparent;
+    }
+    
+    .nav-link:hover {
+        background-color: #34495e;
+        color: white;
+        border-left-color: #3498db;
+    }
+    
+    .nav-link.active {
+        background-color: #3498db;
+        color: white;
+        border-left-color: #2980b9;
+    }
+    
+    .nav-link i {
+        margin-right: 0.75rem;
+        width: 20px;
+        text-align: center;
+        font-size: 1.1rem;
+    }
+    
+    .nav-link span {
+        font-weight: 500;
+    }
+    
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .admin-nav-header {
+            padding: 1rem;
+        }
+        
+        .nav-link {
+            padding: 0.5rem 1rem;
+        }
+    }
+</style>
