@@ -1,0 +1,130 @@
+@page "/admin-access"
+
+<div class="admin-access-page">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="admin-access-card">
+                    <div class="card-header text-center">
+                        <h3>Quản trị cửa hàng bán lẻ</h3>
+                        <p class="text-muted">Hệ thống quản lý cửa hàng bán lẻ hiện đại</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="admin-features">
+                            <div class="feature-item">
+                                <i class="bi bi-speedometer2"></i>
+                                <span>Dashboard tổng quan</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="bi bi-people"></i>
+                                <span>Quản lý khách hàng</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="bi bi-box"></i>
+                                <span>Quản lý sản phẩm đa dạng</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="bi bi-cart-check"></i>
+                                <span>Quản lý đơn hàng & thanh toán</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="bi bi-percent"></i>
+                                <span>Quản lý khuyến mãi & giảm giá</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="bi bi-boxes"></i>
+                                <span>Quản lý tồn kho</span>
+                            </div>
+                        </div>
+                        
+                        <div class="admin-actions">
+                            <a href="/admin" class="btn btn-primary btn-lg w-100 mb-3">
+                                <i class="bi bi-shield-check"></i>
+                                Truy cập Admin
+                            </a>
+                            <a href="/" class="btn btn-outline-secondary w-100">
+                                <i class="bi bi-arrow-left"></i>
+                                Quay lại trang chủ
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .admin-access-page {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        padding: 2rem 0;
+    }
+    
+    .admin-access-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        overflow: hidden;
+    }
+    
+    .card-header {
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+        color: white;
+        padding: 2rem;
+        border: none;
+    }
+    
+    .card-header h3 {
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+    
+    .card-body {
+        padding: 2rem;
+    }
+    
+    .admin-features {
+        margin-bottom: 2rem;
+    }
+    
+    .feature-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #f8f9fa;
+    }
+    
+    .feature-item:last-child {
+        border-bottom: none;
+    }
+    
+    .feature-item i {
+        margin-right: 1rem;
+        color: #3498db;
+        font-size: 1.2rem;
+        width: 20px;
+    }
+    
+    .feature-item span {
+        color: #495057;
+        font-weight: 500;
+    }
+    
+    .admin-actions .btn {
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        border: none;
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #2980b9, #1f4e79);
+        transform: translateY(-1px);
+    }
+</style>

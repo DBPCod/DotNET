@@ -1,0 +1,142 @@
+@page "/admin/statistics"
+@layout AdminLayout
+
+<div class="admin-page">
+    <div class="page-header">
+        <h2>Thống kê</h2>
+        <p class="text-muted">Báo cáo và phân tích dữ liệu hệ thống</p>
+    </div>
+    
+    <div class="stats-filters">
+        <div class="row">
+            <div class="col-md-3">
+                <label class="form-label">Từ ngày</label>
+                <input type="date" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Đến ngày</label>
+                <input type="date" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Loại báo cáo</label>
+                <select class="form-select">
+                    <option>Doanh thu</option>
+                    <option>Đơn hàng</option>
+                    <option>Sản phẩm</option>
+                    <option>Khách hàng</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-primary">Tạo báo cáo</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stats-content">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Biểu đồ doanh thu theo tháng</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-placeholder">
+                            <i class="bi bi-bar-chart"></i>
+                            <p>Biểu đồ sẽ được hiển thị ở đây</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Top sản phẩm bán chạy</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                Sản phẩm A
+                                <span class="badge bg-primary rounded-pill">150</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                Sản phẩm B
+                                <span class="badge bg-primary rounded-pill">120</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                Sản phẩm C
+                                <span class="badge bg-primary rounded-pill">98</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Phân bố đơn hàng theo trạng thái</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-placeholder">
+                            <i class="bi bi-pie-chart"></i>
+                            <p>Biểu đồ tròn sẽ được hiển thị ở đây</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .admin-page {
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .page-header {
+        margin-bottom: 2rem;
+    }
+    
+    .page-header h2 {
+        margin-bottom: 0.5rem;
+        color: #2c3e50;
+    }
+    
+    .stats-filters {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .stats-content .card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .chart-placeholder {
+        height: 300px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        color: #6c757d;
+    }
+    
+    .chart-placeholder i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+    
+    .list-group-item {
+        border: 1px solid #dee2e6;
+    }
+</style>

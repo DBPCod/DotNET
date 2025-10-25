@@ -1,0 +1,203 @@
+@page "/admin/categories"
+@layout AdminLayout
+
+<div class="admin-page">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2>Quản lý loại sản phẩm</h2>
+                <p class="text-muted">Phân loại và quản lý danh mục sản phẩm</p>
+            </div>
+            <button class="btn btn-primary">
+                <i class="bi bi-plus"></i> Thêm danh mục
+            </button>
+        </div>
+    </div>
+    
+    <div class="page-content">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Danh sách danh mục</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Tên danh mục</th>
+                                        <th>Mô tả</th>
+                                        <th>Số sản phẩm</th>
+                                        <th>Trạng thái</th>
+                                        <th>Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold">Đồ uống</div>
+                                        </td>
+                                        <td>Coca Cola, Pepsi, Trà xanh, Cà phê, Sữa...</td>
+                                        <td><span class="badge bg-primary">10</span></td>
+                                        <td><span class="badge bg-success">Hoạt động</span></td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-warning">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold">Bánh kẹo</div>
+                                        </td>
+                                        <td>Bánh Oreo, Chocopie, Kẹo, Socola...</td>
+                                        <td><span class="badge bg-primary">10</span></td>
+                                        <td><span class="badge bg-success">Hoạt động</span></td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-warning">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold">Gia vị</div>
+                                        </td>
+                                        <td>Nước mắm, Tương, Muối, Bột ngọt, Dầu ăn...</td>
+                                        <td><span class="badge bg-primary">10</span></td>
+                                        <td><span class="badge bg-success">Hoạt động</span></td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-warning">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold">Đồ gia dụng</div>
+                                        </td>
+                                        <td>Nồi cơm điện, Ấm siêu tốc, Quạt máy, Bếp gas...</td>
+                                        <td><span class="badge bg-primary">10</span></td>
+                                        <td><span class="badge bg-success">Hoạt động</span></td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-warning">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold">Mỹ phẩm</div>
+                                        </td>
+                                        <td>Sữa rửa mặt, Kem dưỡng da, Dầu gội, Sữa tắm...</td>
+                                        <td><span class="badge bg-primary">10</span></td>
+                                        <td><span class="badge bg-success">Hoạt động</span></td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-warning">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Thêm danh mục mới</h5>
+                    </div>
+                    <div class="card-body">
+                        <form>
+                            <div class="mb-3">
+                                <label class="form-label">Tên danh mục</label>
+                                <input type="text" class="form-control" placeholder="Nhập tên danh mục" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Mô tả</label>
+                                <textarea class="form-control" rows="3" placeholder="Nhập mô tả danh mục"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Danh mục cha</label>
+                                <select class="form-select">
+                                    <option>Không có</option>
+                                    <option>Điện tử</option>
+                                    <option>Thời trang</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" checked />
+                                    <label class="form-check-label">Kích hoạt</label>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Thêm danh mục</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .admin-page {
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .page-header {
+        margin-bottom: 2rem;
+    }
+    
+    .page-header h2 {
+        margin-bottom: 0.5rem;
+        color: #2c3e50;
+    }
+    
+    .page-content .card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .table th {
+        background-color: #f8f9fa;
+        border-top: none;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .btn-group .btn {
+        margin: 0 2px;
+    }
+</style>

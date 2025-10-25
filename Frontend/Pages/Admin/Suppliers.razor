@@ -1,0 +1,276 @@
+@page "/admin/suppliers"
+@layout AdminLayout
+
+<div class="admin-page">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2>Quản lý nhà cung cấp</h2>
+                <p class="text-muted">Danh sách và thông tin nhà cung cấp</p>
+            </div>
+            <button class="btn btn-primary">
+                <i class="bi bi-plus"></i> Thêm nhà cung cấp
+            </button>
+        </div>
+    </div>
+    
+    <div class="page-filters">
+        <div class="row">
+            <div class="col-md-4">
+                <input type="text" class="form-control" placeholder="Tìm kiếm nhà cung cấp..." />
+            </div>
+            <div class="col-md-3">  
+                <select class="form-select">
+                    <option>Tất cả trạng thái</option>
+                    <option>Hoạt động</option>
+                    <option>Ngừng hợp tác</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select">
+                    <option>Sắp xếp theo</option>
+                    <option>Tên A-Z</option>
+                    <option>Ngày hợp tác</option>
+                    <option>Số sản phẩm</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary w-100">Lọc</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="page-content">
+        <div class="row">
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card supplier-card">
+                    <div class="card-body">
+                        <div class="supplier-header">
+                            <div class="supplier-logo">
+                                <i class="bi bi-building"></i>
+                            </div>
+                            <div class="supplier-info">
+                                <h5 class="card-title">Công ty ABC</h5>
+                                <p class="text-muted">Nhà cung cấp đa dạng</p>
+                            </div>
+                            <span class="badge bg-success">Hoạt động</span>
+                        </div>
+                        
+                        <div class="supplier-details">
+                            <div class="detail-item">
+                                <i class="bi bi-envelope"></i>
+                                <span>abc@gmail.com</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-telephone"></i>
+                                <span>0909123456</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-geo-alt"></i>
+                                <span>Hà Nội</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-box"></i>
+                                <span>17 sản phẩm</span>
+                            </div>
+                        </div>
+                        
+                        <div class="supplier-actions">
+                            <button class="btn btn-sm btn-outline-primary me-2">
+                                <i class="bi bi-eye"></i> Xem
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning me-2">
+                                <i class="bi bi-pencil"></i> Sửa
+                            </button>
+                            <button class="btn btn-sm btn-outline-info">
+                                <i class="bi bi-chat"></i> Liên hệ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card supplier-card">
+                    <div class="card-body">
+                        <div class="supplier-header">
+                            <div class="supplier-logo">
+                                <i class="bi bi-building"></i>
+                            </div>
+                            <div class="supplier-info">
+                                <h5 class="card-title">Công ty XYZ</h5>
+                                <p class="text-muted">Nhà cung cấp đa dạng</p>
+                            </div>
+                            <span class="badge bg-success">Hoạt động</span>
+                        </div>
+                        
+                        <div class="supplier-details">
+                            <div class="detail-item">
+                                <i class="bi bi-envelope"></i>
+                                <span>xyz@gmail.com</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-telephone"></i>
+                                <span>0912123456</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-geo-alt"></i>
+                                <span>TP HCM</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-box"></i>
+                                <span>16 sản phẩm</span>
+                            </div>
+                        </div>
+                        
+                        <div class="supplier-actions">
+                            <button class="btn btn-sm btn-outline-primary me-2">
+                                <i class="bi bi-eye"></i> Xem
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning me-2">
+                                <i class="bi bi-pencil"></i> Sửa
+                            </button>
+                            <button class="btn btn-sm btn-outline-info">
+                                <i class="bi bi-chat"></i> Liên hệ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card supplier-card">
+                    <div class="card-body">
+                        <div class="supplier-header">
+                            <div class="supplier-logo">
+                                <i class="bi bi-building"></i>
+                            </div>
+                            <div class="supplier-info">
+                                <h5 class="card-title">Công ty 123</h5>
+                                <p class="text-muted">Nhà cung cấp đa dạng</p>
+                            </div>
+                            <span class="badge bg-success">Hoạt động</span>
+                        </div>
+                        
+                        <div class="supplier-details">
+                            <div class="detail-item">
+                                <i class="bi bi-envelope"></i>
+                                <span>123@gmail.com</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-telephone"></i>
+                                <span>0933123456</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-geo-alt"></i>
+                                <span>Đà Nẵng</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-box"></i>
+                                <span>17 sản phẩm</span>
+                            </div>
+                        </div>
+                        
+                        <div class="supplier-actions">
+                            <button class="btn btn-sm btn-outline-primary me-2">
+                                <i class="bi bi-eye"></i> Xem
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning me-2">
+                                <i class="bi bi-pencil"></i> Sửa
+                            </button>
+                            <button class="btn btn-sm btn-outline-info">
+                                <i class="bi bi-chat"></i> Liên hệ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .admin-page {
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .page-header {
+        margin-bottom: 2rem;
+    }
+    
+    .page-header h2 {
+        margin-bottom: 0.5rem;
+        color: #2c3e50;
+    }
+    
+    .page-filters {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .supplier-card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .supplier-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    
+    .supplier-header {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+    
+    .supplier-logo {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-right: 1rem;
+    }
+    
+    .supplier-info {
+        flex: 1;
+    }
+    
+    .supplier-info h5 {
+        margin-bottom: 0.25rem;
+        color: #2c3e50;
+    }
+    
+    .supplier-details {
+        margin: 1rem 0;
+    }
+    
+    .detail-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    .detail-item i {
+        margin-right: 0.75rem;
+        width: 16px;
+        color: #3498db;
+    }
+    
+    .supplier-actions .btn {
+        font-size: 0.8rem;
+    }
+</style>
