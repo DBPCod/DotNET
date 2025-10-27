@@ -10,6 +10,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .Property(u => u.Role)
             .HasConversion<string>();
 
+         modelBuilder.Entity<User>()
+            .Property(u => u.Status)
+            .HasConversion<string>()
+            .HasDefaultValue(UserStatus.ACTIVE);
+
         modelBuilder.Entity<User>()
             .HasIndex(u => u.Email)
             .IsUnique(true);
