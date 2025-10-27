@@ -1,5 +1,6 @@
 using DotNetEnv;
 using Backend.Data;
+using Swashbuckle.AspNetCore.Swagger;
 Env.Load();
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -10,6 +11,13 @@ WebApplication app = builder.Build();
 
 // Tắt seed data
 // await SeedData.SeedAsync(app);
+
+// Configure the HTTP request pipeline - Swagger phải đặt TRƯỚC các middleware khác
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 // Middleware
 app.UseCors(Variable.Constants.MyAllowSpecificOrigins);
