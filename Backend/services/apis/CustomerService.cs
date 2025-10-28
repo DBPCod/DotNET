@@ -1,7 +1,7 @@
 namespace Backend.Services.Apis;
 
-public class CustomerService(CustomerRepository customerRepository)
+// legacy/stub API service - renamed to avoid type collision
+public class CustomerApiStub
 {
-    private readonly CustomerRepository _customerRepository = customerRepository;
-
+    // intentionally minimal stub
 }
