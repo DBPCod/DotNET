@@ -13,6 +13,7 @@ public static class UserMapper
             Email = entity.Email,
             FullName = entity.FullName,
             Role = entity.Role.ToString(),
+            Status = entity.Status.ToString(),
             CreatedAt = entity.CreatedAt,
         };
     }
@@ -35,6 +36,7 @@ public static class UserMapper
             Email = dto.Email ?? null!,
             FullName = dto.FullName ?? "",
             Role = Enum.TryParse<UserRole>(dto.Role, out var role) ? role : UserRole.STAFF,
+            Status = Enum.TryParse<UserStatus>(dto.Status, out var status) ? status : UserStatus.ACTIVE,
             CreatedAt = dto.CreatedAt,
         };
     }

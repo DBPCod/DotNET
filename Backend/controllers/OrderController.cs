@@ -57,15 +57,15 @@ public class OrderController(OrderService orderService, PromotionService promoti
         return Ok(order);
     }
 
-    // [HttpPost]
-    // public async Task<IActionResult> HandleCreateOrder([FromBody] CreateOrderRequest order)
-    // {
-    //     if (!ModelState.IsValid)
-    //     return BadRequest(ModelState);
+    [HttpPost]
+    public async Task<IActionResult> HandleCreateOrder([FromBody] CreateOrderRequest order)
+    {
+        if (!ModelState.IsValid)
+        return BadRequest(ModelState);
 
-    //     var createdOrder = await _orderService.HandleCreateOrder(order);
-    //     return CreatedAtAction(nameof(GetOrderById), new {id = createdOrder.Id}, createdOrder);
-    // }
+        var createdOrder = await _orderService.HandleCreateOrder(order);
+        return CreatedAtAction(nameof(GetOrderById), new {id = createdOrder.Id}, createdOrder);
+    }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> HandleDeleteOrder(Guid id)

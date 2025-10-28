@@ -36,7 +36,7 @@ public class OrderService(OrderRepository orderRepository)
         if (customer == null)
             throw new Exception("Customer not found");
 
-        var user = await _userRepository.HandleGetUserByEmail(request.Email);
+        var user = await _userRepository.HandleGetUserById(request.UserId);
         if (user == null)
             throw new Exception("User not found");
 
