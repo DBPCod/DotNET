@@ -24,6 +24,14 @@ public class Data
 
     // Pagination (áp dụng khi list nhiều item)
     public PaginationInfo? Pagination { get; set; }
+
+    // Product
+    public ProductDto? Product { get; set; }
+    public ICollection<ProductDto>? Products { get; set; }
+
+    // Supplier
+    public SupplierDto? Supplier { get; set; }
+    public ICollection<SupplierDto>? Suppliers { get; set; }
 }
 
 public class PaginationInfo
