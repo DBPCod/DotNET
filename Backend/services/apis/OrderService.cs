@@ -30,44 +30,44 @@ public class OrderService(OrderRepository orderRepository)
         }
     }
 
-    // public async Task<OrderDto> HandleCreateOrder(CreateOrderRequest request)
-    // {
-    //     var customer = await _customerRepository.GetByIdAsync(request.CustomerId);
-    //     if (customer == null)
-    //         throw new Exception("Customer not found");
+    public async Task<OrderDto> HandleCreateOrder(CreateOrderRequest request)
+    {
+        var customer = await _customerRepository.GetByIdAsync(request.CustomerId);
+        if (customer == null)
+            throw new Exception("Customer not found");
 
-    //     var user = await _userRepository.GetByIdAsync(request.UserId);
-    //     if (user == null)
-    //         throw new Exception("User not found");
+        var user = await _userRepository.HandleGetUserByEmail(request.Email);
+        if (user == null)
+            throw new Exception("User not found");
 
-    //     if (request.DiscountAmount > request.TotalAmount)
-    //         throw new Exception("Discount cannot exceed total amount");
+        if (request.DiscountAmount > request.TotalAmount)
+            throw new Exception("Discount cannot exceed total amount");
 
-    //     var order = new Order
-    //     {
-    //         CustomerId = request.CustomerId,
-    //         UserId = request.UserId,
-    //         PromoId = request.PromoId,
-    //         TotalAmount = request.TotalAmount,
-    //         DiscountAmount = request.DiscountAmount,
-    //         Status = "pending",
-    //         OrderDate = DateTime.Now
-    //     };
+        var order = new Order
+        {
+            CustomerId = request.CustomerId,
+            UserId = request.UserId,
+            PromoId = request.PromoId,
+            TotalAmount = request.TotalAmount,
+            DiscountAmount = request.DiscountAmount,
+            Status = "pending",
+            OrderDate = DateTime.Now
+        };
 
-    //     var created = await _orderRepository.CreateOrderAsync(order);
+        var created = await _orderRepository.CreateOrderAsync(order);
 
-    //     return new OrderDto
-    //     {
-    //         Id = created.Id,
-    //         UserId = created.UserId,
-    //         CustomerId = created.CustomerId.Value,
-    //         PromoId = created.PromoId,
-    //         OrderDate = created.OrderDate,
-    //         Status = created.Status,
-    //         TotalAmount = created.TotalAmount,
-    //         DiscountAmount = created.DiscountAmount
-    //     };
-    // }
+        return new OrderDto
+        {
+            Id = created.Id,
+            UserId = created.UserId,
+            CustomerId = created.CustomerId.Value,
+            PromoId = created.PromoId,
+            OrderDate = created.OrderDate,
+            Status = created.Status,
+            TotalAmount = created.TotalAmount,
+            DiscountAmount = created.DiscountAmount
+        };
+    }
 
     public async Task<bool> HandleDeleteOrder(Guid id)
     {
