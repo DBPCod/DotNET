@@ -60,11 +60,33 @@ public class OrderController(OrderService orderService, PromotionService promoti
     [HttpPost]
     public async Task<IActionResult> HandleCreateOrder([FromBody] CreateOrderRequest order)
     {
+        var response = new Response();
         if (!ModelState.IsValid)
         return BadRequest(ModelState);
 
-        var createdOrder = await _orderService.HandleCreateOrder(order);
-        return CreatedAtAction(nameof(GetOrderById), new {id = createdOrder.Id}, createdOrder);
+        try
+        {
+            var createdOrder = await _orderService.HandleCreateOrder(order);
+            if(createdOrder == null)
+            {
+                response.Message = "Failed to create order";
+                response.StatusCode = 500;
+                return StatusCode(response.StatusCode, response);
+            }
+
+            var orderDto = OrderMapper.MapEntityToDto(createdOrder);
+            response.Message = "Order created successfully";
+            response.StatusCode = 201;
+            response.Data.Order = orderDto;
+        }
+        catch (ExceptionCustom ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpDelete("{id}")]

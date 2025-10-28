@@ -380,8 +380,6 @@ namespace Backend.Migrations
                         .HasColumnType("longtext")
                         .HasColumnName("role");
 
-<<<<<<< HEAD
-=======
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -389,7 +387,6 @@ namespace Backend.Migrations
                         .HasDefaultValue("ACTIVE")
                         .HasColumnName("status");
 
->>>>>>> Luu
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(50)

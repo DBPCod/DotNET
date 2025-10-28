@@ -2,10 +2,11 @@ namespace Backend.Services.Apis;
 using Backend.Dtos.Requests.Order;
 using Backend.Dtos.Responses;
 
-public class OrderService(OrderRepository orderRepository)
+public class OrderService(OrderRepository orderRepository, CustomerRepository customerRepository,UserRepository userRepository)
 {
     private readonly OrderRepository _orderRepository = orderRepository;
-
+    private readonly CustomerRepository _customerRepository = new CustomerRepository();
+    private readonly UserRepository _userRepository = new UserRepository();
     public async Task<List<Order>> HandleGetAllOrder()
     {
         try
@@ -54,19 +55,9 @@ public class OrderService(OrderRepository orderRepository)
             OrderDate = DateTime.Now
         };
 
-        var created = await _orderRepository.CreateOrderAsync(order);
+        var created = await _orderRepository.HandleCreateOrder(order);
 
-        return new OrderDto
-        {
-            Id = created.Id,
-            UserId = created.UserId,
-            CustomerId = created.CustomerId.Value,
-            PromoId = created.PromoId,
-            OrderDate = created.OrderDate,
-            Status = created.Status,
-            TotalAmount = created.TotalAmount,
-            DiscountAmount = created.DiscountAmount
-        };
+        return created;
     }
 
     public async Task<bool> HandleDeleteOrder(Guid id)
