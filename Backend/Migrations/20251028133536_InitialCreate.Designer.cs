@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251027013400_InitialCreate")]
+    [Migration("20251028133536_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -382,6 +382,13 @@ namespace Backend.Migrations
                         .IsRequired()
                         .HasColumnType("longtext")
                         .HasColumnName("role");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("longtext")
+                        .HasDefaultValue("ACTIVE")
+                        .HasColumnName("status");
 
                     b.Property<string>("Username")
                         .IsRequired()
