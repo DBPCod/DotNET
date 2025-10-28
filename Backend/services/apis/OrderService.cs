@@ -5,8 +5,8 @@ using Backend.Dtos.Responses;
 public class OrderService(OrderRepository orderRepository, CustomerRepository customerRepository,UserRepository userRepository)
 {
     private readonly OrderRepository _orderRepository = orderRepository;
-    private readonly CustomerRepository _customerRepository = new CustomerRepository();
-    private readonly UserRepository _userRepository = new UserRepository();
+    private readonly CustomerRepository _customerRepository = customerRepository;
+    private readonly UserRepository _userRepository = userRepository;
     public async Task<List<Order>> HandleGetAllOrder()
     {
         try
@@ -31,7 +31,7 @@ public class OrderService(OrderRepository orderRepository, CustomerRepository cu
         }
     }
 
-    public async Task<OrderDto> HandleCreateOrder(CreateOrderRequest request)
+    public async Task<Order> HandleCreateOrder(CreateOrderRequest request)
     {
         var customer = await _customerRepository.GetByIdAsync(request.CustomerId);
         if (customer == null)

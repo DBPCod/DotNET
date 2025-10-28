@@ -87,6 +87,7 @@ public class OrderController(OrderService orderService, PromotionService promoti
         {
             return BadRequest(ex.Message);
         }
+        return StatusCode(response.StatusCode, response);
     }
 
     [HttpDelete("{id}")]
