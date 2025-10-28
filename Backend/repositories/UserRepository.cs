@@ -6,6 +6,81 @@ public class UserRepository(AppDbContext context)
 {
     private readonly AppDbContext _context = context;
 
+    public async Task<User?> HandleGetUserById(Guid id)
+    {
+        try
+        {
+            return await _context.User.FindAsync(id);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception(ex.Message);
+        }
+    }
+
+    public async Task<(List<User> users, int totalCount)> HandleGetUsersWithPagination(
+        int page, int pageSize, string? searchTerm = null, string? role = null, string? status = null)
+    {
+        try
+        {
+            var query = _context.User.AsQueryable();
+
+            // Search by username, email, or full name
+            if (!string.IsNullOrEmpty(searchTerm))
+            {
+                query = query.Where(u =>
+                    u.Username.Contains(searchTerm) ||
+                    u.Email.Contains(searchTerm) ||
+                    (!string.IsNullOrEmpty(u.FullName) && u.FullName.Contains(searchTerm)));
+            }
+
+            // Filter by role
+            if (!string.IsNullOrEmpty(role))
+            {
+                query = query.Where(u => u.Role.ToString() == role);
+            }
+
+            // Filter by status
+            if (!string.IsNullOrEmpty(status))
+            {
+                query = query.Where(u => u.Status.ToString() == status);
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var users = await query
+                .OrderBy(u => u.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (users, totalCount);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception(ex.Message);
+        }
+    }
+
+    public async Task<bool> HandleSoftDeleteUser(Guid id)
+    {
+        try
+        {
+            var user = await _context.User.FindAsync(id);
+            if (user == null)
+                return false;
+
+            user.Status = UserStatus.INACTIVE;
+            _context.User.Update(user);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception(ex.Message);
+        }
+    }
+
     public async Task<User?> HandleGetUserByEmail(string email)
     {
         try

@@ -44,7 +44,7 @@ public class ConfigureExtensions
         // Services
         builder.Services.AddScoped<AuthService>();
         builder.Services.AddScoped<CategoryService>();
-        builder.Services.AddScoped<CustomerService>();
+    builder.Services.AddScoped<Backend.Services.CustomerAppService>();
         builder.Services.AddScoped<InventoryService>();
         builder.Services.AddScoped<OrderService>();
         builder.Services.AddScoped<OrderItemService>();
@@ -180,27 +180,32 @@ public class ConfigureExtensions
                 }
             };
         })
-        .AddGoogle(googleOptions =>
+        ;
+
+        // Only add Google external login if client id/secret are configured
+        if (!string.IsNullOrEmpty(Variable.Enviroments.GOOGLE_CLIENT_ID) && !string.IsNullOrEmpty(Variable.Enviroments.GOOGLE_CLIENT_SECRET))
         {
-            googleOptions.ClientId = Variable.Enviroments.GOOGLE_CLIENT_ID;
-            googleOptions.ClientSecret = Variable.Enviroments.GOOGLE_CLIENT_SECRET;
-            googleOptions.CallbackPath = "/signin-google";
-            googleOptions.SaveTokens = true;
-
-            // Bạn có thể cấu hình thêm các scope nếu cần
-            googleOptions.Scope.Add("email");
-            googleOptions.Scope.Add("profile");
-
-            // Xử lý event khi nhận thông tin từ Google
-            googleOptions.Events = new OAuthEvents
+            builder.Services.AddAuthentication().AddGoogle(googleOptions =>
             {
-                OnCreatingTicket = context =>
+                googleOptions.ClientId = Variable.Enviroments.GOOGLE_CLIENT_ID;
+                googleOptions.ClientSecret = Variable.Enviroments.GOOGLE_CLIENT_SECRET;
+                googleOptions.CallbackPath = "/signin-google";
+                googleOptions.SaveTokens = true;
+
+                // You can add scopes if needed
+                googleOptions.Scope.Add("email");
+                googleOptions.Scope.Add("profile");
+
+                googleOptions.Events = new OAuthEvents
                 {
-                    // Lưu thông tin bổ sung nếu cần
-                    return Task.CompletedTask;
-                }
-            };
-        });
+                    OnCreatingTicket = context =>
+                    {
+                        // Save additional info if needed
+                        return Task.CompletedTask;
+                    }
+                };
+            });
+        }
     }
 
     private static void ConfigureAuthorizationPolicies(WebApplicationBuilder builder)

@@ -6,6 +6,14 @@ public class Data
     public UserDto? User { get; set; }
     public ICollection<UserDto>? Users { get; set; }
 
+    // Customer
+    public CustomerDto? Customer { get; set; }
+    public ICollection<CustomerDto>? Customers { get; set; }
+
+    // Order
+    public OrderDto? Order { get; set; }
+    public ICollection<OrderDto>? Orders { get; set; }
+
     // Promotion
     public PromotionDto? Promotion { get; set; }
     public ICollection<PromotionDto>? Promotions { get; set; }

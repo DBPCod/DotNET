@@ -33,6 +33,9 @@ public class User
     [Column("role")]
     public UserRole Role { get; set; } = UserRole.STAFF;
 
+    [Column("status")]
+    public UserStatus Status { get; set; } = UserStatus.ACTIVE;
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
@@ -43,5 +46,12 @@ public class User
 public enum UserRole
 {
     ADMIN,
-    STAFF
+    STAFF,
+    CUSTOMER
+}
+
+public enum UserStatus
+{
+    ACTIVE,
+    INACTIVE
 }
