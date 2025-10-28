@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Backend.Dtos.Requests.Promotion;
 using Backend.Dtos.Responses;
 using Backend.Utils.Customs;
-
+using Backend.Dtos.Requests.Order;
 namespace Backend.Controllers;
 
 [Route("api/orders")]
@@ -41,5 +41,40 @@ public class OrderController(OrderService orderService, PromotionService promoti
         }
 
         return StatusCode(response.StatusCode, response);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAllOrders()
+    {
+        var orders = await _orderService.HandleGetAllOrder();
+        return Ok(orders);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetOrderById(Guid id)
+    {
+        var order = await _orderService.HandleGetOrderById(id);
+        return Ok(order);
+    }
+
+    // [HttpPost]
+    // public async Task<IActionResult> HandleCreateOrder([FromBody] CreateOrderRequest order)
+    // {
+    //     if (!ModelState.IsValid)
+    //     return BadRequest(ModelState);
+
+    //     var createdOrder = await _orderService.HandleCreateOrder(order);
+    //     return CreatedAtAction(nameof(GetOrderById), new {id = createdOrder.Id}, createdOrder);
+    // }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> HandleDeleteOrder(Guid id)
+    {
+        var result = await _orderService.HandleDeleteOrder(id);
+        if(!result)
+        {
+            return NotFound(new {message=$"Order với id = {id} không tồn tại!"});
+        }
+        return Ok(new {message=$"Xóa order thành công!"});
     }
 }
