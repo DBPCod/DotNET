@@ -1,4 +1,5 @@
 using Backend.Dtos;
+using Backend.Dtos.Requests;  
 using Backend.Dtos.Responses;
 using Backend.Models;
 using Backend.Repositories;
@@ -48,7 +49,7 @@ public class SupplierService(SupplierRepository supplierRepository)
         return response;
     }
 
-    public async Task<Response> CreateAsync(SupplierDto req)
+    public async Task<Response> CreateAsync(CreateSupplierRequest req)  // ← Đổi từ SupplierDto
     {
         var entity = new Supplier
         {
@@ -72,7 +73,7 @@ public class SupplierService(SupplierRepository supplierRepository)
         return response;
     }
 
-    public async Task<Response> UpdateAsync(Guid id, SupplierDto req)
+    public async Task<Response> UpdateAsync(Guid id, UpdateSupplierRequest req)  // ← Đổi từ SupplierDto
     {
         var entity = await _supplierRepository.GetByIdAsync(id);
         var response = new Response();

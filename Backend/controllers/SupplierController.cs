@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Backend.Services.Apis;
-using Backend.Dtos;
+using Backend.Dtos.Requests; 
 
 namespace Backend.Controllers;
 
@@ -25,14 +25,14 @@ public class SupplierController(SupplierService supplierService) : ControllerBas
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] SupplierDto request)
+    public async Task<IActionResult> Create([FromBody] CreateSupplierRequest request)  // ← Đổi
     {
         var response = await _supplierService.CreateAsync(request);
         return StatusCode(response.StatusCode, response);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SupplierDto request)
+    public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateSupplierRequest request)  // ← Đổi
     {
         var response = await _supplierService.UpdateAsync(id, request);
         return StatusCode(response.StatusCode, response);

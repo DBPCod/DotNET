@@ -1,4 +1,5 @@
 using Backend.Dtos;
+using Backend.Dtos.Requests;
 using Backend.Dtos.Responses;
 using Backend.Models;
 using Backend.Repositories;
@@ -54,7 +55,7 @@ public class ProductService(ProductRepository productRepository)
         return response;
     }
 
-    public async Task<Response> CreateAsync(ProductDto req)
+    public async Task<Response> CreateAsync(CreateProductRequest req)
     {
         var entity = new Product
         {
@@ -86,7 +87,7 @@ public class ProductService(ProductRepository productRepository)
         return response;
     }
 
-    public async Task<Response> UpdateAsync(Guid id, ProductDto req)
+    public async Task<Response> UpdateAsync(Guid id, UpdateProductRequest req)
     {
         var entity = await _productRepository.GetByIdAsync(id);
         var response = new Response();
