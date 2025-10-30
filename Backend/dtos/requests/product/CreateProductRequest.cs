@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace Backend.Dtos.Requests;
 
@@ -21,4 +22,7 @@ public class CreateProductRequest
     public string? CategoryId { get; set; }
 
     public string? SupplierId { get; set; }
+
+    // Upload hình ảnh sản phẩm
+    public IFormFile? Image { get; set; }
 }

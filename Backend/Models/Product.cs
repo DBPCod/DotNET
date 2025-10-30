@@ -27,9 +27,19 @@ public class Product
     [Column("price", TypeName = "decimal(10,2)")]
     public decimal Price { get; set; }
 
+    [Required]
     [MaxLength(20)]
     [Column("unit")]
     public string Unit { get; set; } = "pcs";
+
+    // Đường dẫn lưu hình ảnh
+    [MaxLength(500)]
+    [Column("image_path")]
+    public string? ImagePath { get; set; }
+
+    // Trường Status cho Soft Delete (true = Active, false = Deleted)
+    [Column("status")]
+    public bool Status { get; set; } = true;
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
