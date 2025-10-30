@@ -1,3 +1,6 @@
+using Backend.Models;
+using Backend.Dtos.Responses;
+
 namespace Backend.Utils.Mappers;
 
 public static class ProductMapper
@@ -15,6 +18,8 @@ public static class ProductMapper
             Barcode = entity.Barcode,
             Price = entity.Price,
             Unit = entity.Unit,
+            ImagePath = entity.ImagePath,
+            Status = entity.Status,
             CreatedAt = entity.CreatedAt,
         };
     }
@@ -39,6 +44,8 @@ public static class ProductMapper
             Barcode = dto.Barcode,
             Price = dto.Price,
             Unit = dto.Unit ?? null!,
+            ImagePath = dto.ImagePath,
+            Status = dto.Status,
             CreatedAt = dto.CreatedAt,
         };
     }

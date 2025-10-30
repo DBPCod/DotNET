@@ -1,11 +1,15 @@
 using DotNetEnv;
 using Backend.Data;
+using Backend.Services; // Thêm namespace cho FileUploadService
 using Swashbuckle.AspNetCore.Swagger;
 Env.Load();
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 ConfigureExtensions.ConfigureAllBuilder(builder);
+
+// Đăng ký FileUploadService để xử lý upload ảnh
+builder.Services.AddScoped<FileUploadService>();
 
 WebApplication app = builder.Build();
 
@@ -18,6 +22,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// QUAN TRỌNG: Cho phép serve static files (để hiển thị ảnh đã upload)
+app.UseStaticFiles();
 
 // Middleware
 app.UseCors(Variable.Constants.MyAllowSpecificOrigins);

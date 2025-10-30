@@ -21,4 +21,7 @@ public class UpdateProductRequest
     public string? CategoryId { get; set; }
 
     public string? SupplierId { get; set; }
+
+    // Upload hình ảnh sản phẩm (tùy chọn khi update)
+    public IFormFile? Image { get; set; }
 }
