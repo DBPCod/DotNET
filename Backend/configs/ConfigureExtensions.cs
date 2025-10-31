@@ -99,7 +99,8 @@ public class ConfigureExtensions
                 policy.WithOrigins(
                     Variable.Enviroments.CLIENT_URL,    // Next.js (http://localhost:3000)
                     "https://localhost:5001",           // Blazor HTTPS
-                    "http://localhost:5000"             // Blazor HTTP
+                    "http://localhost:5000",             // Blazor HTTP
+                    "http://localhost:5070"             // Blazor HTTP
                 ).AllowAnyMethod()
                  .AllowAnyHeader()
                  .AllowCredentials();
