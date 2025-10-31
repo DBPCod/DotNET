@@ -10,6 +10,10 @@ public class Data
     public CustomerDto? Customer { get; set; }
     public ICollection<CustomerDto>? Customers { get; set; }
 
+    // Category
+    public CategoryDto? Category { get; set; }
+    public ICollection<CategoryDto>? Categories { get; set; }
+
     // Order
     public OrderDto? Order { get; set; }
     public ICollection<OrderDto>? Orders { get; set; }
