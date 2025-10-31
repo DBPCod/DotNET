@@ -17,7 +17,7 @@ public class PromotionController(PromotionService promotionService) : Controller
     // POST /api/promotions - Tạo khuyến mãi mới
     [HttpPost]
     [Authorize(Roles = "ADMIN")] // Chỉ Admin mới được tạo khuyến mãi
-    public async Task<IActionResult> CreatePromotion([FromForm] CreatePromotionRequest request)
+    public async Task<IActionResult> CreatePromotion([FromBody] CreatePromotionRequest request)
     {
         var response = new Response();
 
@@ -145,7 +145,7 @@ public class PromotionController(PromotionService promotionService) : Controller
     // PUT /api/promotions/{id} - Cập nhật khuyến mãi
     [HttpPut("{id}")]
     [Authorize(Roles = "ADMIN")] // Chỉ Admin mới được cập nhật khuyến mãi
-    public async Task<IActionResult> UpdatePromotion(Guid id, [FromForm] UpdatePromotionRequest request)
+    public async Task<IActionResult> UpdatePromotion(Guid id, [FromBody] UpdatePromotionRequest request)
     {
         var response = new Response();
 

@@ -98,7 +98,7 @@ public class UserController(UserService userService) : ControllerBase
     // POST /api/v1/users - Tạo user mới
     [HttpPost]
     [Authorize(Roles = "ADMIN")]
-    public async Task<IActionResult> CreateUser([FromForm] CreateUserRequest request)
+    public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
     {
         var response = new Response();
 
@@ -134,7 +134,7 @@ public class UserController(UserService userService) : ControllerBase
     // PUT /api/v1/users/{id} - Cập nhật user
     [HttpPut("{id}")]
     [Authorize(Roles = "ADMIN")]
-    public async Task<IActionResult> UpdateUser(Guid id, [FromForm] UpdateUserRequest request)
+    public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateUserRequest request)
     {
         var response = new Response();
 
