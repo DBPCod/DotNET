@@ -12,12 +12,14 @@ public class CreatePromotionRequest
     public string? Description { get; set; }
 
     [Required(ErrorMessage = "Discount type is required")]
-    [RegularExpression("^(percent|fixed)$", ErrorMessage = "Discount type must be either 'percent' or 'fixed'")]
+    [RegularExpression("^(percent|fixed|free_shipping)$", ErrorMessage = "Discount type must be 'percent', 'fixed', or 'free_shipping'")]
     public string DiscountType { get; set; } = "";
 
-    [Required(ErrorMessage = "Discount value is required")]
-    [Range(0.01, 99999999.99, ErrorMessage = "Discount value must be between 0.01 and 99999999.99")]
-    public decimal DiscountValue { get; set; }
+    [Range(0, 99999999.99, ErrorMessage = "Discount value must be between 0 and 99999999.99")]
+    public decimal DiscountValue { get; set; } = 0;
+
+    [RegularExpression("^(promotion|discount_code)$", ErrorMessage = "Promotion type must be either 'promotion' or 'discount_code'")]
+    public string PromotionType { get; set; } = "promotion";
 
     [Required(ErrorMessage = "Start date is required")]
     public DateTime StartDate { get; set; }

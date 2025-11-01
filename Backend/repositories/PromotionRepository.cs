@@ -35,6 +35,7 @@ public class PromotionRepository(AppDbContext context)
 
     public async Task<(List<Promotion> promotions, int totalCount)> HandleGetPromotionsWithPagination(
         int page, int pageSize, string? searchTerm = null, string? status = null, 
+        string? discountType = null, string? promotionType = null,
         DateTime? fromDate = null, DateTime? toDate = null)
     {
         try
@@ -53,6 +54,18 @@ public class PromotionRepository(AppDbContext context)
             if (!string.IsNullOrEmpty(status))
             {
                 query = query.Where(p => p.Status == status);
+            }
+
+            // Filter by discount type
+            if (!string.IsNullOrEmpty(discountType))
+            {
+                query = query.Where(p => p.DiscountType == discountType);
+            }
+
+            // Filter by promotion type
+            if (!string.IsNullOrEmpty(promotionType))
+            {
+                query = query.Where(p => p.PromotionType == promotionType);
             }
 
             // Filter by date range
