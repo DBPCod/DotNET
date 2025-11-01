@@ -110,6 +110,7 @@
                                             </span>
                                         </td>
                                         <td>@user.CreatedAt.ToString("dd/MM/yyyy")</td>
+                                        
                                         <td>
                                             <div class="btn-group" role="group">
                                                 <button class="btn btn-sm btn-outline-primary" 
@@ -120,10 +121,23 @@
                                                         @onclick="() => ShowEditModal(user)">
                                                     <i class="bi bi-pencil"></i>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-danger" 
-                                                        @onclick="() => ConfirmDelete(user)">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
+                                                
+                                                @if (user.Status == "ACTIVE")
+                                                {
+                                                    <button class="btn btn-sm btn-outline-warning" 
+                                                            @onclick="() => ConfirmLock(user)"
+                                                            title="Khóa tài khoản">
+                                                        <i class="bi bi-lock-fill"></i>
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button class="btn btn-sm btn-outline-success" 
+                                                            @onclick="() => ConfirmUnlock(user)"
+                                                            title="Mở khóa tài khoản">
+                                                        <i class="bi bi-unlock-fill"></i>
+                                                    </button>
+                                                }
                                             </div>
                                         </td>
                                     </tr>
@@ -173,8 +187,12 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Username <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" @bind="formData.Username" 
-                               disabled="@isEditMode" />
+                        <input type="text" 
+                            class="form-control" 
+                            @bind="formData.Username" 
+                            disabled="@isEditMode"
+                            placeholder="Ví dụ: username (tối thiểu 7 ký tự)" />
+                        <small class="form-text text-muted">Chỉ chữ cái, số và dấu gạch dưới (_)</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Email <span class="text-danger">*</span></label>
@@ -186,7 +204,7 @@
                                placeholder="@(isEditMode ? "Để trống nếu không đổi" : "")" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Họ tên</label>
+                        <label class="form-label">Họ tên <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" @bind="formData.FullName" />
                     </div>
                     <div class="mb-3">
@@ -293,7 +311,8 @@
     private string searchQuery = "";
     private string selectedRole = "";
     private string selectedStatus = "";
-    
+    private int pageSize = 10;
+
     // Form
     private UserFormData formData = new();
     private UserDto? selectedUser;
@@ -325,14 +344,12 @@
             else
             {
                 users = new List<UserDto>();
-                @* await JS.InvokeVoidAsync("alert", response?.Message ?? "Lỗi khi tải dữ liệu"); *@
                 Toast.ShowError(response?.Message ?? "Lỗi khi tải dữ liệu");
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
-            @* await JS.InvokeVoidAsync("alert", "Có lỗi xảy ra khi tải dữ liệu"); *@
             Toast.ShowError("Có lỗi xảy ra khi tải dữ liệu");
         }
         finally
@@ -389,10 +406,21 @@
         errorMessage = "";
         
         // Validation
-        if (string.IsNullOrWhiteSpace(formData.Username) && !isEditMode)
+        if (!isEditMode)
         {
-            errorMessage = "Username không được để trống";
-            return;
+            if (string.IsNullOrWhiteSpace(formData.Username))
+            {
+                errorMessage = "Username không được để trống";
+                return;
+            }
+            
+            // Validation format username
+            var usernameRegex = new System.Text.RegularExpressions.Regex(@"^[a-zA-Z0-9_]{7,}$");
+            if (!usernameRegex.IsMatch(formData.Username))
+            {
+                errorMessage = "Username phải có ít nhất 7 ký tự, chỉ gồm chữ cái, số và dấu gạch dưới (_), không có dấu cách";
+                return;
+            }
         }
         
         if (string.IsNullOrWhiteSpace(formData.Email))
@@ -400,10 +428,23 @@
             errorMessage = "Email không được để trống";
             return;
         }
-        
+
+        var emailRegex = new System.Text.RegularExpressions.Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$");
+        if (!emailRegex.IsMatch(formData.Email))
+        {
+            errorMessage = "Email không đúng định dạng";
+            return;
+        }
+                
         if (string.IsNullOrWhiteSpace(formData.Password) && !isEditMode)
         {
             errorMessage = "Password không được để trống";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(formData.FullName))
+        {
+            errorMessage = "Họ tên không được để trống";
             return;
         }
 
@@ -447,17 +488,17 @@
 
             if (response?.StatusCode == 200 || response?.StatusCode == 201)
             {
-                @* await JS.InvokeVoidAsync("alert", response.Message); *@
-                Toast.ShowSuccess(response.Message);
+                var successMessage = isEditMode ? "Cập nhật người dùng thành công!" : "Tạo người dùng mới thành công!";
+                Toast.ShowSuccess(successMessage);
 
                 CloseModal();
                 await LoadUsers(pagination?.CurrentPage ?? 1);
             }
             else
             {
-                @* errorMessage = response?.Message ?? "Có lỗi xảy ra"; *@
-                Toast.ShowError(response?.Message ?? "Có lỗi xảy ra");
-
+                // Hiển thị lỗi trong modal thay vì Toast
+                errorMessage = response?.Message ?? "Có lỗi xảy ra khi lưu dữ liệu";
+                // Không return, để isSaving = false được set trong finally
             }
         }
         catch (Exception ex)
@@ -470,14 +511,14 @@
         }
     }
 
-    private async Task ConfirmDelete(UserDto user)
+    private async Task ConfirmLock(UserDto user)
     {
         var parameters = new ModalParameters()
-            .Add(nameof(ConfirmDialog.Title), "Xác nhận xóa")
-            .Add(nameof(ConfirmDialog.Message), $"Bạn có chắc muốn xóa user '{user.Username}'? Hành động này không thể hoàn tác.")
-            .Add(nameof(ConfirmDialog.ConfirmText), "Xóa")
+            .Add(nameof(ConfirmDialog.Title), "Xác nhận khóa tài khoản")
+            .Add(nameof(ConfirmDialog.Message), $"Bạn có chắc muốn khóa tài khoản '{user.Username}'? Người dùng sẽ không thể đăng nhập sau khi bị khóa.")
+            .Add(nameof(ConfirmDialog.ConfirmText), "Khóa")
             .Add(nameof(ConfirmDialog.CancelText), "Hủy")
-            .Add(nameof(ConfirmDialog.Type), "danger");
+            .Add(nameof(ConfirmDialog.Type), "warning");
 
         var options = new ModalOptions
         {
@@ -497,12 +538,53 @@
             
             if (response?.StatusCode == 200)
             {
-                Toast.ShowSuccess("Xóa user thành công!");
+                Toast.ShowSuccess("Khóa tài khoản thành công!");
                 await LoadUsers(pagination?.CurrentPage ?? 1);
             }
             else
             {
-                Toast.ShowError(response?.Message ?? "Lỗi khi xóa user");
+                Toast.ShowError(response?.Message ?? "Lỗi khi khóa tài khoản");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Lỗi: {ex.Message}");
+        }
+    }
+
+    private async Task ConfirmUnlock(UserDto user)
+    {
+        var parameters = new ModalParameters()
+            .Add(nameof(ConfirmDialog.Title), "Xác nhận mở khóa tài khoản")
+            .Add(nameof(ConfirmDialog.Message), $"Bạn có chắc muốn mở khóa tài khoản '{user.Username}'? Người dùng sẽ có thể đăng nhập trở lại.")
+            .Add(nameof(ConfirmDialog.ConfirmText), "Mở khóa")
+            .Add(nameof(ConfirmDialog.CancelText), "Hủy")
+            .Add(nameof(ConfirmDialog.Type), "success");
+
+        var options = new ModalOptions
+        {
+            HideCloseButton = false,
+            DisableBackgroundCancel = false
+        };
+
+        var modal = Modal.Show<ConfirmDialog>("", parameters, options);
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        try
+        {
+            var response = await UserService.UnlockUserAsync(user.Id);
+            
+            if (response?.StatusCode == 200)
+            {
+                Toast.ShowSuccess("Mở khóa tài khoản thành công!");
+                await LoadUsers(pagination?.CurrentPage ?? 1);
+            }
+            else
+            {
+                Toast.ShowError(response?.Message ?? "Lỗi khi mở khóa tài khoản");
             }
         }
         catch (Exception ex)

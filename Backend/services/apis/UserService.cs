@@ -27,11 +27,11 @@ public class UserService(UserRepository userRepository)
     {
         var existingUserByEmail = await _userRepository.HandleGetUserByEmail(email);
         if (existingUserByEmail != null)
-            throw new ExceptionCustom(409, "Email already exists");
+            throw new ExceptionCustom(409, "Email này đã tồn tại");
 
         var existingUserByUsername = await _userRepository.HandleGetUserByUsername(username);
         if (existingUserByUsername != null)
-            throw new ExceptionCustom(409, "Username already exists");
+            throw new ExceptionCustom(409, "Tên người dùng này đã tồn tại");
 
         var hashedPassword = BCrypt.Net.BCrypt.HashPassword(password);
 
@@ -53,12 +53,12 @@ public class UserService(UserRepository userRepository)
         // Check if email already exists
         var existingUserByEmail = await _userRepository.HandleGetUserByEmail(request.Email);
         if (existingUserByEmail != null)
-            throw new ExceptionCustom(409, "Email already exists");
+            throw new ExceptionCustom(409, "Email này đã tồn tại");
 
         // Check if username already exists
         var existingUserByUsername = await _userRepository.HandleGetUserByUsername(request.Username);
         if (existingUserByUsername != null)
-            throw new ExceptionCustom(409, "Username already exists");
+            throw new ExceptionCustom(409, "Tên người dùng này đã tồn tại");
 
         var hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
@@ -86,7 +86,7 @@ public class UserService(UserRepository userRepository)
         {
             var existingUserByEmail = await _userRepository.HandleGetUserByEmail(request.Email);
             if (existingUserByEmail != null)
-                throw new ExceptionCustom(409, "Email already exists");
+                throw new ExceptionCustom(409, "Email này đã tồn tại");
             user.Email = request.Email.Trim().ToLower();
         }
 
@@ -95,7 +95,7 @@ public class UserService(UserRepository userRepository)
         {
             var existingUserByUsername = await _userRepository.HandleGetUserByUsername(request.Username);
             if (existingUserByUsername != null)
-                throw new ExceptionCustom(409, "Username already exists");
+                throw new ExceptionCustom(409, "Tên người dùng này đã tồn tại");
             user.Username = request.Username.Trim();
         }
 
@@ -130,7 +130,7 @@ public class UserService(UserRepository userRepository)
     {
         var user = await _userRepository.HandleGetUserById(id);
         if (user == null)
-            throw new ExceptionCustom(404, "User not found");
+            throw new ExceptionCustom(404, "Không tìm thấy người dùng này");
 
         return await _userRepository.HandleSoftDeleteUser(id);
     }
