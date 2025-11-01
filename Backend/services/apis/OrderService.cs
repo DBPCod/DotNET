@@ -60,6 +60,23 @@ public class OrderService(OrderRepository orderRepository, CustomerRepository cu
         return created;
     }
 
+
+    public async Task<bool> HandleUpdateStatus(Guid id, string newStatus)
+    {
+        var validStatuses = new[] { "pending", "paid", "canceled" };
+        if (!validStatuses.Contains(newStatus.ToLower()))
+        {
+            throw new Exception("Invalid status");
+        }
+
+        var success = await _orderRepository.HandleUpdateStatus(id, newStatus);
+        if (!success)
+        {
+            throw new Exception("Order not found");
+        }
+
+        return success;
+    }
     public async Task<bool> HandleDeleteOrder(Guid id)
     {
         try

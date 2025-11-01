@@ -59,13 +59,31 @@ public class OrderRepository(AppDbContext context)
         }
     }
 
+    public async Task<bool> HandleUpdateStatus(Guid id, string newStatus)
+    {
+        try
+        {
+            var order = await _context.Order.FirstOrDefaultAsync(o => o.Id == id);
+            if (order == null)
+                return false;
+
+            order.Status = newStatus.ToLower();
+            _context.Order.Update(order);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception(ex.Message);
+        }
+    }
     public async Task<bool> HandleDeleteOrder(Guid id)
     {
         try
         {
             var order = await _context.Order
                 .FirstOrDefaultAsync(o => o.Id == id);
-            if(order == null)
+            if (order == null)
             {
                 return false;
             }

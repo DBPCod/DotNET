@@ -36,7 +36,12 @@ public class Data
     // Supplier
     public SupplierDto? Supplier { get; set; }
     public ICollection<SupplierDto>? Suppliers { get; set; }
+
+    //UpdateOrderStatusResponse
+    public UpdateOrderStatusDto? UpdateOrderStatus { get; set; }
+    public ICollection<UpdateOrderStatusDto> UpdateOrderStatuses { get; set; }
 }
+
 
 public class PaginationInfo
 {

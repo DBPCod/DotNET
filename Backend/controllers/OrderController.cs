@@ -6,7 +6,7 @@ using Backend.Utils.Customs;
 using Backend.Dtos.Requests.Order;
 namespace Backend.Controllers;
 
-[Route("api/orders")]
+[Route("api/v1/orders")]
 [ApiController]
 [Authorize]
 public class OrderController(OrderService orderService, PromotionService promotionService) : ControllerBase
@@ -62,12 +62,12 @@ public class OrderController(OrderService orderService, PromotionService promoti
     {
         var response = new Response();
         if (!ModelState.IsValid)
-        return BadRequest(ModelState);
+            return BadRequest(ModelState);
 
         try
         {
             var createdOrder = await _orderService.HandleCreateOrder(order);
-            if(createdOrder == null)
+            if (createdOrder == null)
             {
                 response.Message = "Failed to create order";
                 response.StatusCode = 500;
@@ -90,6 +90,32 @@ public class OrderController(OrderService orderService, PromotionService promoti
         return StatusCode(response.StatusCode, response);
     }
 
+    [HttpPatch("{id}/status")]
+    [Authorize(Roles = "STAFF,ADMIN")]
+    public async Task<IActionResult> HandleUpdateStatus(Guid id, [FromBody] UpdateStatusOrderRequest updateStatusOrderRequest)
+    {
+        var response = new Response();
+        try
+        {
+            var success = await _orderService.HandleUpdateStatus(id, updateStatusOrderRequest.status);
+            response.Message = "Order status updated successfully";
+            response.StatusCode = 200;
+            response.Data.UpdateOrderStatus = new UpdateOrderStatusDto { OrderId = id, NewStatus = updateStatusOrderRequest.status };
+        }
+        catch (ExceptionCustom ex)
+        {
+            response.Message = ex.Message;
+            response.StatusCode = ex.StatusCode;
+        }
+        catch (Exception ex)
+        {
+            response.Message = ex.Message;
+            response.StatusCode = 500;
+        }
+
+        return StatusCode(response.StatusCode, response);
+    }
+    
     [HttpDelete("{id}")]
     public async Task<IActionResult> HandleDeleteOrder(Guid id)
     {
