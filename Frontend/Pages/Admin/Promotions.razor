@@ -1,5 +1,7 @@
 @page "/admin/promotions"
 @layout AdminLayout
+@inject PromotionService PromotionService
+@inject IJSRuntime JSRuntime
 
 <div class="admin-page">
     <div class="page-header">
@@ -8,7 +10,7 @@
                 <h2>Quản lý khuyến mãi</h2>
                 <p class="text-muted">Tạo và quản lý các chương trình khuyến mãi</p>
             </div>
-            <button class="btn btn-primary">
+            <button class="btn btn-primary" @onclick="ShowCreateModal">
                 <i class="bi bi-plus"></i> Tạo khuyến mãi
             </button>
         </div>
@@ -17,146 +19,191 @@
     <div class="page-filters">  
         <div class="row">
             <div class="col-md-4">
-                <input type="text" class="form-control" placeholder="Tìm kiếm khuyến mãi..." />
+                <input type="text" class="form-control" placeholder="Tìm kiếm khuyến mãi..." 
+                       @bind="searchTerm" @onkeypress="HandleSearchKeyPress" />
             </div>
             <div class="col-md-3">
-                <select class="form-select">
-                    <option>Tất cả trạng thái</option>
-                    <option>Đang hoạt động</option>
-                    <option>Sắp bắt đầu</option>
-                    <option>Đã kết thúc</option>
-                    <option>Tạm dừng</option>
+                <select class="form-select" value="@selectedStatus" @onchange="HandleStatusChange">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="active">Đang hoạt động</option>
+                    <option value="inactive">Tạm dừng</option>
                 </select>
             </div>
             <div class="col-md-3">
-                <select class="form-select">
-                    <option>Tất cả loại</option>
-                    <option>Giảm giá %</option>
-                    <option>Giảm giá cố định</option>
-                    <option>Mua 1 tặng 1</option>
-                    <option>Miễn phí vận chuyển</option>
+                <select class="form-select" value="@selectedDiscountType" @onchange="HandleDiscountTypeFilterChange">
+                    <option value="">Tất cả loại</option>
+                    <option value="percent">Giảm giá %</option>
+                    <option value="fixed">Giảm giá cố định</option>
+                    <option value="free_shipping">Miễn phí vận chuyển</option>
                 </select>
             </div>
             <div class="col-md-2">
-                <button class="btn btn-outline-secondary w-100">Lọc</button>
+                <button class="btn btn-outline-secondary w-100" @onclick="LoadPromotions">Lọc</button>
             </div>
         </div>
     </div>
     
-    <div class="page-content">
-        <div class="row">
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card promotion-card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <h5 class="card-title">Black Friday 2024</h5>
-                            <span class="badge bg-success">Đang hoạt động</span>
-                        </div>
-                        <p class="card-text text-muted">Giảm giá 50% cho tất cả sản phẩm điện tử</p>
-                        <div class="promotion-details">
-                            <div class="detail-item">
-                                <i class="bi bi-calendar"></i>
-                                <span>01/11/2024 - 30/11/2024</span>
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+            <p class="mt-2">Đang tải dữ liệu...</p>
+        </div>
+    }
+    else if (promotions.Count == 0)
+    {
+        <div class="text-center py-5">
+            <p class="text-muted">Không có khuyến mãi nào</p>
+        </div>
+    }
+    else
+    {
+        <div class="page-content">
+            <div class="row">
+                @foreach (var promotion in promotions)
+                {
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card promotion-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <h5 class="card-title">@promotion.PromoCode</h5>
+                                    <span class="badge @GetStatusBadgeClass(promotion)">@GetStatusDisplay(promotion)</span>
+                                </div>
+                                <p class="card-text text-muted">@(promotion.Description ?? "Không có mô tả")</p>
+                                <div class="promotion-details">
+                                    <div class="detail-item">
+                                        <i class="bi bi-calendar"></i>
+                                        <span>@promotion.StartDate.ToString("dd/MM/yyyy") - @promotion.EndDate.ToString("dd/MM/yyyy")</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="bi bi-percent"></i>
+                                        <span>@GetDiscountDisplay(promotion)</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="bi bi-people"></i>
+                                        <span>@promotion.UsedCount/@(promotion.UsageLimit > 0 ? promotion.UsageLimit.ToString() : "∞") lượt sử dụng</span>
+                                    </div>
+                                </div>
+                                <div class="card-actions mt-3">
+                                    <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => ViewPromotion(promotion)">
+                                        <i class="bi bi-eye"></i> Xem
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-warning me-2" @onclick="() => ShowEditModal(promotion)">
+                                        <i class="bi bi-pencil"></i> Sửa
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeletePromotion(promotion)">
+                                        <i class="bi bi-trash"></i> Xóa
+                                    </button>
+                                </div>
                             </div>
-                            <div class="detail-item">
-                                <i class="bi bi-percent"></i>
-                                <span>Giảm 50%</span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="bi bi-people"></i>
-                                <span>1,234 lượt sử dụng</span>
-                            </div>
-                        </div>
-                        <div class="card-actions mt-3">
-                            <button class="btn btn-sm btn-outline-primary me-2">
-                                <i class="bi bi-eye"></i> Xem
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning me-2">
-                                <i class="bi bi-pencil"></i> Sửa
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger">
-                                <i class="bi bi-trash"></i> Xóa
-                            </button>
                         </div>
                     </div>
-                </div>
+                }
             </div>
-            
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card promotion-card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <h5 class="card-title">Mùa hè 2024</h5>
-                            <span class="badge bg-warning">Sắp bắt đầu</span>
-                        </div>
-                        <p class="card-text text-muted">Giảm giá 30% cho sản phẩm thời trang</p>
-                        <div class="promotion-details">
-                            <div class="detail-item">
-                                <i class="bi bi-calendar"></i>
-                                <span>01/06/2024 - 31/08/2024</span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="bi bi-percent"></i>
-                                <span>Giảm 30%</span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="bi bi-people"></i>
-                                <span>0 lượt sử dụng</span>
-                            </div>
-                        </div>
-                        <div class="card-actions mt-3">
-                            <button class="btn btn-sm btn-outline-primary me-2">
-                                <i class="bi bi-eye"></i> Xem
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning me-2">
-                                <i class="bi bi-pencil"></i> Sửa
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger">
-                                <i class="bi bi-trash"></i> Xóa
-                            </button>
-                        </div>
+
+            @if (pagination != null && pagination.TotalPages > 1)
+            {
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item @(pagination.CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" href="#" @onclick="() => ChangePage(pagination.CurrentPage - 1)" @onclick:preventDefault>Trước</a>
+                        </li>
+                        @for (int i = 1; i <= pagination.TotalPages; i++)
+                        {
+                            <li class="page-item @(i == pagination.CurrentPage ? "active" : "")">
+                                <a class="page-link" href="#" @onclick="() => ChangePage(i)" @onclick:preventDefault>@i</a>
+                            </li>
+                        }
+                        <li class="page-item @(pagination.CurrentPage >= pagination.TotalPages ? "disabled" : "")">
+                            <a class="page-link" href="#" @onclick="() => ChangePage(pagination.CurrentPage + 1)" @onclick:preventDefault>Tiếp</a>
+                        </li>
+                    </ul>
+                </nav>
+            }
+        </div>
+    }
+
+    <!-- Modal Create/Edit -->
+    @if (showModal)
+    {
+        <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);" @onclick="CloseModal">
+            <div class="modal-dialog modal-lg" @onclick:stopPropagation="true">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">@(isEdit ? "Sửa khuyến mãi" : "Tạo khuyến mãi mới")</h5>
+                        <button type="button" class="btn-close" @onclick="CloseModal"></button>
                     </div>
-                </div>
-            </div>
-            
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card promotion-card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <h5 class="card-title">Mua 1 tặng 1</h5>
-                            <span class="badge bg-secondary">Đã kết thúc</span>
-                        </div>
-                        <p class="card-text text-muted">Mua 1 sản phẩm bất kỳ tặng 1 sản phẩm tương tự</p>
-                        <div class="promotion-details">
-                            <div class="detail-item">
-                                <i class="bi bi-calendar"></i>
-                                <span>01/01/2024 - 31/01/2024</span>
+                    <div class="modal-body">
+                        <form>
+                            <div class="mb-3">
+                                <label class="form-label">Mã khuyến mãi <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" @bind="currentPromotion.PromoCode" 
+                                       disabled="@isEdit" placeholder="VD: SALE10" />
                             </div>
-                            <div class="detail-item">
-                                <i class="bi bi-gift"></i>
-                                <span>Mua 1 tặng 1</span>
+                            <div class="mb-3">
+                                <label class="form-label">Mô tả</label>
+                                <textarea class="form-control" @bind="currentPromotion.Description" rows="2" 
+                                          placeholder="Nhập mô tả khuyến mãi"></textarea>
                             </div>
-                            <div class="detail-item">
-                                <i class="bi bi-people"></i>
-                                <span>567 lượt sử dụng</span>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Loại giảm giá <span class="text-danger">*</span></label>
+                                    <select class="form-select" value="@currentPromotion.DiscountType" @onchange="HandleDiscountTypeChange">
+                                        <option value="percent">Giảm giá %</option>
+                                        <option value="fixed">Giảm giá cố định</option>
+                                        <option value="free_shipping">Miễn phí vận chuyển</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Giá trị giảm giá <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" @bind="currentPromotion.DiscountValue" 
+                                           step="0.01" min="0" disabled="@(currentPromotion.DiscountType == "free_shipping")" />
+                                    @if (currentPromotion.DiscountType == "free_shipping")
+                                    {
+                                        <small class="text-muted">Miễn phí vận chuyển không cần giá trị</small>
+                                    }
+                                </div>
                             </div>
-                        </div>
-                        <div class="card-actions mt-3">
-                            <button class="btn btn-sm btn-outline-primary me-2">
-                                <i class="bi bi-eye"></i> Xem
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning me-2">
-                                <i class="bi bi-pencil"></i> Sửa
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger">
-                                <i class="bi bi-trash"></i> Xóa
-                            </button>
-                        </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Ngày bắt đầu <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" @bind="currentPromotion.StartDate" />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Ngày kết thúc <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" @bind="currentPromotion.EndDate" />
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Giá trị đơn hàng tối thiểu</label>
+                                    <input type="number" class="form-control" @bind="currentPromotion.MinOrderAmount" 
+                                           step="0.01" min="0" />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Giới hạn sử dụng (0 = không giới hạn)</label>
+                                    <input type="number" class="form-control" @bind="currentPromotion.UsageLimit" min="0" />
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Trạng thái</label>
+                                <select class="form-select" @bind="currentPromotion.Status">
+                                    <option value="active">Hoạt động</option>
+                                    <option value="inactive">Tạm dừng</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseModal">Hủy</button>
+                        <button type="button" class="btn btn-primary" @onclick="SavePromotion">Lưu</button>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    }
 </div>
 
 <style>
@@ -215,3 +262,244 @@
         font-size: 0.8rem;
     }
 </style>
+
+@code {
+    private List<PromotionDto> promotions = new();
+    private PaginationInfo? pagination;
+    private bool isLoading = true;
+    private string searchTerm = "";
+    private string selectedStatus = "";
+    private string selectedDiscountType = "";
+    private int currentPage = 1;
+    private int pageSize = 12;
+
+    private bool showModal = false;
+    private bool isEdit = false;
+    private PromotionDto? editingPromotion;
+    private CreatePromotionRequest currentPromotion = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPromotions();
+    }
+
+    private async Task LoadPromotions()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await PromotionService.GetPromotionsAsync(
+                currentPage,
+                pageSize,
+                string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
+                string.IsNullOrWhiteSpace(selectedStatus) ? null : selectedStatus,
+                string.IsNullOrWhiteSpace(selectedDiscountType) ? null : selectedDiscountType
+            );
+
+            promotions = result.promotions;
+            pagination = result.pagination;
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("console.error", $"Error loading promotions: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleSearchKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            currentPage = 1;
+            await LoadPromotions();
+        }
+    }
+
+    private async Task HandleStatusChange(ChangeEventArgs e)
+    {
+        selectedStatus = e.Value?.ToString() ?? "";
+        currentPage = 1;
+        await LoadPromotions();
+    }
+
+    private async Task HandleDiscountTypeFilterChange(ChangeEventArgs e)
+    {
+        selectedDiscountType = e.Value?.ToString() ?? "";
+        currentPage = 1;
+        await LoadPromotions();
+    }
+
+    private async Task ChangePage(int page)
+    {
+        currentPage = page;
+        await LoadPromotions();
+    }
+
+    private void ShowCreateModal()
+    {
+        isEdit = false;
+        currentPromotion = new CreatePromotionRequest
+        {
+            StartDate = DateTime.Today,
+            EndDate = DateTime.Today.AddDays(30),
+            Status = "active",
+            DiscountType = "percent",
+            PromotionType = "promotion"
+        };
+        showModal = true;
+    }
+
+    private void ShowEditModal(PromotionDto promotion)
+    {
+        isEdit = true;
+        editingPromotion = promotion;
+        currentPromotion = new CreatePromotionRequest
+        {
+            PromoCode = promotion.PromoCode,
+            Description = promotion.Description,
+            DiscountType = promotion.DiscountType,
+            DiscountValue = promotion.DiscountValue,
+            PromotionType = promotion.PromotionType,
+            StartDate = promotion.StartDate,
+            EndDate = promotion.EndDate,
+            MinOrderAmount = promotion.MinOrderAmount,
+            UsageLimit = promotion.UsageLimit,
+            Status = promotion.Status
+        };
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        isEdit = false;
+        editingPromotion = null;
+        currentPromotion = new CreatePromotionRequest();
+    }
+
+    private void HandleDiscountTypeChange(ChangeEventArgs e)
+    {
+        currentPromotion.DiscountType = e.Value?.ToString() ?? "percent";
+        if (currentPromotion.DiscountType == "free_shipping")
+        {
+            currentPromotion.DiscountValue = 0;
+        }
+        StateHasChanged();
+    }
+
+    private async Task SavePromotion()
+    {
+        try
+        {
+            bool success;
+            
+            if (isEdit && editingPromotion != null)
+            {
+                var updateRequest = new UpdatePromotionRequest
+                {
+                    Description = currentPromotion.Description,
+                    DiscountType = currentPromotion.DiscountType,
+                    DiscountValue = currentPromotion.DiscountValue,
+                    PromotionType = currentPromotion.PromotionType,
+                    StartDate = currentPromotion.StartDate,
+                    EndDate = currentPromotion.EndDate,
+                    MinOrderAmount = currentPromotion.MinOrderAmount,
+                    UsageLimit = currentPromotion.UsageLimit,
+                    Status = currentPromotion.Status
+                };
+                
+                success = await PromotionService.UpdatePromotionAsync(editingPromotion.Id, updateRequest);
+            }
+            else
+            {
+                success = await PromotionService.CreatePromotionAsync(currentPromotion);
+            }
+
+            if (success)
+            {
+                CloseModal();
+                await LoadPromotions();
+                await JSRuntime.InvokeVoidAsync("alert", isEdit ? "Cập nhật thành công!" : "Tạo khuyến mãi thành công!");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Có lỗi xảy ra!");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Lỗi: {ex.Message}");
+        }
+    }
+
+    private async Task DeletePromotion(PromotionDto promotion)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc chắn muốn xóa khuyến mãi {promotion.PromoCode}?");
+        
+        if (confirmed)
+        {
+            var success = await PromotionService.DeletePromotionAsync(promotion.Id);
+            
+            if (success)
+            {
+                await LoadPromotions();
+                await JSRuntime.InvokeVoidAsync("alert", "Xóa thành công!");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Có lỗi xảy ra!");
+            }
+        }
+    }
+
+    private void ViewPromotion(PromotionDto promotion)
+    {
+        // Có thể mở modal xem chi tiết hoặc navigate đến trang chi tiết
+        JSRuntime.InvokeVoidAsync("alert", $"Mã: {promotion.PromoCode}\nMô tả: {promotion.Description}\nĐã sử dụng: {promotion.UsedCount}/{promotion.UsageLimit}");
+    }
+
+    private string GetDiscountDisplay(PromotionDto promotion)
+    {
+        return promotion.DiscountType switch
+        {
+            "percent" => $"Giảm {promotion.DiscountValue}%",
+            "fixed" => $"Giảm {promotion.DiscountValue:N0} VNĐ",
+            "free_shipping" => "Miễn phí vận chuyển",
+            _ => promotion.DiscountType
+        };
+    }
+
+    private string GetStatusDisplay(PromotionDto promotion)
+    {
+        var today = DateTime.Today;
+        if (promotion.Status == "active")
+        {
+            if (today < promotion.StartDate)
+                return "Sắp bắt đầu";
+            if (today > promotion.EndDate)
+                return "Đã kết thúc";
+            return "Đang hoạt động";
+        }
+        return "Tạm dừng";
+    }
+
+    private string GetStatusBadgeClass(PromotionDto promotion)
+    {
+        var today = DateTime.Today;
+        if (promotion.Status == "active")
+        {
+            if (today < promotion.StartDate)
+                return "bg-info";
+            if (today > promotion.EndDate)
+                return "bg-secondary";
+            return "bg-success";
+        }
+        return "bg-secondary";
+    }
+}

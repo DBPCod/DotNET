@@ -17,5 +17,6 @@ builder.Services.AddScoped(sp => new HttpClient
 // Đăng ký UserService
 builder.Services.AddScoped<UserService>();
 builder.Services.AddBlazoredToast();
+builder.Services.AddScoped<PromotionService>();
 
 await builder.Build().RunAsync();
