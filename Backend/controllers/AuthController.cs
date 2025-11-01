@@ -15,7 +15,7 @@ public class AuthController(AuthService authService, UserService userService) : 
     {
         var response = await _authService.Register(request);
 
-        return StatusCode(response.StatusCode, response.Message);
+        return StatusCode(response.StatusCode, response);
     }
 
     [HttpPost("login")]
@@ -73,12 +73,12 @@ public class AuthController(AuthService authService, UserService userService) : 
 
         Response.Cookies.Delete("access-token");
         Response.Cookies.Delete("refresh-token");
+        Console.WriteLine("Cookies deleted");
 
         return Ok(new { Message = "Logged out" });
     }
 
     [HttpPost("send-otp/{email}")]
-    [Authorize()]
     public async Task<IActionResult> SendOtp(string email)
     {
         var response = await _authService.SendOtp(email);
@@ -86,7 +86,6 @@ public class AuthController(AuthService authService, UserService userService) : 
     }
 
     [HttpPost("verify-otp/{email}")]
-    [Authorize()]
     public async Task<IActionResult> VerifyOtp(string email, [FromForm] VerifyOtpRequest request)
     {
         var response = await _authService.VerifyOtp(email, request);
@@ -94,7 +93,6 @@ public class AuthController(AuthService authService, UserService userService) : 
     }
 
     [HttpPost("forgot-password/{email}")]
-    [Authorize()]
     public async Task<IActionResult> ForgotPassword(string email, [FromForm] ForgotPasswordRequest request)
     {
         var response = await _authService.ForgotPassword(email, request);
@@ -110,6 +108,7 @@ public class AuthController(AuthService authService, UserService userService) : 
     }
 
     [HttpPost("refresh-token")]
+    [Authorize()]
     public async Task<IActionResult> Refresh()
     {
         try

@@ -123,19 +123,28 @@ public class AuthService(UserService userService, RedisHelper redisHelper)
     public async Task<Response> Login(LoginRequest Request)
     {
         var response = new Response();
+        Console.WriteLine("Login method called in AuthService");
 
         try
         {
             if (string.IsNullOrEmpty(Request.UsernameOrEmail))
-                throw new ExceptionCustom(400, "Username or Email is required");
+                throw new ExceptionCustom(401, "Invalid credentials");
 
             if (string.IsNullOrEmpty(Request.Password))
-                throw new ExceptionCustom(400, "Password is required");
+                throw new ExceptionCustom(401, "Invalid credentials");
 
             var user = await _userService.HandleGetUserByUsernameOrEmail(Request.UsernameOrEmail) ?? throw new ExceptionCustom(404, "User not found");
 
             if (!BCrypt.Net.BCrypt.Verify(Request.Password, user.Password))
-                throw new ExceptionCustom(403, "Invalid credentials");
+                throw new ExceptionCustom(401, "Invalid credentials");
+
+            Console.WriteLine($"User status: {user.Status}");
+            Console.WriteLine(user.Status == UserStatus.PENDING);
+            if (user.Status == UserStatus.INACTIVE)
+                throw new ExceptionCustom(403, "User account is not banned");
+                
+            if (user.Status == UserStatus.PENDING)
+                throw new ExceptionCustom(423, "User account is not activated");
 
             var userDto = UserMapper.MapEntityToDto(user);
 
@@ -247,6 +256,11 @@ public class AuthService(UserService userService, RedisHelper redisHelper)
 
             if (string.IsNullOrEmpty(storedOTP))
                 throw new ExceptionCustom(400, "Invalid OTP");
+
+            if (request.IsActivation)
+            {
+                await _userService.HandleUpdateUserStatus(email);
+            }
 
             response.Message = "OTP verified successfully";
             response.StatusCode = 200;
