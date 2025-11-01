@@ -40,6 +40,11 @@ public class Data
     //UpdateOrderStatusResponse
     public UpdateOrderStatusDto? UpdateOrderStatus { get; set; }
     public ICollection<UpdateOrderStatusDto> UpdateOrderStatuses { get; set; }
+
+    //OrderItem
+    public OrderItemDto? orderItem { set; get; }
+    public ICollection<OrderItemDto> orderItems{ get; set; }
+
 }
 
 
