@@ -10,11 +10,13 @@ public class ApiResponse
 
 public class ResponseData
 {
-    // Single user
+    // User
     public UserDto? User { get; set; }
-    
-    // List users
     public List<UserDto>? Users { get; set; }
+    
+    // Promotion
+    public List<PromotionDto>? Promotions { get; set; }
+    public PromotionDto? Promotion { get; set; }
     
     // Pagination
     public PaginationInfo? Pagination { get; set; }
@@ -39,6 +41,8 @@ public class PaginationInfo
     public int PageSize { get; set; }
     public int TotalCount { get; set; }
     public int TotalPages { get; set; }
+    public bool HasPreviousPage => CurrentPage > 1;
+    public bool HasNextPage => CurrentPage < TotalPages;
 }
 
 // Request để tạo user

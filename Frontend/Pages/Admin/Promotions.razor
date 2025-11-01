@@ -2,6 +2,7 @@
 @layout AdminLayout
 @inject PromotionService PromotionService
 @inject IJSRuntime JSRuntime
+@inject Blazored.Toast.Services.IToastService Toast
 
 <div class="admin-page">
     <div class="page-header">
@@ -122,6 +123,113 @@
                     </ul>
                 </nav>
             }
+        </div>
+    }
+
+    <!-- Modal View (Read-only) -->
+    @if (showViewModal)
+    {
+        <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);" @onclick="CloseViewModal">
+            <div class="modal-dialog modal-lg" @onclick:stopPropagation="true">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Chi tiết khuyến mãi</h5>
+                        <button type="button" class="btn-close" @onclick="CloseViewModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if (viewingPromotion != null)
+                        {
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Mã khuyến mãi:</label>
+                                    <p class="form-control-plaintext">@viewingPromotion.PromoCode</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Loại:</label>
+                                    <p class="form-control-plaintext">
+                                        <span class="badge @(viewingPromotion.PromotionType == "promotion" ? "bg-primary" : "bg-info")">
+                                            @(viewingPromotion.PromotionType == "promotion" ? "Khuyến mãi" : "Mã giảm giá")
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Mô tả:</label>
+                                <p class="form-control-plaintext">@(viewingPromotion.Description ?? "Không có mô tả")</p>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Loại giảm giá:</label>
+                                    <p class="form-control-plaintext">@GetDiscountDisplay(viewingPromotion)</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Trạng thái:</label>
+                                    <p class="form-control-plaintext">
+                                        <span class="badge @GetStatusBadgeClass(viewingPromotion)">@GetStatusDisplay(viewingPromotion)</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Ngày bắt đầu:</label>
+                                    <p class="form-control-plaintext">@viewingPromotion.StartDate.ToString("dd/MM/yyyy")</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Ngày kết thúc:</label>
+                                    <p class="form-control-plaintext">@viewingPromotion.EndDate.ToString("dd/MM/yyyy")</p>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Giá trị đơn hàng tối thiểu:</label>
+                                    <p class="form-control-plaintext">@viewingPromotion.MinOrderAmount.ToString("N0") VNĐ</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Giới hạn sử dụng:</label>
+                                    <p class="form-control-plaintext">@(viewingPromotion.UsageLimit > 0 ? viewingPromotion.UsageLimit.ToString() : "Không giới hạn")</p>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Đã sử dụng:</label>
+                                <p class="form-control-plaintext">@viewingPromotion.UsedCount lượt</p>
+                            </div>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseViewModal">Đóng</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Modal Confirm Delete -->
+    @if (showDeleteModal)
+    {
+        <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);" @onclick="CloseDeleteModal">
+            <div class="modal-dialog modal-dialog-centered" @onclick:stopPropagation="true">
+                <div class="modal-content">
+                    <div class="modal-header border-0 pb-0">
+                        <button type="button" class="btn-close" @onclick="CloseDeleteModal"></button>
+                    </div>
+                    <div class="modal-body text-center py-4">
+                        <div class="mb-3">
+                            <i class="bi bi-exclamation-triangle-fill text-warning" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="mb-2">Xác nhận xóa</h5>
+                        <p class="text-muted mb-0">
+                            Bạn có chắc chắn muốn xóa khuyến mãi <strong>@deletingPromotion?.PromoCode</strong>?
+                        </p>
+                        <p class="text-danger small mt-2">Hành động này không thể hoàn tác!</p>
+                    </div>
+                    <div class="modal-footer border-0 justify-content-center pb-4">
+                        <button type="button" class="btn btn-secondary me-2" @onclick="CloseDeleteModal">Hủy</button>
+                        <button type="button" class="btn btn-danger" @onclick="ConfirmDelete">
+                            <i class="bi bi-trash me-1"></i> Xóa
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     }
 
@@ -278,6 +386,14 @@
     private PromotionDto? editingPromotion;
     private CreatePromotionRequest currentPromotion = new();
 
+    // View modal state
+    private bool showViewModal = false;
+    private PromotionDto? viewingPromotion;
+
+    // Delete confirm modal state
+    private bool showDeleteModal = false;
+    private PromotionDto? deletingPromotion;
+
     protected override async Task OnInitializedAsync()
     {
         await LoadPromotions();
@@ -425,43 +541,60 @@
             {
                 CloseModal();
                 await LoadPromotions();
-                await JSRuntime.InvokeVoidAsync("alert", isEdit ? "Cập nhật thành công!" : "Tạo khuyến mãi thành công!");
+                Toast.ShowSuccess(isEdit ? "Cập nhật thành công!" : "Tạo khuyến mãi thành công!");
             }
             else
             {
-                await JSRuntime.InvokeVoidAsync("alert", "Có lỗi xảy ra!");
+                Toast.ShowError("Có lỗi xảy ra!");
             }
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Lỗi: {ex.Message}");
+            Toast.ShowError($"Lỗi: {ex.Message}");
         }
     }
 
-    private async Task DeletePromotion(PromotionDto promotion)
+    private void DeletePromotion(PromotionDto promotion)
     {
-        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc chắn muốn xóa khuyến mãi {promotion.PromoCode}?");
+        deletingPromotion = promotion;
+        showDeleteModal = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        deletingPromotion = null;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (deletingPromotion == null) return;
+
+        var success = await PromotionService.DeletePromotionAsync(deletingPromotion.Id);
         
-        if (confirmed)
+        CloseDeleteModal();
+        
+        if (success)
         {
-            var success = await PromotionService.DeletePromotionAsync(promotion.Id);
-            
-            if (success)
-            {
-                await LoadPromotions();
-                await JSRuntime.InvokeVoidAsync("alert", "Xóa thành công!");
-            }
-            else
-            {
-                await JSRuntime.InvokeVoidAsync("alert", "Có lỗi xảy ra!");
-            }
+            await LoadPromotions();
+            Toast.ShowSuccess("Xóa thành công!");
+        }
+        else
+        {
+            Toast.ShowError("Có lỗi xảy ra!");
         }
     }
 
     private void ViewPromotion(PromotionDto promotion)
     {
-        // Có thể mở modal xem chi tiết hoặc navigate đến trang chi tiết
-        JSRuntime.InvokeVoidAsync("alert", $"Mã: {promotion.PromoCode}\nMô tả: {promotion.Description}\nĐã sử dụng: {promotion.UsedCount}/{promotion.UsageLimit}");
+        viewingPromotion = promotion;
+        showViewModal = true;
+    }
+
+    private void CloseViewModal()
+    {
+        showViewModal = false;
+        viewingPromotion = null;
     }
 
     private string GetDiscountDisplay(PromotionDto promotion)
@@ -503,3 +636,4 @@
         return "bg-secondary";
     }
 }
+

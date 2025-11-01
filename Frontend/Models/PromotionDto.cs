@@ -17,30 +17,6 @@ public class PromotionDto
     public bool CanEdit { get; set; } = true;
 }
 
-public class ApiResponse
-{
-    public string Message { get; set; } = "";
-    public int StatusCode { get; set; }
-    public ResponseData Data { get; set; } = new ResponseData();
-}
-
-public class ResponseData
-{
-    public List<PromotionDto>? Promotions { get; set; }
-    public PromotionDto? Promotion { get; set; }
-    public PaginationInfo? Pagination { get; set; }
-}
-
-public class PaginationInfo
-{
-    public int CurrentPage { get; set; }
-    public int PageSize { get; set; }
-    public int TotalCount { get; set; }
-    public int TotalPages { get; set; }
-    public bool HasPreviousPage => CurrentPage > 1;
-    public bool HasNextPage => CurrentPage < TotalPages;
-}
-
 public class CreatePromotionRequest
 {
     public string PromoCode { get; set; } = "";
