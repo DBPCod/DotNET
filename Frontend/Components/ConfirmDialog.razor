@@ -1,0 +1,137 @@
+@* Components/ConfirmDialog.razor *@
+
+<div class="confirm-dialog">
+    <div class="confirm-icon @IconClass">
+        <i class="bi @IconType"></i>
+    </div>
+    <h5 class="confirm-title">@Title</h5>
+    <p class="confirm-message">@Message</p>
+    
+    <div class="confirm-actions">
+        <button class="btn btn-secondary" @onclick="Cancel">
+            <i class="bi bi-x-circle"></i> @CancelText
+        </button>
+        <button class="btn @ConfirmButtonClass" @onclick="Confirm">
+            <i class="bi bi-check-circle"></i> @ConfirmText
+        </button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] 
+    BlazoredModalInstance ModalInstance { get; set; } = default!;
+
+    [Parameter] 
+    public string Title { get; set; } = "Xác nhận";
+
+    [Parameter] 
+    public string Message { get; set; } = "Bạn có chắc chắn muốn thực hiện hành động này?";
+
+    [Parameter] 
+    public string ConfirmText { get; set; } = "Xác nhận";
+
+    [Parameter] 
+    public string CancelText { get; set; } = "Hủy";
+
+    [Parameter]
+    public string Type { get; set; } = "danger"; // danger, warning, info, success
+
+    private string IconClass => Type switch
+    {
+        "danger" => "icon-danger",
+        "warning" => "icon-warning",
+        "info" => "icon-info",
+        "success" => "icon-success",
+        _ => "icon-info"
+    };
+
+    private string IconType => Type switch
+    {
+        "danger" => "bi-exclamation-triangle-fill",
+        "warning" => "bi-exclamation-circle-fill",
+        "info" => "bi-info-circle-fill",
+        "success" => "bi-check-circle-fill",
+        _ => "bi-info-circle-fill"
+    };
+
+    private string ConfirmButtonClass => Type switch
+    {
+        "danger" => "btn-danger",
+        "warning" => "btn-warning",
+        "info" => "btn-info",
+        "success" => "btn-success",
+        _ => "btn-primary"
+    };
+
+    private void Cancel()
+    {
+        ModalInstance.CancelAsync();
+    }
+
+    private void Confirm()
+    {
+        ModalInstance.CloseAsync(ModalResult.Ok(true));
+    }
+}
+
+<style>
+    .confirm-dialog {
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    .confirm-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2.5rem;
+    }
+
+    .icon-danger {
+        background-color: #fee;
+        color: #dc3545;
+    }
+
+    .icon-warning {
+        background-color: #fff3cd;
+        color: #ffc107;
+    }
+
+    .icon-info {
+        background-color: #d1ecf1;
+        color: #0dcaf0;
+    }
+
+    .icon-success {
+        background-color: #d1e7dd;
+        color: #198754;
+    }
+
+    .confirm-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #2c3e50;
+    }
+
+    .confirm-message {
+        font-size: 1rem;
+        color: #6c757d;
+        margin-bottom: 2rem;
+    }
+
+    .confirm-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    .confirm-actions .btn {
+        min-width: 120px;
+        padding: 0.5rem 1.5rem;
+    }
+</style>

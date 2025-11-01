@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Frontend;
 using Frontend.Services;
 using Blazored.Toast;
+using Blazored.Modal;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -16,6 +17,9 @@ builder.Services.AddScoped(sp => new HttpClient
 
 // Đăng ký UserService
 builder.Services.AddScoped<UserService>();
+
+// Đăng ký service cho toast và modal của blazored
 builder.Services.AddBlazoredToast();
+builder.Services.AddBlazoredModal();
 
 await builder.Build().RunAsync();

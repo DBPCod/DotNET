@@ -2,9 +2,11 @@
 @layout AdminLayout
 @using Frontend.Models
 @using Frontend.Services
+@using Frontend.Components
 @inject UserService UserService
 @inject IJSRuntime JS
 @inject Blazored.Toast.Services.IToastService Toast
+@inject Blazored.Modal.Services.IModalService Modal
 
 <div class="admin-page">
     <div class="page-header">
@@ -470,8 +472,24 @@
 
     private async Task ConfirmDelete(UserDto user)
     {
-        bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa user '{user.Username}'?");
-        if (!confirmed) return;
+        var parameters = new ModalParameters()
+            .Add(nameof(ConfirmDialog.Title), "Xác nhận xóa")
+            .Add(nameof(ConfirmDialog.Message), $"Bạn có chắc muốn xóa user '{user.Username}'? Hành động này không thể hoàn tác.")
+            .Add(nameof(ConfirmDialog.ConfirmText), "Xóa")
+            .Add(nameof(ConfirmDialog.CancelText), "Hủy")
+            .Add(nameof(ConfirmDialog.Type), "danger");
+
+        var options = new ModalOptions
+        {
+            HideCloseButton = false,
+            DisableBackgroundCancel = false
+        };
+
+        var modal = Modal.Show<ConfirmDialog>("", parameters, options);
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
 
         try
         {
@@ -479,22 +497,17 @@
             
             if (response?.StatusCode == 200)
             {
-                @* await JS.InvokeVoidAsync("alert", "Xóa user thành công!"); *@
                 Toast.ShowSuccess("Xóa user thành công!");
                 await LoadUsers(pagination?.CurrentPage ?? 1);
             }
             else
             {
-                @* await JS.InvokeVoidAsync("alert", response?.Message ?? "Lỗi khi xóa user"); *@
                 Toast.ShowError(response?.Message ?? "Lỗi khi xóa user");
-
             }
         }
         catch (Exception ex)
         {
-            @* await JS.InvokeVoidAsync("alert", $"Lỗi: {ex.Message}"); *@
             Toast.ShowError($"Lỗi: {ex.Message}");
-
         }
     }
 
