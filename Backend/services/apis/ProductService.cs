@@ -8,11 +8,11 @@ using Backend.Utils.Mappers;
 
 namespace Backend.Services.Apis;
 
-public class ProductService(ProductRepository productRepository, FileUploadService fileUploadService)
+public class ProductService(ProductRepository productRepository, FileUploadService fileUploadService,InventoryService inventoryService)
 {
     private readonly ProductRepository _productRepository = productRepository;
     private readonly FileUploadService _fileUploadService = fileUploadService;
-
+    private readonly InventoryService _inventoryService = inventoryService;
     public async Task<Response> GetAllAsync(int page, int pageSize)
     {
         var list = await _productRepository.GetAllAsync(page, pageSize);
@@ -72,6 +72,14 @@ public class ProductService(ProductRepository productRepository, FileUploadServi
             entity.SupplierId = supplierId;
 
         await _productRepository.AddAsync(entity);
+
+        var inventoryRequest = new CreateInventoryRequest
+        {
+            ProductId = entity.Id,
+            Quantity = 0, // Mặc định 0 hoặc từ req nếu muốn
+        };
+
+        await _inventoryService.CreateAsync(inventoryRequest);
 
         var response = new Response { StatusCode = 201, Message = "Created" };
         response.Data.Product = ProductMapper.MapEntityToDto(entity);
