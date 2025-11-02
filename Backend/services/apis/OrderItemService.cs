@@ -40,4 +40,16 @@ public class OrderItemService
 
         return orderItems;
     }
+
+    public async Task<List<OrderItem>> GetAllOrderItemsAsync()
+    {
+        return await _orderItemRepository.GetAllOrderItemsAsync();
+    }
+
+    public async Task<List<OrderItem>> GetOrderItemsByOrderIdAsync(Guid orderId)
+    {
+        return await _orderItemRepository.GetOrderItemsAsync(orderId);
+    }
+
+
 }

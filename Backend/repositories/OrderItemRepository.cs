@@ -34,4 +34,18 @@ public class OrderItemRepository
         _context.Order.Update(order);
         await _context.SaveChangesAsync();
     }
+
+    public async Task<List<OrderItem>> GetAllOrderItemsAsync()
+    {
+        return await _context.OrderItem.ToListAsync();
+    }
+
+   public async Task<List<OrderItem>> GetOrderItemsAsync(Guid orderId)
+    {
+        return await _context.OrderItem
+            .Where(oi => oi.OrderId == orderId)
+            .ToListAsync();
+    }
+
+
 }

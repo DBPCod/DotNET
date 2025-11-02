@@ -14,6 +14,30 @@ public class OrderItemController : ControllerBase
     }
 
 
+    // GET: /api/v1/order-items
+    [HttpGet]
+    public async Task<IActionResult> GetAllOrderItems()
+    {
+        var items = await _orderItemService.GetAllOrderItemsAsync();
+        return Ok(items);
+    }
+
+    // GET: /api/v1/order-items/{orderId}
+    [HttpGet("{orderId}")]
+    public async Task<IActionResult> GetOrderItem(Guid orderId)
+    {
+        try
+        {
+            var item = await _orderItemService.GetOrderItemsByOrderIdAsync(orderId);
+            return Ok(item);
+        }
+        catch (Exception ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+
     [HttpPost]
     public async Task<IActionResult> CreateOrderItems([FromBody] CreateOrderItemsRequest request)
     {

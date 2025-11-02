@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Backend.Models;
 
@@ -24,5 +25,7 @@ public class Payment
     public DateTime PaymentDate { get; set; } = DateTime.Now;
 
     // Navigation property
+    [JsonIgnore]
     public Order? Order { get; set; }
+
 }
