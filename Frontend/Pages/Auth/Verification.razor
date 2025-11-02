@@ -104,8 +104,15 @@
     private int timeLeft = 300; // 5 minutes in seconds
     private Timer? timer;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        await AuthService.InitializeAsync();
+        if (AuthService.CurrentUser != null)
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+
         // Start countdown timer
         timer = new Timer(1000); // 1 second interval
         timer.Elapsed += OnTimerElapsed;

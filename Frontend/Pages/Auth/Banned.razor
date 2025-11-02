@@ -1,5 +1,8 @@
 @page "/auth/banned"
 @layout AuthLayout
+@using Frontend.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
 
 <div class="banned-container">
     <!-- Icon -->
@@ -66,3 +69,15 @@
         </a>
     </div>
 </div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthService.InitializeAsync();
+        if (AuthService.CurrentUser != null)
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+    }
+}
