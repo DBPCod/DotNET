@@ -107,7 +107,27 @@ public class UserService
         }
     }
 
-    // DELETE - Xóa user (soft delete)
+    // Mở khóa user (set status = ACTIVE)
+    public async Task<ApiResponse?> UnlockUserAsync(string id)
+    {
+        try
+        {
+            var updateRequest = new UpdateUserRequest
+            {
+                Status = "ACTIVE"
+            };
+            
+            var response = await _httpClient.PutAsJsonAsync($"/api/v1/users/{id}", updateRequest);
+            return await response.Content.ReadFromJsonAsync<ApiResponse>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error unlocking user: {ex.Message}");
+            return null;
+        }
+    }
+
+    // DELETE - Khoá user (soft delete)
     public async Task<ApiResponse?> DeleteUserAsync(string id)
     {
         try
