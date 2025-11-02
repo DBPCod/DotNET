@@ -4,6 +4,7 @@ using Frontend;
 using Frontend.Services;
 using Blazored.Toast;
 using Blazored.Modal;
+using System.Net.Http;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -17,6 +18,9 @@ builder.Services.AddScoped(sp => new HttpClient
 
 // Đăng ký UserService
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddBlazoredToast();
+builder.Services.AddScoped<PromotionService>();
 
 // Đăng ký service cho toast và modal của blazored
 builder.Services.AddBlazoredToast();
