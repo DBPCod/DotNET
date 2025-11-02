@@ -1,5 +1,8 @@
 @page "/admin/discount-codes"
 @layout AdminLayout
+@inject PromotionService PromotionService
+@inject IJSRuntime JSRuntime
+@inject Blazored.Toast.Services.IToastService Toast
 
 <div class="admin-page">
     <div class="page-header">
@@ -8,7 +11,7 @@
                 <h2>Quản lý mã giảm giá</h2>
                 <p class="text-muted">Tạo và quản lý các mã giảm giá</p>
             </div>
-            <button class="btn btn-primary">
+            <button class="btn btn-primary" @onclick="ShowCreateModal">
                 <i class="bi bi-plus"></i> Tạo mã giảm giá
             </button>
         </div>
@@ -17,180 +20,322 @@
     <div class="page-filters">
         <div class="row">
             <div class="col-md-3">
-                <input type="text" class="form-control" placeholder="Tìm kiếm mã giảm giá..." />
+                <input type="text" class="form-control" placeholder="Tìm kiếm mã giảm giá..." 
+                       @bind="searchTerm" @onkeypress="HandleSearchKeyPress" />
             </div>
             <div class="col-md-2">
-                <select class="form-select">
-                    <option>Tất cả trạng thái</option>
-                    <option>Hoạt động</option>
-                    <option>Hết hạn</option>
-                    <option>Chưa kích hoạt</option>
+                <select class="form-select" value="@selectedStatus" @onchange="HandleStatusChange">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="active">Hoạt động</option>
+                    <option value="inactive">Tạm dừng</option>
                 </select>
             </div>
             <div class="col-md-2">
-                <select class="form-select">
-                    <option>Tất cả loại</option>
-                    <option>Phần trăm</option>
-                    <option>Số tiền cố định</option>
-                    <option>Miễn phí vận chuyển</option>
+                <select class="form-select" value="@selectedDiscountType" @onchange="HandleDiscountTypeFilterChange">
+                    <option value="">Tất cả loại</option>
+                    <option value="percent">Phần trăm</option>
+                    <option value="fixed">Số tiền cố định</option>
+                    <option value="free_shipping">Miễn phí vận chuyển</option>
                 </select>
             </div>
             <div class="col-md-3">
-                <input type="date" class="form-control" placeholder="Ngày hết hạn" />
+                <input type="date" class="form-control" value="@selectedEndDate" 
+                       @onchange="HandleEndDateChange" placeholder="Ngày hết hạn" />
             </div>
             <div class="col-md-2">
-                <button class="btn btn-outline-secondary w-100">Lọc</button>
+                <button class="btn btn-outline-secondary w-100" @onclick="LoadDiscountCodes">Lọc</button>
             </div>
         </div>
     </div>
     
-    <div class="page-content">
-        <div class="row">
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card discount-card">
-                    <div class="card-body">
-                        <div class="discount-header">
-                            <div class="discount-code">
-                                <h5>BLACKFRIDAY50</h5>
-                                <span class="badge bg-success">Hoạt động</span>
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+            <p class="mt-2">Đang tải dữ liệu...</p>
+        </div>
+    }
+    else if (discountCodes.Count == 0)
+    {
+        <div class="text-center py-5">
+            <p class="text-muted">Không có mã giảm giá nào</p>
+        </div>
+    }
+    else
+    {
+        <div class="page-content">
+            <div class="row">
+                @foreach (var discount in discountCodes)
+                {
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card discount-card">
+                            <div class="card-body">
+                                <div class="discount-header">
+                                    <div class="discount-code">
+                                        <h5>@discount.PromoCode</h5>
+                                        <span class="badge @GetStatusBadgeClass(discount)">@GetStatusDisplay(discount)</span>
+                                    </div>
+                                    <div class="discount-type">
+                                        <i class="@GetDiscountTypeIconClass(discount.DiscountType)"></i>
+                                        <span>@GetDiscountDisplay(discount)</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="discount-details">
+                                    <div class="detail-item">
+                                        <i class="bi bi-calendar"></i>
+                                        <span>Hết hạn: @discount.EndDate.ToString("dd/MM/yyyy")</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="bi bi-people"></i>
+                                        <span>Đã sử dụng: @discount.UsedCount/@(discount.UsageLimit > 0 ? discount.UsageLimit.ToString() : "∞")</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="bi bi-currency-dollar"></i>
+                                        <span>Giá trị tối thiểu: @FormatCurrency(discount.MinOrderAmount)</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="bi bi-tag"></i>
+                                        <span>Áp dụng: @(discount.Description ?? "Tất cả sản phẩm")</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="discount-actions">
+                                    <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => ViewDiscount(discount)">
+                                        <i class="bi bi-eye"></i> Xem
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-warning me-2" @onclick="() => ShowEditModal(discount)">
+                                        <i class="bi bi-pencil"></i> Sửa
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteDiscount(discount)">
+                                        <i class="bi bi-trash"></i> Xóa
+                                    </button>
+                                </div>
                             </div>
-                            <div class="discount-type">
-                                <i class="bi bi-percent"></i>
-                                <span>Giảm 50%</span>
-                            </div>
-                        </div>
-                        
-                        <div class="discount-details">
-                            <div class="detail-item">
-                                <i class="bi bi-calendar"></i>
-                                <span>Hết hạn: 30/11/2024</span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="bi bi-people"></i>
-                                <span>Đã sử dụng: 234/1000</span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="bi bi-currency-dollar"></i>
-                                <span>Giá trị tối thiểu: $100</span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="bi bi-tag"></i>
-                                <span>Áp dụng: Tất cả sản phẩm</span>
-                            </div>
-                        </div>
-                        
-                        <div class="discount-actions">
-                            <button class="btn btn-sm btn-outline-primary me-2">
-                                <i class="bi bi-eye"></i> Xem
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning me-2">
-                                <i class="bi bi-pencil"></i> Sửa
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger">
-                                <i class="bi bi-trash"></i> Xóa
-                            </button>
                         </div>
                     </div>
-                </div>
+                }
             </div>
-            
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card discount-card">
-                    <div class="card-body">
-                        <div class="discount-header">
-                            <div class="discount-code">
-                                <h5>WELCOME10</h5>
-                                <span class="badge bg-success">Hoạt động</span>
-                            </div>
-                            <div class="discount-type">
-                                <i class="bi bi-currency-dollar"></i>
-                                <span>Giảm $10</span>
-                            </div>
-                        </div>
-                        
-                        <div class="discount-details">
-                            <div class="detail-item">
-                                <i class="bi bi-calendar"></i>
-                                <span>Hết hạn: 31/12/2024</span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="bi bi-people"></i>
-                                <span>Đã sử dụng: 89/500</span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="bi bi-currency-dollar"></i>
-                                <span>Giá trị tối thiểu: $50</span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="bi bi-tag"></i>
-                                <span>Áp dụng: Khách hàng mới</span>
-                            </div>
-                        </div>
-                        
-                        <div class="discount-actions">
-                            <button class="btn btn-sm btn-outline-primary me-2">
-                                <i class="bi bi-eye"></i> Xem
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning me-2">
-                                <i class="bi bi-pencil"></i> Sửa
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger">
-                                <i class="bi bi-trash"></i> Xóa
-                            </button>
-                        </div>
+
+            @if (pagination != null && pagination.TotalPages > 1)
+            {
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item @(pagination.CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" href="#" @onclick="() => ChangePage(pagination.CurrentPage - 1)" @onclick:preventDefault>Trước</a>
+                        </li>
+                        @for (int i = 1; i <= pagination.TotalPages; i++)
+                        {
+                            <li class="page-item @(i == pagination.CurrentPage ? "active" : "")">
+                                <a class="page-link" href="#" @onclick="() => ChangePage(i)" @onclick:preventDefault>@i</a>
+                            </li>
+                        }
+                        <li class="page-item @(pagination.CurrentPage >= pagination.TotalPages ? "disabled" : "")">
+                            <a class="page-link" href="#" @onclick="() => ChangePage(pagination.CurrentPage + 1)" @onclick:preventDefault>Tiếp</a>
+                        </li>
+                    </ul>
+                </nav>
+            }
+        </div>
+    }
+
+    <!-- Modal View (Read-only) -->
+    @if (showViewModal)
+    {
+        <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);" @onclick="CloseViewModal">
+            <div class="modal-dialog modal-lg" @onclick:stopPropagation="true">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Chi tiết mã giảm giá</h5>
+                        <button type="button" class="btn-close" @onclick="CloseViewModal"></button>
                     </div>
-                </div>
-            </div>
-            
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card discount-card">
-                    <div class="card-body">
-                        <div class="discount-header">
-                            <div class="discount-code">
-                                <h5>FREESHIP</h5>
-                                <span class="badge bg-warning">Hết hạn</span>
+                    <div class="modal-body">
+                        @if (viewingDiscount != null)
+                        {
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Mã giảm giá:</label>
+                                    <p class="form-control-plaintext">@viewingDiscount.PromoCode</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Trạng thái:</label>
+                                    <p class="form-control-plaintext">
+                                        <span class="badge @GetStatusBadgeClass(viewingDiscount)">@GetStatusDisplay(viewingDiscount)</span>
+                                    </p>
+                                </div>
                             </div>
-                            <div class="discount-type">
-                                <i class="bi bi-truck"></i>
-                                <span>Miễn phí ship</span>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Mô tả:</label>
+                                <p class="form-control-plaintext">@(viewingDiscount.Description ?? "Không có mô tả")</p>
                             </div>
-                        </div>
-                        
-                        <div class="discount-details">
-                            <div class="detail-item">
-                                <i class="bi bi-calendar"></i>
-                                <span>Hết hạn: 15/01/2024</span>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Loại giảm giá:</label>
+                                    <p class="form-control-plaintext">@GetDiscountDisplay(viewingDiscount)</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Giá trị giảm giá:</label>
+                                    <p class="form-control-plaintext">
+                                        @if (viewingDiscount.DiscountType == "free_shipping")
+                                        {
+                                            <span>Miễn phí vận chuyển</span>
+                                        }
+                                        else if (viewingDiscount.DiscountType == "percent")
+                                        {
+                                            <span>@viewingDiscount.DiscountValue%</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@viewingDiscount.DiscountValue.ToString("N0") VNĐ</span>
+                                        }
+                                    </p>
+                                </div>
                             </div>
-                            <div class="detail-item">
-                                <i class="bi bi-people"></i>
-                                <span>Đã sử dụng: 156/200</span>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Ngày bắt đầu:</label>
+                                    <p class="form-control-plaintext">@viewingDiscount.StartDate.ToString("dd/MM/yyyy")</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Ngày kết thúc:</label>
+                                    <p class="form-control-plaintext">@viewingDiscount.EndDate.ToString("dd/MM/yyyy")</p>
+                                </div>
                             </div>
-                            <div class="detail-item">
-                                <i class="bi bi-currency-dollar"></i>
-                                <span>Giá trị tối thiểu: $30</span>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Giá trị đơn hàng tối thiểu:</label>
+                                    <p class="form-control-plaintext">@FormatCurrency(viewingDiscount.MinOrderAmount)</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Giới hạn sử dụng:</label>
+                                    <p class="form-control-plaintext">@(viewingDiscount.UsageLimit > 0 ? viewingDiscount.UsageLimit.ToString() : "Không giới hạn")</p>
+                                </div>
                             </div>
-                            <div class="detail-item">
-                                <i class="bi bi-tag"></i>
-                                <span>Áp dụng: Tất cả sản phẩm</span>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Đã sử dụng:</label>
+                                <p class="form-control-plaintext">@viewingDiscount.UsedCount lượt</p>
                             </div>
-                        </div>
-                        
-                        <div class="discount-actions">
-                            <button class="btn btn-sm btn-outline-primary me-2">
-                                <i class="bi bi-eye"></i> Xem
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning me-2">
-                                <i class="bi bi-pencil"></i> Sửa
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger">
-                                <i class="bi bi-trash"></i> Xóa
-                            </button>
-                        </div>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseViewModal">Đóng</button>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    }
+
+    <!-- Modal Confirm Delete -->
+    @if (showDeleteModal)
+    {
+        <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);" @onclick="CloseDeleteModal">
+            <div class="modal-dialog modal-dialog-centered" @onclick:stopPropagation="true">
+                <div class="modal-content">
+                    <div class="modal-header border-0 pb-0">
+                        <button type="button" class="btn-close" @onclick="CloseDeleteModal"></button>
+                    </div>
+                    <div class="modal-body text-center py-4">
+                        <div class="mb-3">
+                            <i class="bi bi-exclamation-triangle-fill text-warning" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="mb-2">Xác nhận xóa</h5>
+                        <p class="text-muted mb-0">
+                            Bạn có chắc chắn muốn xóa mã giảm giá <strong>@deletingDiscount?.PromoCode</strong>?
+                        </p>
+                        <p class="text-danger small mt-2">Hành động này không thể hoàn tác!</p>
+                    </div>
+                    <div class="modal-footer border-0 justify-content-center pb-4">
+                        <button type="button" class="btn btn-secondary me-2" @onclick="CloseDeleteModal">Hủy</button>
+                        <button type="button" class="btn btn-danger" @onclick="ConfirmDelete">
+                            <i class="bi bi-trash me-1"></i> Xóa
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Modal Create/Edit -->
+    @if (showModal)
+    {
+        <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);" @onclick="CloseModal">
+            <div class="modal-dialog modal-lg" @onclick:stopPropagation="true">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">@(isEdit ? "Sửa mã giảm giá" : "Tạo mã giảm giá mới")</h5>
+                        <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form>
+                            <div class="mb-3">
+                                <label class="form-label">Mã giảm giá <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" @bind="currentDiscount.PromoCode" 
+                                       disabled="@isEdit" placeholder="VD: WELCOME10" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Mô tả</label>
+                                <textarea class="form-control" @bind="currentDiscount.Description" rows="2" 
+                                          placeholder="Nhập mô tả mã giảm giá"></textarea>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Loại giảm giá <span class="text-danger">*</span></label>
+                                    <select class="form-select" value="@currentDiscount.DiscountType" @onchange="HandleDiscountTypeChange">
+                                        <option value="percent">Phần trăm</option>
+                                        <option value="fixed">Số tiền cố định</option>
+                                        <option value="free_shipping">Miễn phí vận chuyển</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Giá trị giảm giá <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" @bind="currentDiscount.DiscountValue" 
+                                           step="0.01" min="0" disabled="@(currentDiscount.DiscountType == "free_shipping")" />
+                                    @if (currentDiscount.DiscountType == "free_shipping")
+                                    {
+                                        <small class="text-muted">Miễn phí vận chuyển không cần giá trị</small>
+                                    }
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Ngày bắt đầu <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" @bind="currentDiscount.StartDate" />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Ngày kết thúc <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" @bind="currentDiscount.EndDate" />
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Giá trị đơn hàng tối thiểu</label>
+                                    <input type="number" class="form-control" @bind="currentDiscount.MinOrderAmount" 
+                                           step="0.01" min="0" />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Giới hạn sử dụng (0 = không giới hạn)</label>
+                                    <input type="number" class="form-control" @bind="currentDiscount.UsageLimit" min="0" />
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Trạng thái</label>
+                                <select class="form-select" @bind="currentDiscount.Status">
+                                    <option value="active">Hoạt động</option>
+                                    <option value="inactive">Tạm dừng</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseModal">Hủy</button>
+                        <button type="button" class="btn btn-primary" @onclick="SaveDiscount">Lưu</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 <style>
@@ -276,3 +421,309 @@
         font-size: 0.8rem;
     }
 </style>
+
+@code {
+    private List<PromotionDto> discountCodes = new();
+    private PaginationInfo? pagination;
+    private bool isLoading = true;
+    private string searchTerm = "";
+    private string selectedStatus = "";
+    private string selectedDiscountType = "";
+    private string? selectedEndDate = null;
+    private int currentPage = 1;
+    private int pageSize = 12;
+
+    private bool showModal = false;
+    private bool isEdit = false;
+    private PromotionDto? editingDiscount;
+    private CreatePromotionRequest currentDiscount = new();
+
+    // View modal state
+    private bool showViewModal = false;
+    private PromotionDto? viewingDiscount;
+
+    // Delete confirm modal state
+    private bool showDeleteModal = false;
+    private PromotionDto? deletingDiscount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDiscountCodes();
+    }
+
+    private async Task LoadDiscountCodes()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            DateTime? toDate = null;
+            if (!string.IsNullOrEmpty(selectedEndDate))
+            {
+                if (DateTime.TryParse(selectedEndDate, out var parsedDate))
+                {
+                    toDate = parsedDate;
+                }
+            }
+
+            var result = await PromotionService.GetPromotionsAsync(
+                currentPage,
+                pageSize,
+                string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
+                string.IsNullOrWhiteSpace(selectedStatus) ? null : selectedStatus,
+                string.IsNullOrWhiteSpace(selectedDiscountType) ? null : selectedDiscountType,
+                "discount_code", // promotionType - Chỉ lấy discount codes
+                null, // fromDate
+                toDate
+            );
+
+            discountCodes = result.promotions;
+            pagination = result.pagination;
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("console.error", $"Error loading discount codes: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleSearchKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            currentPage = 1;
+            await LoadDiscountCodes();
+        }
+    }
+
+    private async Task HandleStatusChange(ChangeEventArgs e)
+    {
+        selectedStatus = e.Value?.ToString() ?? "";
+        currentPage = 1;
+        await LoadDiscountCodes();
+    }
+
+    private async Task HandleDiscountTypeFilterChange(ChangeEventArgs e)
+    {
+        selectedDiscountType = e.Value?.ToString() ?? "";
+        currentPage = 1;
+        await LoadDiscountCodes();
+    }
+
+    private async Task HandleEndDateChange(ChangeEventArgs e)
+    {
+        selectedEndDate = e.Value?.ToString();
+        currentPage = 1;
+        await LoadDiscountCodes();
+    }
+
+    private async Task ChangePage(int page)
+    {
+        currentPage = page;
+        await LoadDiscountCodes();
+    }
+
+    private void ShowCreateModal()
+    {
+        isEdit = false;
+        editingDiscount = null;
+        currentDiscount = new CreatePromotionRequest
+        {
+            StartDate = DateTime.Today,
+            EndDate = DateTime.Today.AddDays(30),
+            Status = "active",
+            DiscountType = "percent",
+            PromotionType = "discount_code" // Luôn là discount_code
+        };
+        showModal = true;
+    }
+
+    private void ShowEditModal(PromotionDto discount)
+    {
+        isEdit = true;
+        editingDiscount = discount;
+        currentDiscount = new CreatePromotionRequest
+        {
+            PromoCode = discount.PromoCode,
+            Description = discount.Description,
+            DiscountType = discount.DiscountType,
+            DiscountValue = discount.DiscountValue,
+            PromotionType = "discount_code", // Luôn là discount_code
+            StartDate = discount.StartDate,
+            EndDate = discount.EndDate,
+            MinOrderAmount = discount.MinOrderAmount,
+            UsageLimit = discount.UsageLimit,
+            Status = discount.Status
+        };
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        isEdit = false;
+        editingDiscount = null;
+        currentDiscount = new CreatePromotionRequest();
+    }
+
+    private void HandleDiscountTypeChange(ChangeEventArgs e)
+    {
+        currentDiscount.DiscountType = e.Value?.ToString() ?? "percent";
+        if (currentDiscount.DiscountType == "free_shipping")
+        {
+            currentDiscount.DiscountValue = 0;
+        }
+        StateHasChanged();
+    }
+
+    private async Task SaveDiscount()
+    {
+        try
+        {
+            // Đảm bảo PromotionType luôn là discount_code
+            currentDiscount.PromotionType = "discount_code";
+
+            bool success;
+            
+            if (isEdit && editingDiscount != null)
+            {
+                var updateRequest = new UpdatePromotionRequest
+                {
+                    Description = currentDiscount.Description,
+                    DiscountType = currentDiscount.DiscountType,
+                    DiscountValue = currentDiscount.DiscountValue,
+                    PromotionType = "discount_code",
+                    StartDate = currentDiscount.StartDate,
+                    EndDate = currentDiscount.EndDate,
+                    MinOrderAmount = currentDiscount.MinOrderAmount,
+                    UsageLimit = currentDiscount.UsageLimit,
+                    Status = currentDiscount.Status
+                };
+                
+                success = await PromotionService.UpdatePromotionAsync(editingDiscount.Id, updateRequest);
+            }
+            else
+            {
+                success = await PromotionService.CreatePromotionAsync(currentDiscount);
+            }
+
+            if (success)
+            {
+                CloseModal();
+                await LoadDiscountCodes();
+                Toast.ShowSuccess(isEdit ? "Cập nhật thành công!" : "Tạo mã giảm giá thành công!");
+            }
+            else
+            {
+                Toast.ShowError("Có lỗi xảy ra!");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Lỗi: {ex.Message}");
+        }
+    }
+
+    private void DeleteDiscount(PromotionDto discount)
+    {
+        deletingDiscount = discount;
+        showDeleteModal = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        deletingDiscount = null;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (deletingDiscount == null) return;
+
+        var success = await PromotionService.DeletePromotionAsync(deletingDiscount.Id);
+        
+        CloseDeleteModal();
+        
+        if (success)
+        {
+            await LoadDiscountCodes();
+            Toast.ShowSuccess("Xóa thành công!");
+        }
+        else
+        {
+            Toast.ShowError("Có lỗi xảy ra!");
+        }
+    }
+
+    private void ViewDiscount(PromotionDto discount)
+    {
+        viewingDiscount = discount;
+        showViewModal = true;
+    }
+
+    private void CloseViewModal()
+    {
+        showViewModal = false;
+        viewingDiscount = null;
+    }
+
+    private string GetDiscountDisplay(PromotionDto discount)
+    {
+        return discount.DiscountType switch
+        {
+            "percent" => $"Giảm {discount.DiscountValue}%",
+            "fixed" => $"Giảm {discount.DiscountValue:N0} VNĐ",
+            "free_shipping" => "Miễn phí ship",
+            _ => discount.DiscountType
+        };
+    }
+
+    private string GetDiscountTypeIconClass(string discountType)
+    {
+        return discountType switch
+        {
+            "percent" => "bi bi-percent",
+            "fixed" => "bi bi-currency-dollar",
+            "free_shipping" => "bi bi-truck",
+            _ => "bi bi-tag"
+        };
+    }
+
+    private string GetStatusDisplay(PromotionDto discount)
+    {
+        var today = DateTime.Today;
+        if (discount.Status == "active")
+        {
+            if (today < discount.StartDate)
+                return "Chưa kích hoạt";
+            if (today > discount.EndDate)
+                return "Hết hạn";
+            return "Hoạt động";
+        }
+        return "Tạm dừng";
+    }
+
+    private string GetStatusBadgeClass(PromotionDto discount)
+    {
+        var today = DateTime.Today;
+        if (discount.Status == "active")
+        {
+            if (today < discount.StartDate)
+                return "bg-info";
+            if (today > discount.EndDate)
+                return "bg-warning";
+            return "bg-success";
+        }
+        return "bg-secondary";
+    }
+
+    private string FormatCurrency(decimal amount)
+    {
+        return $"{amount:N0} VNĐ";
+    }
+}

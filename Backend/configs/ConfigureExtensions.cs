@@ -99,14 +99,15 @@ public class ConfigureExtensions
                 policy.WithOrigins(
                     Variable.Enviroments.CLIENT_URL,    // Next.js (http://localhost:3000)
                     "https://localhost:5001",           // Blazor HTTPS
-                    "http://localhost:5000",             // Blazor HTTP
-                    "http://localhost:5070"             // Blazor HTTP
+                    "http://localhost:5000",            // Blazor HTTP
+                    "http://localhost:5070",           // Blazor WebAssembly HTTP
+                    "https://localhost:7040"             // Blazor WebAssembly HTTPS
                 ).AllowAnyMethod()
                  .AllowAnyHeader()
                  .AllowCredentials();
 
                 // For development, log CORS configuration
-                Console.WriteLine($"CORS configured for origins: {Variable.Enviroments.CLIENT_URL}, https://localhost:5001, http://localhost:5000");
+                Console.WriteLine($"CORS configured for origins: {Variable.Enviroments.CLIENT_URL}, https://localhost:5001, http://localhost:5000, http://localhost:5070, https://localhost:7040");
             });
         });
     }

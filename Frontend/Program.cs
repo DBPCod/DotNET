@@ -21,5 +21,4 @@ builder.Services.AddScoped<UserService>();
 // Đăng ký service cho toast và modal của blazored
 builder.Services.AddBlazoredToast();
 builder.Services.AddBlazoredModal();
-
 await builder.Build().RunAsync();
