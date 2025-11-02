@@ -23,6 +23,7 @@ public class UserService
     {
         try
         {
+            Console.WriteLine("Fetching users from backend...");
             var query = $"{BaseUrl}?page={page}&pageSize={pageSize}";
             
             if (!string.IsNullOrEmpty(q))
@@ -35,11 +36,13 @@ public class UserService
                 query += $"&status={status}";
 
             var response = await _httpClient.GetFromJsonAsync<ApiResponse>(query);
+            Console.WriteLine("Fetched users successfully.");
             return response;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error getting users: {ex.Message}");
+            Console.WriteLine($"Error getting users: {ex}");
             return new ApiResponse 
             { 
                 Message = ex.Message, 
