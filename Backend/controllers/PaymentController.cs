@@ -28,4 +28,22 @@ public class PaymentController(PaymentService paymentService) : ControllerBase
             return BadRequest(new { error = ex.Message });
         }
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAllPayments()
+    {
+        var payments = await _paymentService.GetAllPaymentsAsync();
+        return Ok(payments);
+    }
+
+    [HttpGet("order/{orderId:guid}")]
+    public async Task<IActionResult> GetPaymentsByOrderId(Guid orderId)
+    {
+        var payments = await _paymentService.GetPaymentsByOrderIdAsync(orderId);
+
+        if (!payments.Any())
+            return NotFound(new { message = "No payments found for this order" });
+
+        return Ok(payments);
+    }
 }

@@ -6,9 +6,23 @@ namespace Backend.Services.Apis;
 public class PaymentService(PaymentRepository paymentRepository)
 {
     private readonly PaymentRepository _paymentRepository = paymentRepository;
-
+    private readonly List<string> ValidPaymentMethods =
+    [
+        "cash",       
+        "card",        
+        "bank_transfer", 
+        "e-wallet"     
+    ];
     public async Task<Payment> CreatePaymentAsync(CreatePaymentRequest dto)
     {
+
+        if (!ValidPaymentMethods.Contains(dto.PaymentMethod.ToLower()))
+        {
+            throw new ArgumentException(
+                $"Invalid payment method. Allowed methods are: {string.Join(", ", ValidPaymentMethods)}"
+            );
+        }
+        
         var payment = new Payment
         {
             OrderId = dto.OrderId,
@@ -24,5 +38,15 @@ public class PaymentService(PaymentRepository paymentRepository)
         await _paymentRepository.UpdateOrderStatusAsync(payment.OrderId, "paid");
 
         return addedPayment;
+    }
+
+    public async Task<List<Payment>> GetAllPaymentsAsync()
+    {
+        return await _paymentRepository.GetAllPaymentsAsync();
+    }
+
+    public async Task<List<Payment>> GetPaymentsByOrderIdAsync(Guid orderId)
+    {
+        return await _paymentRepository.GetPaymentsByOrderIdAsync(orderId);
     }
 }
