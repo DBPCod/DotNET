@@ -22,38 +22,44 @@
     </div>
     
         <div class="page-filters">
-        <div class="row">
-            <div class="col-md-4">
-                <input type="text" class="form-control" placeholder="Tìm kiếm theo tên, email..." 
-                       @bind="searchQuery" @bind:event="oninput" />
-            </div>
-            <div class="col-md-3">
-                <select class="form-select" @bind="selectedRole">
-                    <option value="">Tất cả vai trò</option>
-                    <option value="ADMIN">Admin</option>
-                    <option value="STAFF">Staff</option>
-                    <option value="CUSTOMER">Customer</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <select class="form-select" @bind="selectedStatus">
-                    <option value="">Tất cả trạng thái</option>
-                    <option value="ACTIVE">Hoạt động</option>
-                    <option value="INACTIVE">Bị khóa</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <div class="d-flex gap-2">
-                    <button class="btn btn-outline-secondary flex-fill" @onclick="HandleSearch">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" placeholder="Tìm kiếm..." 
+                        @bind="searchQuery" @bind:event="oninput" />
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" @bind="selectedRole">
+                        <option value="">Vai trò</option>
+                        <option value="ADMIN">Admin</option>
+                        <option value="STAFF">Staff</option>
+                        <option value="CUSTOMER">Customer</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" @bind="selectedStatus">
+                        <option value="">Trạng thái</option>
+                        <option value="ACTIVE">Hoạt động</option>
+                        <option value="INACTIVE">Khóa</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <select class="form-select" @bind="pageSize" @bind:after="HandlePageSizeChange" title="Số dòng mỗi trang">
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+                <div class="col-md-3 text-end">
+                    <button class="btn btn-outline-secondary me-2" @onclick="HandleSearch">
                         <i class="bi bi-search"></i> Lọc
                     </button>
-                    <button class="btn btn-outline-primary flex-fill" @onclick="ResetFilters">
+                    <button class="btn btn-outline-primary" @onclick="ResetFilters">
                         <i class="bi bi-arrow-clockwise"></i> Làm mới
                     </button>
                 </div>
             </div>
         </div>
-    </div>
     
     <div class="page-content">
         <div class="card">
@@ -153,7 +159,7 @@
                                 <li class="page-item @(pagination.CurrentPage == 1 ? "disabled" : "")">
                                     <a class="page-link" @onclick="() => LoadUsers(pagination.CurrentPage - 1)">Trước</a>
                                 </li>
-                                
+
                                 @for (int i = 1; i <= pagination.TotalPages; i++)
                                 {
                                     var pageNumber = i;
@@ -161,13 +167,25 @@
                                         <a class="page-link" @onclick="() => LoadUsers(pageNumber)">@pageNumber</a>
                                     </li>
                                 }
-                                
+
                                 <li class="page-item @(pagination.CurrentPage == pagination.TotalPages ? "disabled" : "")">
                                     <a class="page-link" @onclick="() => LoadUsers(pagination.CurrentPage + 1)">Tiếp</a>
                                 </li>
                             </ul>
                         </nav>
                     }
+
+                    @if (pagination != null)
+                    {
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="text-muted">
+                                Hiển thị @((pagination.CurrentPage - 1) * pagination.PageSize + 1)
+                                đến @(Math.Min(pagination.CurrentPage * pagination.PageSize, pagination.TotalCount))
+                                trong tổng số @pagination.TotalCount người dùng
+                            </div>
+                        </div>
+                    }
+
                 }
             </div>
         </div>
@@ -330,7 +348,7 @@
         {
             var response = await UserService.GetUsersAsync(
                 page: page,
-                pageSize: 10,
+                pageSize: pageSize,
                 q: string.IsNullOrEmpty(searchQuery) ? null : searchQuery,
                 role: string.IsNullOrEmpty(selectedRole) ? null : selectedRole,
                 status: string.IsNullOrEmpty(selectedStatus) ? null : selectedStatus
@@ -369,6 +387,11 @@
         selectedRole = "";
         selectedStatus = "";
         await LoadUsers(1);
+    }
+
+    private async Task HandlePageSizeChange()
+    {
+        await LoadUsers(1);  // Reset về trang 1 khi đổi page size
     }
 
     private void ShowCreateModal()

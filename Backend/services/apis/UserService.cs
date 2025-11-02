@@ -159,4 +159,11 @@ public class UserService(UserRepository userRepository)
         user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
         await _userRepository.HandleUpdateUser(user);
     }
+
+    public async Task HandleUpdateUserStatus(string email)
+    {
+        var user = await HandleGetUserByEmail(email) ?? throw new ExceptionCustom(404, "User not found");
+        user.Status = UserStatus.ACTIVE;
+        await _userRepository.HandleUpdateUser(user);
+    }
 }
