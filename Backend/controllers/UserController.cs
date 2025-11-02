@@ -16,7 +16,8 @@ public class UserController(UserService userService) : ControllerBase
 
     // GET /api/v1/users - Lấy danh sách users với phân trang và filter
     [HttpGet]
-    // [Authorize(Roles = "ADMIN")]
+    [Authorize(Roles = "ADMIN")]
+    // [Authorize()]
     public async Task<IActionResult> GetUsers([FromQuery] GetUsersRequest request)
     {
         var response = new Response();

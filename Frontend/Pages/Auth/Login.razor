@@ -101,6 +101,16 @@
     private Dictionary<string, string> errors = new();
     private bool showPassword = false;
 
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthService.InitializeAsync();
+        if (AuthService.CurrentUser != null)
+        {
+            Navigation.NavigateTo("/admin");
+            return;
+        }
+    }
+
     private void TogglePassword()
     {
         showPassword = !showPassword;
