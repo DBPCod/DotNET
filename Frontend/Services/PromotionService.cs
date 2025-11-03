@@ -1,5 +1,8 @@
 using System.Net.Http.Json;
-using Frontend.Models;
+using Frontend.Models.Promotions;
+using Frontend.Models.Promotions.Requests;
+using Frontend.Models.Promotions.Responses;
+using Frontend.Models.Common;
 
 namespace Frontend.Services;
 
@@ -51,11 +54,11 @@ public class PromotionService
 
             var url = $"{BaseUrl}?{string.Join("&", queryParams)}";
             
-            var response = await _httpClient.GetFromJsonAsync<ApiResponse>(url);
+            var response = await _httpClient.GetFromJsonAsync<ApiResponse<PromotionListData>>(url);
             
-            if (response != null && response.StatusCode == 200)
+            if (response != null && response.StatusCode == 200 && response.Data != null)
             {
-                return (response.Data.Promotions ?? new List<PromotionDto>(), response.Data.Pagination);
+                return (response.Data.Promotions, response.Data.Pagination);
             }
             
             return (new List<PromotionDto>(), null);
@@ -70,9 +73,9 @@ public class PromotionService
     {
         try
         {
-            var response = await _httpClient.GetFromJsonAsync<ApiResponse>($"{BaseUrl}/{id}");
+            var response = await _httpClient.GetFromJsonAsync<ApiResponse<PromotionDetailData>>($"{BaseUrl}/{id}");
             
-            if (response != null && response.StatusCode == 200)
+            if (response != null && response.StatusCode == 200 && response.Data != null)
             {
                 return response.Data.Promotion;
             }

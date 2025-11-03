@@ -1,5 +1,8 @@
 using System.Net.Http.Json;
-using Frontend.Models;
+using Frontend.Models.User;
+using Frontend.Models.User.Requests;
+using Frontend.Models.User.Responses;
+using Frontend.Models.Common;
 
 namespace Frontend.Services;
 
@@ -14,7 +17,7 @@ public class UserService
     }
 
     // GET - Lấy danh sách users với phân trang và filter
-    public async Task<ApiResponse?> GetUsersAsync(
+    public async Task<ApiResponse<UserListResponse>?> GetUsersAsync(
         int page = 1, 
         int pageSize = 10, 
         string? q = null, 
@@ -35,7 +38,7 @@ public class UserService
             if (!string.IsNullOrEmpty(status))
                 query += $"&status={status}";
 
-            var response = await _httpClient.GetFromJsonAsync<ApiResponse>(query);
+            var response = await _httpClient.GetFromJsonAsync<ApiResponse<UserListResponse>>(query);
             Console.WriteLine("Fetched users successfully.");
             return response;
         }
@@ -43,7 +46,7 @@ public class UserService
         {
             Console.WriteLine($"Error getting users: {ex.Message}");
             Console.WriteLine($"Error getting users: {ex}");
-            return new ApiResponse 
+            return new ApiResponse<UserListResponse> 
             { 
                 Message = ex.Message, 
                 StatusCode = 500 
@@ -52,17 +55,17 @@ public class UserService
     }
 
     // GET - Lấy user theo ID
-    public async Task<ApiResponse?> GetUserByIdAsync(string id)
+    public async Task<ApiResponse<UserDetailResponse>?> GetUserByIdAsync(string id)
     {
         try
         {
-            var response = await _httpClient.GetFromJsonAsync<ApiResponse>($"{BaseUrl}/{id}");
+            var response = await _httpClient.GetFromJsonAsync<ApiResponse<UserDetailResponse>>($"{BaseUrl}/{id}");
             return response;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error getting user: {ex.Message}");
-            return new ApiResponse 
+            return new ApiResponse<UserDetailResponse> 
             { 
                 Message = ex.Message, 
                 StatusCode = 500 
@@ -71,18 +74,18 @@ public class UserService
     }
 
     // POST - Tạo user mới (Gửi JSON)
-    public async Task<ApiResponse?> CreateUserAsync(CreateUserRequest request)
+    public async Task<ApiResponse<UserDetailResponse>?> CreateUserAsync(CreateUserRequest request)
     {
         try
         {
             var response = await _httpClient.PostAsJsonAsync(BaseUrl, request);
-            var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<UserDetailResponse>>();
             return result;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error creating user: {ex.Message}");
-            return new ApiResponse 
+            return new ApiResponse<UserDetailResponse> 
             { 
                 Message = ex.Message, 
                 StatusCode = 500 
@@ -91,18 +94,18 @@ public class UserService
     }
 
     // PUT - Cập nhật user (Gửi JSON)
-    public async Task<ApiResponse?> UpdateUserAsync(string id, UpdateUserRequest request)
+    public async Task<ApiResponse<UserDetailResponse>?> UpdateUserAsync(string id, UpdateUserRequest request)
     {
         try
         {
             var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", request);
-            var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<UserDetailResponse>>();
             return result;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error updating user: {ex.Message}");
-            return new ApiResponse 
+            return new ApiResponse<UserDetailResponse> 
             { 
                 Message = ex.Message, 
                 StatusCode = 500 
@@ -111,7 +114,7 @@ public class UserService
     }
 
     // Mở khóa user (set status = ACTIVE)
-    public async Task<ApiResponse?> UnlockUserAsync(string id)
+    public async Task<ApiResponse<UserDetailResponse>?> UnlockUserAsync(string id)
     {
         try
         {
@@ -121,7 +124,7 @@ public class UserService
             };
             
             var response = await _httpClient.PutAsJsonAsync($"/api/v1/users/{id}", updateRequest);
-            return await response.Content.ReadFromJsonAsync<ApiResponse>();
+            return await response.Content.ReadFromJsonAsync<ApiResponse<UserDetailResponse>>();
         }
         catch (Exception ex)
         {
@@ -131,18 +134,18 @@ public class UserService
     }
 
     // DELETE - Khoá user (soft delete)
-    public async Task<ApiResponse?> DeleteUserAsync(string id)
+    public async Task<ApiResponse<UserDetailResponse>?> DeleteUserAsync(string id)
     {
         try
         {
             var response = await _httpClient.DeleteAsync($"{BaseUrl}/{id}");
-            var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<UserDetailResponse>>();
             return result;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error deleting user: {ex.Message}");
-            return new ApiResponse 
+            return new ApiResponse<UserDetailResponse> 
             { 
                 Message = ex.Message, 
                 StatusCode = 500 
