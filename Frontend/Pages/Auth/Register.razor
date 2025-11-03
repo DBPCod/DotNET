@@ -8,7 +8,6 @@
 
 <div class="auth-header">
     <h1 class="auth-title">Đăng ký tài khoản</h1>
-    <p class="auth-subtitle">Tạo tài khoản mới để bắt đầu xây dựng CV với AI</p>
 </div>
 
 <form class="auth-form" @onsubmit="HandleSubmit">
@@ -157,6 +156,16 @@
     private Dictionary<string, string> errors = new();
     private bool showPassword = false;
     private bool showConfirmPassword = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthService.InitializeAsync();
+        if (AuthService.CurrentUser != null)
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+    }
 
     private void TogglePassword()
     {

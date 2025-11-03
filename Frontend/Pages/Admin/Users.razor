@@ -1,6 +1,9 @@
 @page "/admin/users"
 @layout AdminLayout
-@using Frontend.Models
+@using Frontend.Models.User
+@using Frontend.Models.User.Requests
+@using Frontend.Models.User.Responses
+@using Frontend.Models.Common
 @using Frontend.Services
 @using Frontend.Components
 @inject UserService UserService
@@ -474,7 +477,7 @@
         isSaving = true;
         try
         {
-            ApiResponse? response;
+            ApiResponse<UserDetailResponse>? response;
             
             if (isEditMode && selectedUser != null)
             {
