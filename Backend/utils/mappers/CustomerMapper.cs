@@ -9,10 +9,12 @@ public static class CustomerMapper
         return new CustomerDto
         {
             Id = entity.Id.ToString(),
+            CustomerId = entity.CustomerId,
             Name = entity.Name,
             Phone = entity.Phone,
             Email = entity.Email,
             Address = entity.Address,
+            Status = entity.Status,
             CreatedAt = entity.CreatedAt,
         };
     }
@@ -31,10 +33,12 @@ public static class CustomerMapper
         return new Customer
         {
             Id = string.IsNullOrEmpty(dto.Id) ? Guid.NewGuid() : Guid.Parse(dto.Id),
+            CustomerId = dto.CustomerId,
             Name = dto.Name ?? null!,
             Phone = dto.Phone,
             Email = dto.Email,
             Address = dto.Address,
+            Status = dto.Status ?? "ACTIVE",
             CreatedAt = dto.CreatedAt,
         };
     }
