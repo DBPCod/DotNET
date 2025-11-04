@@ -264,6 +264,8 @@
     private async Task LoadCategories(int page = 1)
     {
         isLoading = true;
+        await InvokeAsync(StateHasChanged); // Force UI update safely
+        
         try
         {
             var response = await CategoryService.GetCategoriesAsync(
@@ -287,10 +289,12 @@
         {
             Console.WriteLine($"Error: {ex.Message}");
             Toast.ShowError("Có lỗi xảy ra khi tải dữ liệu");
+            categories = new List<CategoryDto>();
         }
         finally
         {
             isLoading = false;
+            await InvokeAsync(StateHasChanged); // Force UI update after loading safely
         }
     }
 

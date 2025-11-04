@@ -15,4 +15,7 @@ public class CreateCustomerRequest
     public string? Email { get; set; }
 
     public string? Address { get; set; }
+
+    [MaxLength(20)]
+    public string? Status { get; set; } = "ACTIVE"; // ACTIVE hoặc PENDING
 }

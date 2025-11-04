@@ -1,4 +1,4 @@
-namespace Backend.Dtos;
+namespace Frontend.Models.Customer;
 
 public class CustomerDto
 {

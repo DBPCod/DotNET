@@ -15,16 +15,18 @@ public class CustomerService
         _repo = repo;
     }
 
-    public async Task<Response> GetAllAsync(int page, int pageSize)
+    public async Task<Response> GetAllAsync(int page, int pageSize, string? search = null, string? status = null)
     {
-        var list = await _repo.GetAllAsync(page, pageSize);
+        var list = await _repo.GetAllAsync(page, pageSize, search, status);
         var response = new Response { StatusCode = 200, Message = "OK" };
         response.Data.Customers = list.Select(c => new CustomerDto {
             Id = c.Id.ToString(),
+            CustomerId = c.CustomerId,
             Name = c.Name,
             Phone = c.Phone,
             Email = c.Email,
             Address = c.Address,
+            Status = c.Status,
             CreatedAt = c.CreatedAt
         }).ToList();
         return response;
@@ -45,10 +47,12 @@ public class CustomerService
         response.Message = "OK";
         response.Data.Customer = new CustomerDto {
             Id = entity.Id.ToString(),
+            CustomerId = entity.CustomerId,
             Name = entity.Name,
             Phone = entity.Phone,
             Email = entity.Email,
             Address = entity.Address,
+            Status = entity.Status,
             CreatedAt = entity.CreatedAt
         };
         return response;
@@ -56,20 +60,39 @@ public class CustomerService
 
     public async Task<Response> CreateAsync(CreateCustomerRequest req)
     {
+        // Tạo CustomerId tự động
+        var lastCustomer = await _repo.GetLastCustomerAsync();
+        var nextNumber = 1;
+        
+        if (lastCustomer?.CustomerId != null && lastCustomer.CustomerId.StartsWith("CUS"))
+        {
+            var numberPart = lastCustomer.CustomerId.Substring(3);
+            if (int.TryParse(numberPart, out int lastNumber))
+            {
+                nextNumber = lastNumber + 1;
+            }
+        }
+        
+        var customerId = $"CUS{nextNumber:D3}";
+        
         var customer = new Customer {
+            CustomerId = customerId,
             Name = req.Name,
             Phone = req.Phone,
             Email = req.Email,
-            Address = req.Address
+            Address = req.Address,
+            Status = req.Status ?? "ACTIVE"
         };
         await _repo.AddAsync(customer);
         var response = new Response { StatusCode = 201, Message = "Created" };
         response.Data.Customer = new CustomerDto {
             Id = customer.Id.ToString(),
+            CustomerId = customer.CustomerId,
             Name = customer.Name,
             Phone = customer.Phone,
             Email = customer.Email,
             Address = customer.Address,
+            Status = customer.Status,
             CreatedAt = customer.CreatedAt
         };
         return response;
@@ -90,6 +113,10 @@ public class CustomerService
         entity.Phone = req.Phone;
         entity.Email = req.Email;
         entity.Address = req.Address;
+        if (req.Status != null)
+        {
+            entity.Status = req.Status;
+        }
 
         await _repo.UpdateAsync(entity);
 
@@ -97,10 +124,12 @@ public class CustomerService
         response.Message = "Updated";
         response.Data.Customer = new CustomerDto {
             Id = entity.Id.ToString(),
+            CustomerId = entity.CustomerId,
             Name = entity.Name,
             Phone = entity.Phone,
             Email = entity.Email,
             Address = entity.Address,
+            Status = entity.Status,
             CreatedAt = entity.CreatedAt
         };
         return response;
