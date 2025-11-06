@@ -9,7 +9,12 @@ namespace Frontend.Services;
 public class PromotionService
 {
     private readonly HttpClient _httpClient;
-    private const string BaseUrl = "http://localhost:4040/api/promotions";
+    private const string BaseUrl = "/api/promotions";
+    private static readonly System.Text.Json.JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+    };
 
     public PromotionService(HttpClient httpClient)
     {
@@ -20,9 +25,9 @@ public class PromotionService
         int page = 1, 
         int pageSize = 10, 
         string? searchTerm = null,
-        string? status = null,
-        string? discountType = null,
-        string? promotionType = null,
+        PromotionStatus? status = null,
+        DiscountType? discountType = null,
+        PromotionType? promotionType = null,
         DateTime? fromDate = null,
         DateTime? toDate = null)
     {
@@ -37,14 +42,31 @@ public class PromotionService
             if (!string.IsNullOrEmpty(searchTerm))
                 queryParams.Add($"q={Uri.EscapeDataString(searchTerm)}");
             
-            if (!string.IsNullOrEmpty(status))
-                queryParams.Add($"status={Uri.EscapeDataString(status)}");
+            if (status.HasValue)
+                queryParams.Add($"status={(status.Value == PromotionStatus.Active ? "active" : "inactive")}");
             
-            if (!string.IsNullOrEmpty(discountType))
-                queryParams.Add($"discountType={Uri.EscapeDataString(discountType)}");
+            if (discountType.HasValue)
+            {
+                var dt = discountType.Value switch
+                {
+                    DiscountType.Percent => "percent",
+                    DiscountType.Fixed => "fixed",
+                    DiscountType.FreeShipping => "free_shipping",
+                    _ => null
+                };
+                if (dt != null) queryParams.Add($"discountType={dt}");
+            }
             
-            if (!string.IsNullOrEmpty(promotionType))
-                queryParams.Add($"promotionType={Uri.EscapeDataString(promotionType)}");
+            if (promotionType.HasValue)
+            {
+                var pt = promotionType.Value switch
+                {
+                    PromotionType.Promotion => "promotion",
+                    PromotionType.DiscountCode => "discount_code",
+                    _ => null
+                };
+                if (pt != null) queryParams.Add($"promotionType={pt}");
+            }
             
             if (fromDate.HasValue)
                 queryParams.Add($"from={fromDate.Value:yyyy-MM-dd}");
@@ -54,7 +76,7 @@ public class PromotionService
 
             var url = $"{BaseUrl}?{string.Join("&", queryParams)}";
             
-            var response = await _httpClient.GetFromJsonAsync<ApiResponse<PromotionListData>>(url);
+            var response = await _httpClient.GetFromJsonAsync<ApiResponse<PromotionListData>>(url, JsonOptions);
             
             if (response != null && response.StatusCode == 200 && response.Data != null)
             {
@@ -73,7 +95,7 @@ public class PromotionService
     {
         try
         {
-            var response = await _httpClient.GetFromJsonAsync<ApiResponse<PromotionDetailData>>($"{BaseUrl}/{id}");
+            var response = await _httpClient.GetFromJsonAsync<ApiResponse<PromotionDetailData>>($"{BaseUrl}/{id}", JsonOptions);
             
             if (response != null && response.StatusCode == 200 && response.Data != null)
             {
@@ -92,7 +114,7 @@ public class PromotionService
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync(BaseUrl, request);
+            var response = await _httpClient.PostAsJsonAsync(BaseUrl, request, JsonOptions);
             
             if (response.IsSuccessStatusCode)
             {
@@ -111,7 +133,7 @@ public class PromotionService
     {
         try
         {
-            var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", request);
+            var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", request, JsonOptions);
             
             if (response.IsSuccessStatusCode)
             {
@@ -145,37 +167,35 @@ public class PromotionService
         }
     }
 
-    public string GetDiscountTypeDisplay(string discountType)
+    public string GetDiscountTypeDisplay(DiscountType discountType)
     {
         return discountType switch
         {
-            "percent" => "Giảm giá %",
-            "fixed" => "Giảm giá cố định",
-            "free_shipping" => "Miễn phí vận chuyển",
-            _ => discountType
+            DiscountType.Percent => "Giảm giá %",
+            DiscountType.Fixed => "Giảm giá cố định",
+            DiscountType.FreeShipping => "Miễn phí vận chuyển",
+            _ => discountType.ToString()
         };
     }
 
-    public string GetStatusDisplay(string status)
+    public string GetStatusDisplay(PromotionStatus status)
     {
         var today = DateTime.Today;
         
-        // Note: Cần StartDate và EndDate để xác định "Sắp bắt đầu" và "Đã kết thúc"
-        // Nhưng trong method này chỉ có status, nên chỉ hiển thị active/inactive
         return status switch
         {
-            "active" => "Đang hoạt động",
-            "inactive" => "Tạm dừng",
-            _ => status
+            PromotionStatus.Active => "Đang hoạt động",
+            PromotionStatus.Inactive => "Tạm dừng",
+            _ => status.ToString()
         };
     }
 
-    public string GetStatusBadgeClass(string status)
+    public string GetStatusBadgeClass(PromotionStatus status)
     {
         return status switch
         {
-            "active" => "bg-success",
-            "inactive" => "bg-secondary",
+            PromotionStatus.Active => "bg-success",
+            PromotionStatus.Inactive => "bg-secondary",
             _ => "bg-secondary"
         };
     }

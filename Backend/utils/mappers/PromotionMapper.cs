@@ -13,7 +13,7 @@ public static class PromotionMapper
             Description = entity.Description,
             DiscountType = entity.DiscountType,
             DiscountValue = entity.DiscountValue,
-            PromotionType = entity.PromotionType ?? "promotion",
+            PromotionType = entity.PromotionType,
             StartDate = entity.StartDate,
             EndDate = entity.EndDate,
             MinOrderAmount = entity.MinOrderAmount,
@@ -40,15 +40,15 @@ public static class PromotionMapper
             Id = string.IsNullOrEmpty(dto.Id) ? Guid.NewGuid() : Guid.Parse(dto.Id),
             PromoCode = dto.PromoCode ?? null!,
             Description = dto.Description,
-            DiscountType = dto.DiscountType ?? null!,
+            DiscountType = dto.DiscountType,
             DiscountValue = dto.DiscountValue,
-            PromotionType = dto.PromotionType ?? "promotion",
+            PromotionType = dto.PromotionType,
             StartDate = dto.StartDate,
             EndDate = dto.EndDate,
             MinOrderAmount = dto.MinOrderAmount,
             UsageLimit = dto.UsageLimit,
             UsedCount = dto.UsedCount,
-            Status = dto.Status ?? null!,
+            Status = dto.Status,
         };
     }
 

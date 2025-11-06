@@ -152,8 +152,8 @@
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-bold">Loại:</label>
                                     <p class="form-control-plaintext">
-                                        <span class="badge @(viewingPromotion.PromotionType == "promotion" ? "bg-primary" : "bg-info")">
-                                            @(viewingPromotion.PromotionType == "promotion" ? "Khuyến mãi" : "Mã giảm giá")
+                                        <span class="badge @(viewingPromotion.PromotionType == PromotionType.Promotion ? "bg-primary" : "bg-info")">
+                                            @(viewingPromotion.PromotionType == PromotionType.Promotion ? "Khuyến mãi" : "Mã giảm giá")
                                         </span>
                                     </p>
                                 </div>
@@ -263,7 +263,7 @@
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Loại giảm giá <span class="text-danger">*</span></label>
-                                    <select class="form-select" value="@currentPromotion.DiscountType" @onchange="HandleDiscountTypeChange">
+                                    <select class="form-select" value="@currentPromotion.DiscountType.ToString().ToLower()" @onchange="HandleDiscountTypeChange">
                                         <option value="percent">Giảm giá %</option>
                                         <option value="fixed">Giảm giá cố định</option>
                                         <option value="free_shipping">Miễn phí vận chuyển</option>
@@ -272,8 +272,8 @@
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Giá trị giảm giá <span class="text-danger">*</span></label>
                                     <input type="number" class="form-control" @bind="currentPromotion.DiscountValue" 
-                                           step="0.01" min="0" disabled="@(currentPromotion.DiscountType == "free_shipping")" />
-                                    @if (currentPromotion.DiscountType == "free_shipping")
+                                           step="0.01" min="0" disabled="@(currentPromotion.DiscountType == DiscountType.FreeShipping)" />
+                                    @if (currentPromotion.DiscountType == DiscountType.FreeShipping)
                                     {
                                         <small class="text-muted">Miễn phí vận chuyển không cần giá trị</small>
                                     }
@@ -302,9 +302,9 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Trạng thái</label>
-                                <select class="form-select" @bind="currentPromotion.Status">
-                                    <option value="active">Hoạt động</option>
-                                    <option value="inactive">Tạm dừng</option>
+                                <select class="form-select" value="@currentPromotion.Status.ToString()" @onchange="HandleStatusEnumChange">
+                                    <option value="Active">Hoạt động</option>
+                                    <option value="Inactive">Tạm dừng</option>
                                 </select>
                             </div>
                         </form>
@@ -411,12 +411,27 @@
 
         try
         {
+            PromotionStatus? statusEnum = selectedStatus switch
+            {
+                "active" => PromotionStatus.Active,
+                "inactive" => PromotionStatus.Inactive,
+                _ => null
+            };
+
+            DiscountType? discountEnum = selectedDiscountType switch
+            {
+                "percent" => DiscountType.Percent,
+                "fixed" => DiscountType.Fixed,
+                "free_shipping" => DiscountType.FreeShipping,
+                _ => null
+            };
+
             var result = await PromotionService.GetPromotionsAsync(
                 currentPage,
                 pageSize,
                 string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
-                string.IsNullOrWhiteSpace(selectedStatus) ? null : selectedStatus,
-                string.IsNullOrWhiteSpace(selectedDiscountType) ? null : selectedDiscountType
+                statusEnum,
+                discountEnum
             );
 
             promotions = result.promotions;
@@ -469,9 +484,9 @@
         {
             StartDate = DateTime.Today,
             EndDate = DateTime.Today.AddDays(30),
-            Status = "active",
-            DiscountType = "percent",
-            PromotionType = "promotion"
+            Status = PromotionStatus.Active,
+            DiscountType = DiscountType.Percent,
+            PromotionType = PromotionType.Promotion
         };
         showModal = true;
     }
@@ -506,12 +521,25 @@
 
     private void HandleDiscountTypeChange(ChangeEventArgs e)
     {
-        currentPromotion.DiscountType = e.Value?.ToString() ?? "percent";
-        if (currentPromotion.DiscountType == "free_shipping")
+        var val = e.Value?.ToString() ?? "percent";
+        currentPromotion.DiscountType = val switch
+        {
+            "percent" => DiscountType.Percent,
+            "fixed" => DiscountType.Fixed,
+            "free_shipping" => DiscountType.FreeShipping,
+            _ => DiscountType.Percent
+        };
+        if (currentPromotion.DiscountType == DiscountType.FreeShipping)
         {
             currentPromotion.DiscountValue = 0;
         }
         StateHasChanged();
+    }
+
+    private void HandleStatusEnumChange(ChangeEventArgs e)
+    {
+        var val = e.Value?.ToString() ?? "Active";
+        currentPromotion.Status = val == "Inactive" ? PromotionStatus.Inactive : PromotionStatus.Active;
     }
 
     private async Task SavePromotion()
@@ -606,17 +634,17 @@
     {
         return promotion.DiscountType switch
         {
-            "percent" => $"Giảm {promotion.DiscountValue}%",
-            "fixed" => $"Giảm {promotion.DiscountValue:N0} VNĐ",
-            "free_shipping" => "Miễn phí vận chuyển",
-            _ => promotion.DiscountType
+            DiscountType.Percent => $"Giảm {promotion.DiscountValue}%",
+            DiscountType.Fixed => $"Giảm {promotion.DiscountValue:N0} VNĐ",
+            DiscountType.FreeShipping => "Miễn phí vận chuyển",
+            _ => promotion.DiscountType.ToString()
         };
     }
 
     private string GetStatusDisplay(PromotionDto promotion)
     {
         var today = DateTime.Today;
-        if (promotion.Status == "active")
+        if (promotion.Status == PromotionStatus.Active)
         {
             if (today < promotion.StartDate)
                 return "Sắp bắt đầu";
@@ -630,7 +658,7 @@
     private string GetStatusBadgeClass(PromotionDto promotion)
     {
         var today = DateTime.Today;
-        if (promotion.Status == "active")
+        if (promotion.Status == PromotionStatus.Active)
         {
             if (today < promotion.StartDate)
                 return "bg-info";

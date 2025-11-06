@@ -79,6 +79,31 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasOne(i => i.Product)
             .WithMany()
             .HasForeignKey(i => i.ProductId);
+
+        // Promotion enum converters -> store as lowercase strings for backward compatibility
+        modelBuilder.Entity<Promotion>(entity =>
+        {
+            entity.Property(p => p.DiscountType)
+                .HasConversion(
+                    v => v.ToString().ToLower(),
+                    v => v == "percent" ? DiscountType.Percent : v == "fixed" ? DiscountType.Fixed : DiscountType.FreeShipping)
+                .HasMaxLength(20)
+                .HasColumnName("discount_type");
+
+            entity.Property(p => p.PromotionType)
+                .HasConversion(
+                    v => v.ToString().ToLower(),
+                    v => v == "promotion" ? PromotionType.Promotion : v == "discount_code" ? PromotionType.DiscountCode : PromotionType.Promotion)
+                .HasMaxLength(20)
+                .HasColumnName("promotion_type");
+
+            entity.Property(p => p.Status)
+                .HasConversion(
+                    v => v.ToString().ToLower(),
+                    v => v == "active" ? PromotionStatus.Active : PromotionStatus.Inactive)
+                .HasMaxLength(20)
+                .HasColumnName("status");
+        });
     }
 
     public DbSet<Category> Category { get; set; }
