@@ -43,7 +43,15 @@
                     <option value="free_shipping">Miễn phí vận chuyển</option>
                 </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-1">
+                <select class="form-select" @bind="pageSize" @bind:after="HandlePageSizeChange" title="Số mục mỗi trang">
+                    <option value="6">6</option>
+                    <option value="12">12</option>
+                    <option value="24">24</option>
+                    <option value="48">48</option>
+                </select>
+            </div>
+            <div class="col-md-1">
                 <button class="btn btn-outline-secondary w-100" @onclick="LoadPromotions">Lọc</button>
             </div>
         </div>
@@ -108,6 +116,17 @@
                     </div>
                 }
             </div>
+
+            @if (pagination != null)
+            {
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="text-muted">
+                        Hiển thị @(((pagination.CurrentPage - 1) * pagination.PageSize) + 1)
+                        đến @(Math.Min(pagination.CurrentPage * pagination.PageSize, pagination.TotalCount))
+                        trong tổng số @pagination.TotalCount khuyến mãi
+                    </div>
+                </div>
+            }
 
             @if (pagination != null && pagination.TotalPages > 1)
             {
@@ -445,6 +464,25 @@
 
             promotions = result.promotions;
             pagination = result.pagination;
+
+            // Nếu rỗng nhưng vẫn còn trang trước, tự động lùi về trang hợp lệ gần nhất
+            if ((promotions == null || promotions.Count == 0) && pagination != null)
+            {
+                var lastPage = Math.Max(1, pagination.TotalPages);
+                if (currentPage > lastPage)
+                {
+                    currentPage = lastPage;
+                    result = await PromotionService.GetPromotionsAsync(
+                        currentPage,
+                        pageSize,
+                        string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
+                        statusEnum,
+                        discountEnum
+                    );
+                    promotions = result.promotions;
+                    pagination = result.pagination;
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -483,6 +521,12 @@
     private async Task ChangePage(int page)
     {
         currentPage = page;
+        await LoadPromotions();
+    }
+
+    private async Task HandlePageSizeChange()
+    {
+        currentPage = 1;
         await LoadPromotions();
     }
 
@@ -556,6 +600,14 @@
         try
         {
             bool success;
+
+            // Validate client-side
+            var (isValid, validationMessage) = ValidatePromotionForm(currentPromotion, isEdit);
+            if (!isValid)
+            {
+                Toast.ShowError(validationMessage);
+                return;
+            }
             
             if (isEdit && editingPromotion != null)
             {
@@ -677,6 +729,39 @@
             return "bg-success";
         }
         return "bg-secondary";
+    }
+
+    private (bool ok, string message) ValidatePromotionForm(CreatePromotionRequest request, bool isEditMode)
+    {
+        if (!isEditMode && string.IsNullOrWhiteSpace(request.PromoCode))
+            return (false, "Mã khuyến mãi là bắt buộc");
+
+        if (request.EndDate < request.StartDate)
+            return (false, "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu");
+
+        if (request.DiscountType == DiscountType.Percent)
+        {
+            if (request.DiscountValue <= 0 || request.DiscountValue > 100)
+                return (false, "Giá trị % phải trong khoảng 1-100");
+        }
+        else if (request.DiscountType == DiscountType.Fixed)
+        {
+            if (request.DiscountValue < 0)
+                return (false, "Giá trị giảm cố định phải ≥ 0");
+        }
+        else if (request.DiscountType == DiscountType.FreeShipping)
+        {
+            if (request.DiscountValue != 0)
+                return (false, "Miễn phí vận chuyển không cần giá trị giảm");
+        }
+
+        if (request.MinOrderAmount < 0)
+            return (false, "Giá trị đơn hàng tối thiểu phải ≥ 0");
+
+        if (request.UsageLimit < 0)
+            return (false, "Giới hạn sử dụng phải ≥ 0");
+
+        return (true, "");
     }
 }
 
