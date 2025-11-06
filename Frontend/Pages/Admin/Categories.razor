@@ -105,22 +105,36 @@
 
                             @if (pagination != null && pagination.TotalPages > 1)
                             {
-                                <nav>
-                                    <ul class="pagination justify-content-end">
-                                        <li class="page-item @(pagination!.HasPreviousPage ? string.Empty : "disabled")">
-                                            <a class="page-link" @onclick="() => LoadCategories(pagination!.CurrentPage - 1)">Trước</a>
+                                <nav aria-label="Page navigation">
+                                    <ul class="pagination justify-content-center">
+                                        <li class="page-item @(pagination.CurrentPage == 1 ? "disabled" : "")">
+                                            <a class="page-link" @onclick="() => LoadCategories(pagination.CurrentPage - 1)">Trước</a>
                                         </li>
-                                        @for (var i = 1; i <= pagination!.TotalPages; i++)
+
+                                        @for (int i = 1; i <= pagination.TotalPages; i++)
                                         {
-                                            <li class="page-item @(i == pagination!.CurrentPage ? "active" : string.Empty)">
-                                                <a class="page-link" @onclick="() => LoadCategories(i)">@i</a>
+                                            var pageNumber = i;
+                                            <li class="page-item @(pagination.CurrentPage == pageNumber ? "active" : "")">
+                                                <a class="page-link" @onclick="() => LoadCategories(pageNumber)">@pageNumber</a>
                                             </li>
                                         }
-                                        <li class="page-item @(pagination!.HasNextPage ? string.Empty : "disabled")">
-                                            <a class="page-link" @onclick="() => LoadCategories(pagination!.CurrentPage + 1)">Sau</a>
+
+                                        <li class="page-item @(pagination.CurrentPage == pagination.TotalPages ? "disabled" : "")">
+                                            <a class="page-link" @onclick="() => LoadCategories(pagination.CurrentPage + 1)">Tiếp</a>
                                         </li>
                                     </ul>
                                 </nav>
+                            }
+
+                            @if (pagination != null)
+                            {
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div class="text-muted">
+                                        Hiển thị @((pagination.CurrentPage - 1) * pagination.PageSize + 1)
+                                        đến @(Math.Min(pagination.CurrentPage * pagination.PageSize, pagination.TotalCount))
+                                        trong tổng số @pagination.TotalCount danh mục
+                                    </div>
+                                </div>
                             }
                         }
                     </div>
