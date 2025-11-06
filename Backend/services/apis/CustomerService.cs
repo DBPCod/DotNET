@@ -17,6 +17,9 @@ public class CustomerService
 
     public async Task<Response> GetAllAsync(int page, int pageSize, string? search = null, string? status = null)
     {
+        // Get total count first
+        var totalCount = await _repo.GetTotalCountAsync(search, status);
+        
         var list = await _repo.GetAllAsync(page, pageSize, search, status);
         var response = new Response { StatusCode = 200, Message = "OK" };
         response.Data.Customers = list.Select(c => new CustomerDto {
@@ -29,6 +32,17 @@ public class CustomerService
             Status = c.Status,
             CreatedAt = c.CreatedAt
         }).ToList();
+        
+        // Add pagination info
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+        response.Data.Pagination = new PaginationInfo
+        {
+            CurrentPage = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = totalPages
+        };
+        
         return response;
     }
 
