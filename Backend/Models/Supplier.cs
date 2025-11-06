@@ -24,4 +24,8 @@ public class Supplier
 
     [Column("address")]
     public string? Address { get; set; }
+
+    // Thêm trường Status cho Soft Delete
+    [Column("status")]
+    public bool Status { get; set; } = true; // true = Active, false = Inactive
 }

@@ -21,6 +21,9 @@ public static class ProductMapper
             ImagePath = entity.ImagePath,
             Status = entity.Status,
             CreatedAt = entity.CreatedAt,
+            // ThÃªm navigation properties
+            CategoryName = entity.Category?.CategoryName,
+            SupplierName = entity.Supplier?.Name
         };
     }
 

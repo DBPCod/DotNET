@@ -23,6 +23,9 @@ public class CreateProductRequest
 
     public string? SupplierId { get; set; }
 
+    // ✅ Thêm trường Status
+    public bool Status { get; set; } = true;
+
     // Upload hình ảnh sản phẩm
     public IFormFile? Image { get; set; }
 }

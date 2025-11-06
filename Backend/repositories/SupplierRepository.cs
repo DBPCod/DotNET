@@ -8,12 +8,22 @@ public class SupplierRepository(AppDbContext context)
 {
     private readonly AppDbContext _context = context;
 
+    // Lấy tất cả suppliers (bao gồm cả inactive) - dùng cho admin xem
     public async Task<List<Supplier>> GetAllAsync(int page, int pageSize)
     {
         return await _context.Supplier
             .OrderBy(s => s.Name)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .ToListAsync();
+    }
+
+    // Lấy chỉ các suppliers đang hoạt động - dùng cho dropdown
+    public async Task<List<Supplier>> GetActiveAsync()
+    {
+        return await _context.Supplier
+            .Where(s => s.Status == true)
+            .OrderBy(s => s.Name)
             .ToListAsync();
     }
 
@@ -34,7 +44,16 @@ public class SupplierRepository(AppDbContext context)
         await _context.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(Supplier supplier)
+    // Soft Delete
+    public async Task SoftDeleteAsync(Supplier supplier)
+    {
+        supplier.Status = false;
+        _context.Supplier.Update(supplier);
+        await _context.SaveChangesAsync();
+    }
+
+    // Hard Delete (nếu cần)
+    public async Task HardDeleteAsync(Supplier supplier)
     {
         _context.Supplier.Remove(supplier);
         await _context.SaveChangesAsync();

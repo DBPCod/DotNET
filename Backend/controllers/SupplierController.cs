@@ -17,6 +17,14 @@ public class SupplierController(SupplierService supplierService) : ControllerBas
         return StatusCode(response.StatusCode, response);
     }
 
+    // Endpoint mới để lấy chỉ suppliers đang hoạt động
+    [HttpGet("active")]
+    public async Task<IActionResult> GetActive()
+    {
+        var response = await _supplierService.GetActiveAsync();
+        return StatusCode(response.StatusCode, response);
+    }
+
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById([FromRoute] Guid id)
     {
@@ -25,14 +33,14 @@ public class SupplierController(SupplierService supplierService) : ControllerBas
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateSupplierRequest request)  // ← Đổi
+    public async Task<IActionResult> Create([FromBody] CreateSupplierRequest request)
     {
         var response = await _supplierService.CreateAsync(request);
         return StatusCode(response.StatusCode, response);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateSupplierRequest request)  // ← Đổi
+    public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateSupplierRequest request)
     {
         var response = await _supplierService.UpdateAsync(id, request);
         return StatusCode(response.StatusCode, response);

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace Backend.Dtos.Requests;
 
@@ -15,12 +16,18 @@ public class UpdateProductRequest
     [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than 0")]
     public decimal Price { get; set; }
 
+    [Required(ErrorMessage = "Unit is required")]
     [MaxLength(20, ErrorMessage = "Unit cannot exceed 20 characters")]
     public string Unit { get; set; } = "pcs";
 
+    // ✅ Cho phép null để có thể xóa category/supplier
     public string? CategoryId { get; set; }
 
     public string? SupplierId { get; set; }
+
+    // ✅ Status là required và mặc định true
+    [Required(ErrorMessage = "Status is required")]
+    public bool Status { get; set; } = true;
 
     // Upload hình ảnh sản phẩm (tùy chọn khi update)
     public IFormFile? Image { get; set; }

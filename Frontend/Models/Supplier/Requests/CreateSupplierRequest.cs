@@ -1,8 +1,7 @@
-namespace Backend.Dtos;
+namespace Frontend.Models.Supplier.Requests;
 
-public class SupplierDto
+public class CreateSupplierRequest
 {
-    public string Id { get; set; } = "";
     public string Name { get; set; } = "";
     public string? Phone { get; set; }
     public string? Email { get; set; }
