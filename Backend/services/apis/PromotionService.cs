@@ -35,11 +35,11 @@ public class PromotionService(PromotionRepository promotionRepository, OrderRepo
             throw new ExceptionCustom(400, "End date must be greater than or equal to start date");
 
         // Validate discount value based on type
-        if (request.DiscountType == "percent" && request.DiscountValue > 100)
+        if (request.DiscountType == DiscountType.Percent && request.DiscountValue > 100)
             throw new ExceptionCustom(400, "Percentage discount cannot exceed 100%");
 
         // Validate free_shipping không cần discount_value
-        if (request.DiscountType == "free_shipping")
+        if (request.DiscountType == DiscountType.FreeShipping)
         {
             request.DiscountValue = 0; // Không cần giá trị cho free shipping
         }
@@ -53,14 +53,14 @@ public class PromotionService(PromotionRepository promotionRepository, OrderRepo
         {
             PromoCode = request.PromoCode.Trim().ToUpper(),
             Description = request.Description?.Trim(),
-            DiscountType = request.DiscountType.ToLower(),
+            DiscountType = request.DiscountType,
             DiscountValue = request.DiscountValue,
-            PromotionType = request.PromotionType?.ToLower() ?? "promotion",
+            PromotionType = request.PromotionType,
             StartDate = request.StartDate.Date,
             EndDate = request.EndDate.Date,
             MinOrderAmount = request.MinOrderAmount,
             UsageLimit = request.UsageLimit,
-            Status = request.Status.ToLower()
+            Status = request.Status
         };
 
         return await _promotionRepository.HandleCreatePromotion(promotion);
@@ -86,11 +86,11 @@ public class PromotionService(PromotionRepository promotionRepository, OrderRepo
         var discountType = request.DiscountType ?? promotion.DiscountType;
         var discountValue = request.DiscountValue ?? promotion.DiscountValue;
         
-        if (discountType == "percent" && discountValue > 100)
+        if (discountType == DiscountType.Percent && discountValue > 100)
             throw new ExceptionCustom(400, "Percentage discount cannot exceed 100%");
 
         // Validate free_shipping không cần discount_value
-        if (discountType == "free_shipping")
+        if (discountType == DiscountType.FreeShipping)
         {
             discountValue = 0; // Không cần giá trị cho free shipping
         }
@@ -99,19 +99,19 @@ public class PromotionService(PromotionRepository promotionRepository, OrderRepo
         if (!string.IsNullOrEmpty(request.Description))
             promotion.Description = request.Description.Trim();
 
-        if (!string.IsNullOrEmpty(request.DiscountType))
-            promotion.DiscountType = request.DiscountType.ToLower();
+        if (request.DiscountType.HasValue)
+            promotion.DiscountType = request.DiscountType.Value;
 
         if (request.DiscountValue.HasValue)
         {
-            if (discountType == "free_shipping")
+            if (discountType == DiscountType.FreeShipping)
                 promotion.DiscountValue = 0;
             else
                 promotion.DiscountValue = request.DiscountValue.Value;
         }
 
-        if (!string.IsNullOrEmpty(request.PromotionType))
-            promotion.PromotionType = request.PromotionType.ToLower();
+        if (request.PromotionType.HasValue)
+            promotion.PromotionType = request.PromotionType.Value;
 
         if (request.StartDate.HasValue)
             promotion.StartDate = request.StartDate.Value.Date;
@@ -125,8 +125,8 @@ public class PromotionService(PromotionRepository promotionRepository, OrderRepo
         if (request.UsageLimit.HasValue)
             promotion.UsageLimit = request.UsageLimit.Value;
 
-        if (!string.IsNullOrEmpty(request.Status))
-            promotion.Status = request.Status.ToLower();
+        if (request.Status.HasValue)
+            promotion.Status = request.Status.Value;
 
         return await _promotionRepository.HandleUpdatePromotion(promotion);
     }
@@ -164,7 +164,7 @@ public class PromotionService(PromotionRepository promotionRepository, OrderRepo
         }
 
         // Kiểm tra status
-        if (promotion.Status != "active")
+        if (promotion.Status != PromotionStatus.Active)
         {
             response.Reason = "inactive";
             return response;
@@ -194,15 +194,15 @@ public class PromotionService(PromotionRepository promotionRepository, OrderRepo
 
         // Tính discount amount
         decimal discountAmount = 0;
-        if (promotion.DiscountType == "percent")
+        if (promotion.DiscountType == DiscountType.Percent)
         {
             discountAmount = Math.Round(orderTotal * promotion.DiscountValue / 100, 2);
         }
-        else if (promotion.DiscountType == "fixed")
+        else if (promotion.DiscountType == DiscountType.Fixed)
         {
             discountAmount = Math.Min(promotion.DiscountValue, orderTotal);
         }
-        else if (promotion.DiscountType == "free_shipping")
+        else if (promotion.DiscountType == DiscountType.FreeShipping)
         {
             // Free shipping không tính vào discount amount ở đây
             // Frontend sẽ xử lý riêng khi áp dụng free shipping
@@ -212,7 +212,7 @@ public class PromotionService(PromotionRepository promotionRepository, OrderRepo
         response.Valid = true;
         response.Reason = "ok";
         response.DiscountAmount = discountAmount;
-        response.DiscountType = promotion.DiscountType;
+        response.DiscountType = promotion.DiscountType.ToString().ToLower();
 
         return response;
     }
