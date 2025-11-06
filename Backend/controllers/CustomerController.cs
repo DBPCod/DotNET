@@ -5,13 +5,18 @@ namespace Backend.Controllers;
 
 [Route("api/v1/customers")]
 [ApiController]
-public class CustomerController(Backend.Services.CustomerAppService customerService) : ControllerBase
+public class CustomerController(Backend.Services.Apis.CustomerService customerService) : ControllerBase
 {
-    private readonly Backend.Services.CustomerAppService _customerService = customerService;
+    private readonly Backend.Services.Apis.CustomerService _customerService = customerService;
+    
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public async Task<IActionResult> GetAll(
+        [FromQuery] int page = 1, 
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? q = null,
+        [FromQuery] string? status = null)
     {
-        var response = await _customerService.GetAllAsync(page, pageSize);
+        var response = await _customerService.GetAllAsync(page, pageSize, q, status);
         return StatusCode(response.StatusCode, response);
     }
 

@@ -16,7 +16,8 @@ public class UserController(UserService userService) : ControllerBase
 
     // GET /api/v1/users - Lấy danh sách users với phân trang và filter
     [HttpGet]
-    // [Authorize(Roles = "ADMIN")]
+    [Authorize(Roles = "ADMIN")]
+    // [Authorize()]
     public async Task<IActionResult> GetUsers([FromQuery] GetUsersRequest request)
     {
         var response = new Response();
@@ -71,13 +72,13 @@ public class UserController(UserService userService) : ControllerBase
             var user = await _userService.HandleGetUserById(id);
             if (user == null)
             {
-                response.Message = "User not found";
+                response.Message = "Không tìm thấy người dùng này";
                 response.StatusCode = 404;
                 return StatusCode(response.StatusCode, response);
             }
 
             var userDto = UserMapper.MapEntityToDto(user);
-            response.Message = "User retrieved successfully";
+            response.Message = "Lấy người dùng thành công";
             response.StatusCode = 200;
             response.Data.User = userDto;
         }
@@ -107,13 +108,13 @@ public class UserController(UserService userService) : ControllerBase
             var user = await _userService.HandleCreateUser(request);
             if (user == null)
             {
-                response.Message = "Failed to create user";
+                response.Message = "Lỗi khi tạo người dùng";
                 response.StatusCode = 500;
                 return StatusCode(response.StatusCode, response);
             }
 
             var userDto = UserMapper.MapEntityToDto(user);
-            response.Message = "User created successfully";
+            response.Message = "Tạo người dùng thành công";
             response.StatusCode = 201;
             response.Data.User = userDto;
         }
@@ -143,13 +144,13 @@ public class UserController(UserService userService) : ControllerBase
             var user = await _userService.HandleUpdateUser(id, request);
             if (user == null)
             {
-                response.Message = "User not found";
+                response.Message = "Không tìm thấy người dùng này";
                 response.StatusCode = 404;
                 return StatusCode(response.StatusCode, response);
             }
 
             var userDto = UserMapper.MapEntityToDto(user);
-            response.Message = "User updated successfully";
+            response.Message = "Cập nhật người dùng thành công";
             response.StatusCode = 200;
             response.Data.User = userDto;
         }
@@ -179,12 +180,12 @@ public class UserController(UserService userService) : ControllerBase
             var success = await _userService.HandleSoftDeleteUser(id);
             if (!success)
             {
-                response.Message = "User not found";
+                response.Message = "Không tìm thấy người dùng này";
                 response.StatusCode = 404;
                 return StatusCode(response.StatusCode, response);
             }
 
-            response.Message = "User deactivated successfully";
+            response.Message = "Khóa người dùng thành công";
             response.StatusCode = 200;
         }
         catch (ExceptionCustom ex)

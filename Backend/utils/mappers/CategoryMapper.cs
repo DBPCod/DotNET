@@ -10,6 +10,8 @@ public static class CategoryMapper
         {
             Id = entity.Id.ToString(),
             CategoryName = entity.CategoryName,
+            Description = entity.Description,
+            Status = ((int)entity.Status).ToString(),  // Convert to "0" or "1"
         };
     }
 
@@ -28,6 +30,9 @@ public static class CategoryMapper
         {
             Id = string.IsNullOrEmpty(dto.Id) ? Guid.NewGuid() : Guid.Parse(dto.Id),
             CategoryName = dto.CategoryName ?? null!,
+            Status = Enum.TryParse<CategoryStatus>(dto.Status, out var status) 
+                ? status 
+                : CategoryStatus.Active,
         };
     }
 

@@ -1,0 +1,83 @@
+@page "/auth/banned"
+@layout AuthLayout
+@using Frontend.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="banned-container">
+    <!-- Icon -->
+    <div class="banned-icon-wrapper">
+        <div class="banned-icon-blur"></div>
+        <div class="banned-icon-badge">
+            <svg class="banned-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="m4.9 4.9 14.2 14.2"></path>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Heading -->
+    <h1 class="banned-title">Account Banned</h1>
+
+    <!-- Subtitle -->
+    <p class="banned-subtitle">Your account has been suspended</p>
+
+    <!-- Description -->
+    <div class="banned-description-box">
+        <p class="banned-description">
+            Your account has been banned due to a violation of our Terms of
+            Service. If you believe this is a mistake, please contact our support
+            team for assistance.
+        </p>
+    </div>
+
+    <!-- Contact Info -->
+    <div class="banned-contact-box">
+        <p class="banned-contact-title">
+            <span style="font-weight: 600; color: #1f2937;">Need help?</span>
+        </p>
+        <p class="banned-contact-email">
+            Contact us at
+            <a href="https://mail.google.com/mail/?view=cm&fs=1&to=hainguyenhoang1205@gmail.com" target="_blank"
+                rel="noopener noreferrer">
+                hainguyenhoang1205@gmail.com
+            </a>
+        </p>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="banned-actions">
+        <a href="/auth/login" class="btn btn-primary" style="text-decoration: none;">
+            <svg style="width: 1rem; height: 1rem;" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                <polyline points="10 17 15 12 10 7"></polyline>
+                <line x1="15" x2="3" y1="12" y2="12"></line>
+            </svg>
+            <span>Login</span>
+        </a>
+        <a href="/" class="btn-secondary" style="text-decoration: none;">
+            <svg style="width: 1rem; height: 1rem;" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <span>Home</span>
+        </a>
+    </div>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthService.InitializeAsync();
+        if (AuthService.CurrentUser != null)
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+    }
+}

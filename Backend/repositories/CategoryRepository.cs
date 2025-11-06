@@ -25,14 +25,38 @@ public class CategoryRepository(AppDbContext context)
             .ToListAsync();
     }
 
+    public async Task<int> GetTotalCountAsync(string? q = null)
+    {
+        var query = _context.Category.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            query = query.Where(c => c.CategoryName.Contains(term));
+        }
+
+        return await query.CountAsync();
+    }
+
     public async Task<Category?> GetByIdAsync(Guid id)
     {
-        return await _context.Category.FirstOrDefaultAsync(c => c.Id == id);
+        return await _context.Category
+            .FirstOrDefaultAsync(c => c.Id == id && c.Status == CategoryStatus.Active);
+    }
+
+    // Returns a category by id regardless of its status (used for update/administrative operations)
+    public async Task<Category?> GetByIdIgnoreStatusAsync(Guid id)
+    {
+        return await _context.Category
+            .FirstOrDefaultAsync(c => c.Id == id);
     }
 
     public async Task<bool> ExistsByNameAsync(string name, Guid? excludeId = null)
     {
-        var query = _context.Category.AsQueryable();
+        var query = _context.Category
+            .Where(c => c.Status == CategoryStatus.Active)
+            .AsQueryable();
+            
         if (excludeId.HasValue)
             query = query.Where(c => c.Id != excludeId.Value);
 
@@ -41,7 +65,7 @@ public class CategoryRepository(AppDbContext context)
 
     public async Task<bool> IsUsedByProductsAsync(Guid id)
     {
-        return await _context.Product.AnyAsync(p => p.CategoryId == id);
+        return await _context.Product.AnyAsync(p => p.CategoryId == id && p.Status == true);
     }
 
     public async Task AddAsync(Category category)
@@ -56,7 +80,16 @@ public class CategoryRepository(AppDbContext context)
         await _context.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(Category category)
+    // Soft Delete
+    public async Task SoftDeleteAsync(Category category)
+    {
+        category.Status = CategoryStatus.Deleted;
+        _context.Category.Update(category);
+        await _context.SaveChangesAsync();
+    }
+
+    // Hard Delete (nếu cần)
+    public async Task HardDeleteAsync(Category category)
     {
         _context.Category.Remove(category);
         await _context.SaveChangesAsync();

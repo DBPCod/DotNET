@@ -38,10 +38,19 @@ public class CategoryController(CategoryService categoryService) : ControllerBas
         return StatusCode(response.StatusCode, response);
     }
 
+    // Soft Delete
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
         var response = await _categoryService.DeleteAsync(id);
+        return StatusCode(response.StatusCode, response);
+    }
+
+    // Restore Category (optional)
+    [HttpPatch("{id}/restore")]
+    public async Task<IActionResult> Restore([FromRoute] Guid id)
+    {
+        var response = await _categoryService.RestoreAsync(id);
         return StatusCode(response.StatusCode, response);
     }
 }

@@ -34,13 +34,13 @@ public class User
     public UserRole Role { get; set; } = UserRole.STAFF;
 
     [Column("status")]
-    public UserStatus Status { get; set; } = UserStatus.ACTIVE;
+    public UserStatus Status { get; set; } = UserStatus.PENDING;
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     // Navigation properties
-    public ICollection<Order> Orders { get; set; } = new List<Order>();
+    public ICollection<Order> Orders { get; set; } = [];
 }
 
 public enum UserRole
@@ -53,5 +53,6 @@ public enum UserRole
 public enum UserStatus
 {
     ACTIVE,
+    PENDING,
     INACTIVE
 }

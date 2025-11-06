@@ -1,0 +1,273 @@
+@page "/auth/register"
+@layout AuthLayout
+@using Frontend.Services
+@using Frontend.Models.Auth
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@inject Blazored.Toast.Services.IToastService ToastService
+
+<div class="auth-header">
+    <h1 class="auth-title">Đăng ký tài khoản</h1>
+</div>
+
+<form class="auth-form" @onsubmit="HandleSubmit">
+    <div class="form-group">
+        <label class="form-label" for="username">Username</label>
+        <div class="form-input-wrapper">
+            <svg class="form-input-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <input class="form-input" id="username" type="text" placeholder="Nhập username của bạn"
+                @bind="formData.Username" @oninput="() => ClearError(nameof(formData.Username))" />
+        </div>
+        @if (errors.ContainsKey(nameof(formData.Username)))
+        {
+            <div class="form-error">@errors[nameof(formData.Username)]</div>
+        }
+    </div>
+
+    <div class="form-group">
+        <label class="form-label" for="email">Email</label>
+        <div class="form-input-wrapper">
+            <svg class="form-input-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+            </svg>
+            <input class="form-input" id="email" type="email" placeholder="Nhập email của bạn" @bind="formData.Email"
+                @oninput="() => ClearError(nameof(formData.Email))" />
+        </div>
+        @if (errors.ContainsKey(nameof(formData.Email)))
+        {
+            <div class="form-error">@errors[nameof(formData.Email)]</div>
+        }
+    </div>
+
+    <div class="form-group">
+        <label class="form-label" for="password">Mật khẩu</label>
+        <div class="form-input-wrapper">
+            <svg class="form-input-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <input class="form-input" id="password" type="@(showPassword ? "text" : "password")"
+                placeholder="Nhập mật khẩu" @bind="formData.Password"
+                @oninput="() => ClearError(nameof(formData.Password))" />
+            <svg class="form-input-icon-right" @onclick="TogglePassword" xmlns="http://www.w3.org/2000/svg" width="24"
+                height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                @if (showPassword)
+                {
+                    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path>
+                    <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path>
+                    <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path>
+                    <line x1="2" x2="22" y1="2" y2="22"></line>
+                }
+                else
+                {
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                }
+            </svg>
+        </div>
+        @if (errors.ContainsKey(nameof(formData.Password)))
+        {
+            <div class="form-error">@errors[nameof(formData.Password)]</div>
+        }
+        <p class="form-hint">Mật khẩu phải có ít nhất 8 ký tự</p>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label" for="confirmPassword">Xác nhận mật khẩu</label>
+        <div class="form-input-wrapper">
+            <svg class="form-input-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <input class="form-input" id="confirmPassword" type="@(showConfirmPassword ? "text" : "password")"
+                placeholder="Nhập lại mật khẩu" @bind="formData.ConfirmPassword"
+                @oninput="() => ClearError(nameof(formData.ConfirmPassword))" />
+            <svg class="form-input-icon-right" @onclick="ToggleConfirmPassword" xmlns="http://www.w3.org/2000/svg"
+                width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                @if (showConfirmPassword)
+                {
+                    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path>
+                    <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path>
+                    <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path>
+                    <line x1="2" x2="22" y1="2" y2="22"></line>
+                }
+                else
+                {
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                }
+            </svg>
+        </div>
+        @if (errors.ContainsKey(nameof(formData.ConfirmPassword)))
+        {
+            <div class="form-error">@errors[nameof(formData.ConfirmPassword)]</div>
+        }
+    </div>
+
+    <button type="submit" class="btn btn-primary" disabled="@AuthService.IsLoading">
+        @if (AuthService.IsLoading)
+        {
+            <svg class="btn-icon spinner" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+            </svg>
+            <span>Đang tạo tài khoản...</span>
+        }
+        else
+        {
+            <span>Đăng ký</span>
+        }
+    </button>
+</form>
+
+<div class="auth-link">
+    Đã có tài khoản?
+    <a href="/auth/login">Đăng nhập ngay</a>
+</div>
+
+<div class="terms-text">
+    Bằng việc đăng ký, bạn đồng ý với
+    <a href="/terms">Điều khoản sử dụng</a>
+    và
+    <a href="/privacy">Chính sách bảo mật</a>
+    của chúng tôi.
+</div>
+
+@code {
+    private class FormData
+    {
+        public string Username { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+        public string ConfirmPassword { get; set; } = "";
+    }
+
+    private FormData formData = new();
+    private Dictionary<string, string> errors = new();
+    private bool showPassword = false;
+    private bool showConfirmPassword = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthService.InitializeAsync();
+        if (AuthService.CurrentUser != null)
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+    }
+
+    private void TogglePassword()
+    {
+        showPassword = !showPassword;
+    }
+
+    private void ToggleConfirmPassword()
+    {
+        showConfirmPassword = !showConfirmPassword;
+    }
+
+    private void ClearError(string field)
+    {
+        if (errors.ContainsKey(field))
+        {
+            errors.Remove(field);
+        }
+    }
+
+    private bool Validate()
+    {
+        errors.Clear();
+
+        if (string.IsNullOrWhiteSpace(formData.Username))
+        {
+            errors[nameof(formData.Username)] = "Username là bắt buộc";
+        }
+
+        if (string.IsNullOrWhiteSpace(formData.Email))
+        {
+            errors[nameof(formData.Email)] = "Email là bắt buộc";
+        }
+        else if (!IsValidEmail(formData.Email))
+        {
+            errors[nameof(formData.Email)] = "Vui lòng nhập email hợp lệ";
+        }
+
+        if (string.IsNullOrWhiteSpace(formData.Password))
+        {
+            errors[nameof(formData.Password)] = "Mật khẩu là bắt buộc";
+        }
+        else if (formData.Password.Length < 8)
+        {
+            errors[nameof(formData.Password)] = "Mật khẩu phải có ít nhất 8 ký tự";
+        }
+
+        if (string.IsNullOrWhiteSpace(formData.ConfirmPassword))
+        {
+            errors[nameof(formData.ConfirmPassword)] = "Vui lòng xác nhận mật khẩu";
+        }
+        else if (formData.Password != formData.ConfirmPassword)
+        {
+            errors[nameof(formData.ConfirmPassword)] = "Mật khẩu không trùng khớp";
+        }
+
+        return errors.Count == 0;
+    }
+
+    private bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (!Validate())
+        {
+            return;
+        }
+
+        var response = await AuthService.RegisterAsync(
+        formData.Username,
+        formData.Email,
+        formData.Password,
+        formData.ConfirmPassword
+        );
+        Console.WriteLine("Response from RegisterAsync: " + (response != null ? response.StatusCode.ToString() : "null"));
+
+        if (response == null)
+        {
+            ToastService.ShowError(AuthService.ErrorMessage);
+            return;
+        }
+        Console.WriteLine("Response StatusCode: " + response.StatusCode);
+
+        if (response.StatusCode == 201)
+        {
+            Console.WriteLine("Registration successful");
+            ToastService.ShowSuccess("Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.");
+            await AuthService.SendOtpAsync(formData.Email);
+            Navigation.NavigateTo($"/auth/verification?email={Uri.EscapeDataString(formData.Email)}&isActivation=true");
+            return;
+        }
+
+        ToastService.ShowError(response.Message);
+    }
+}

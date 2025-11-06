@@ -12,11 +12,11 @@ public static class SeedCategories
         {
             var categories = new List<Category>
             {
-                new Category { CategoryName = "Đồ uống" },
-                new Category { CategoryName = "Bánh kẹo" },
-                new Category { CategoryName = "Gia vị" },
-                new Category { CategoryName = "Đồ gia dụng" },
-                new Category { CategoryName = "Mỹ phẩm" }
+                new Category { CategoryName = "Đồ uống", Description = "Nước ngọt, nước có ga, cà phê, trà và các loại thức uống khác" },
+                new Category { CategoryName = "Bánh kẹo", Description = "Các loại bánh, kẹo, snack và đồ ăn vặt" },
+                new Category { CategoryName = "Gia vị", Description = "Các loại gia vị nấu ăn, nước chấm, dầu ăn" },
+                new Category { CategoryName = "Đồ gia dụng", Description = "Các vật dụng sinh hoạt trong nhà" },
+                new Category { CategoryName = "Mỹ phẩm", Description = "Sản phẩm chăm sóc cá nhân và làm đẹp" }
             };
             await context.Category.AddRangeAsync(categories);
         }

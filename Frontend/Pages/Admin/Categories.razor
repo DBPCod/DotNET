@@ -1,5 +1,12 @@
 @page "/admin/categories"
 @layout AdminLayout
+@using Frontend.Models.Category
+@using Frontend.Models.Category.Requests
+@using Frontend.Models.Category.Responses
+@using Frontend.Models.Common
+@using Frontend.Services
+@inject CategoryService CategoryService
+@inject Blazored.Toast.Services.IToastService Toast
 
 <div class="admin-page">
     <div class="page-header">
@@ -8,166 +15,185 @@
                 <h2>Quản lý loại sản phẩm</h2>
                 <p class="text-muted">Phân loại và quản lý danh mục sản phẩm</p>
             </div>
-            <button class="btn btn-primary">
+            <button class="btn btn-primary" @onclick="ShowCreateModal">
                 <i class="bi bi-plus"></i> Thêm danh mục
             </button>
         </div>
     </div>
     
     <div class="page-content">
+        <div class="page-filters mb-3">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <input type="text" class="form-control" placeholder="Tìm kiếm tên danh mục..."
+                           @bind="searchQuery" @bind:event="oninput" />
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" @bind="pageSize" @bind:after="HandlePageSizeChange" title="Số dòng mỗi trang">
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                    </select>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-outline-secondary me-2" @onclick="HandleSearch">
+                        <i class="bi bi-search"></i> Tìm kiếm
+                    </button>
+                    <button class="btn btn-outline-primary" @onclick="ResetFilters">
+                        <i class="bi bi-x-circle"></i> Xóa lọc
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div class="row">
-            <div class="col-md-8">
+            <div class="col-md-12">
                 <div class="card">
                     <div class="card-header">
                         <h5>Danh sách danh mục</h5>
                     </div>
                     <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Tên danh mục</th>
-                                        <th>Mô tả</th>
-                                        <th>Số sản phẩm</th>
-                                        <th>Trạng thái</th>
-                                        <th>Hành động</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>
-                                            <div class="fw-bold">Đồ uống</div>
-                                        </td>
-                                        <td>Coca Cola, Pepsi, Trà xanh, Cà phê, Sữa...</td>
-                                        <td><span class="badge bg-primary">10</span></td>
-                                        <td><span class="badge bg-success">Hoạt động</span></td>
-                                        <td>
-                                            <div class="btn-group" role="group">
-                                                <button class="btn btn-sm btn-outline-warning">
-                                                    <i class="bi bi-pencil"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="fw-bold">Bánh kẹo</div>
-                                        </td>
-                                        <td>Bánh Oreo, Chocopie, Kẹo, Socola...</td>
-                                        <td><span class="badge bg-primary">10</span></td>
-                                        <td><span class="badge bg-success">Hoạt động</span></td>
-                                        <td>
-                                            <div class="btn-group" role="group">
-                                                <button class="btn btn-sm btn-outline-warning">
-                                                    <i class="bi bi-pencil"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="fw-bold">Gia vị</div>
-                                        </td>
-                                        <td>Nước mắm, Tương, Muối, Bột ngọt, Dầu ăn...</td>
-                                        <td><span class="badge bg-primary">10</span></td>
-                                        <td><span class="badge bg-success">Hoạt động</span></td>
-                                        <td>
-                                            <div class="btn-group" role="group">
-                                                <button class="btn btn-sm btn-outline-warning">
-                                                    <i class="bi bi-pencil"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="fw-bold">Đồ gia dụng</div>
-                                        </td>
-                                        <td>Nồi cơm điện, Ấm siêu tốc, Quạt máy, Bếp gas...</td>
-                                        <td><span class="badge bg-primary">10</span></td>
-                                        <td><span class="badge bg-success">Hoạt động</span></td>
-                                        <td>
-                                            <div class="btn-group" role="group">
-                                                <button class="btn btn-sm btn-outline-warning">
-                                                    <i class="bi bi-pencil"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="fw-bold">Mỹ phẩm</div>
-                                        </td>
-                                        <td>Sữa rửa mặt, Kem dưỡng da, Dầu gội, Sữa tắm...</td>
-                                        <td><span class="badge bg-primary">10</span></td>
-                                        <td><span class="badge bg-success">Hoạt động</span></td>
-                                        <td>
-                                            <div class="btn-group" role="group">
-                                                <button class="btn btn-sm btn-outline-warning">
-                                                    <i class="bi bi-pencil"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>Thêm danh mục mới</h5>
-                    </div>
-                    <div class="card-body">
-                        <form>
-                            <div class="mb-3">
-                                <label class="form-label">Tên danh mục</label>
-                                <input type="text" class="form-control" placeholder="Nhập tên danh mục" />
+                        @if (isLoading)
+                        {
+                            <div class="text-center p-5">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <div class="mt-2 text-muted">Đang tải dữ liệu...</div>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Mô tả</label>
-                                <textarea class="form-control" rows="3" placeholder="Nhập mô tả danh mục"></textarea>
+                        }
+                        else if (categories == null || !categories.Any())
+                        {
+                            <div class="text-center p-5 text-muted">Không có danh mục nào</div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Tên danh mục</th>
+                                            <th>Mô tả</th>
+                                            <th>Số sản phẩm</th>
+                                            <th>Trạng thái</th>
+                                            <th class="text-end">Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var c in categories)
+                                        {
+                                            <tr>
+                                                <td>@c.CategoryName</td>
+                                                <td class="description-cell">@(string.IsNullOrWhiteSpace(c.Description) ? "-" : c.Description)</td>
+                                                <td>-</td>
+                                                <td>
+                                                    <span class="badge @GetStatusBadgeClass(c.Status)">@GetStatusDisplay(c.Status)</span>
+                                                </td>
+                                                <td class="text-end">
+                                                    <div class="btn-group">
+                                                        <button class="btn btn-sm btn-outline-primary" title="Xem chi tiết" @onclick="() => ShowViewModal(c)">
+                                                            <i class="bi bi-eye"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-warning" title="Sửa" @onclick="() => ShowEditModal(c)">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Danh mục cha</label>
-                                <select class="form-select">
-                                    <option>Không có</option>
-                                    <option>Điện tử</option>
-                                    <option>Thời trang</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" checked />
-                                    <label class="form-check-label">Kích hoạt</label>
-                                </div>
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100">Thêm danh mục</button>
-                        </form>
+
+                            @if (pagination != null && pagination.TotalPages > 1)
+                            {
+                                <nav>
+                                    <ul class="pagination justify-content-end">
+                                        <li class="page-item @(pagination!.HasPreviousPage ? string.Empty : "disabled")">
+                                            <a class="page-link" @onclick="() => LoadCategories(pagination!.CurrentPage - 1)">Trước</a>
+                                        </li>
+                                        @for (var i = 1; i <= pagination!.TotalPages; i++)
+                                        {
+                                            <li class="page-item @(i == pagination!.CurrentPage ? "active" : string.Empty)">
+                                                <a class="page-link" @onclick="() => LoadCategories(i)">@i</a>
+                                            </li>
+                                        }
+                                        <li class="page-item @(pagination!.HasNextPage ? string.Empty : "disabled")">
+                                            <a class="page-link" @onclick="() => LoadCategories(pagination!.CurrentPage + 1)">Sau</a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            }
+                        }
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+@* Modal Tạo/Sửa Category *@
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(isEditMode ? "Cập nhật danh mục" : "Thêm danh mục mới")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">@errorMessage</div>
+                    }
+                    <div class="mb-3">
+                        <label class="form-label">Tên danh mục</label>
+                        <input class="form-control" @bind="formData.CategoryName" placeholder="Nhập tên danh mục" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mô tả</label>
+                        <textarea class="form-control" rows="3" @bind="formData.Description" placeholder="Nhập mô tả (tùy chọn)"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" @bind="formData.IsActive" />
+                            <label class="form-check-label">Kích hoạt</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseModal">Hủy</button>
+                    <button class="btn btn-primary" @onclick="HandleModalSubmit" disabled="@isSaving">
+                        @(isSaving ? "Đang lưu..." : (isEditMode ? "Cập nhật" : "Tạo mới"))
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Modal Xem Chi tiết *@
+@if (showViewModal && selectedCategory != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Chi tiết danh mục</h5>
+                    <button type="button" class="btn-close" @onclick="() => showViewModal = false"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2"><strong>Tên danh mục:</strong> @selectedCategory.CategoryName</div>
+                    <div class="mb-2"><strong>Mô tả:</strong> @(string.IsNullOrWhiteSpace(selectedCategory.Description) ? "-" : selectedCategory.Description)</div>
+                    <div class="mb-2"><strong>Số lượng sản phẩm:</strong> -</div>
+                    <div class="mb-2"><strong>Trạng thái:</strong> @GetStatusDisplay(selectedCategory.Status)</div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="() => showViewModal = false">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 <style>
     .admin-page {
@@ -200,4 +226,257 @@
     .btn-group .btn {
         margin: 0 2px;
     }
+
+    .description-cell {
+        max-width: 300px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 </style>
+
+@code {
+    // Data
+    private List<CategoryDto> categories = new();
+    private PaginationInfo? pagination;
+
+    // State
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private bool showModal = false; // tạo/sửa
+    private bool showViewModal = false;
+    private bool isEditMode = false;
+
+    // Filter
+    private string searchQuery = string.Empty;
+    private int pageSize = 10;
+
+    // Form
+    private CategoryFormData formData = new();
+    private CategoryDto? selectedCategory;
+    private string errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategories();
+    }
+
+    private async Task LoadCategories(int page = 1)
+    {
+        isLoading = true;
+        await InvokeAsync(StateHasChanged); // Force UI update safely
+        
+        try
+        {
+            var response = await CategoryService.GetCategoriesAsync(
+                page: page,
+                pageSize: pageSize,
+                q: string.IsNullOrWhiteSpace(searchQuery) ? null : searchQuery
+            );
+
+            if (response?.StatusCode == 200 && response.Data != null)
+            {
+                categories = response.Data.Categories ?? new List<CategoryDto>();
+                pagination = response.Data.Pagination;
+            }
+            else
+            {
+                categories = new List<CategoryDto>();
+                Toast.ShowError(response?.Message ?? "Lỗi khi tải dữ liệu");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            Toast.ShowError("Có lỗi xảy ra khi tải dữ liệu");
+            categories = new List<CategoryDto>();
+        }
+        finally
+        {
+            isLoading = false;
+            await InvokeAsync(StateHasChanged); // Force UI update after loading safely
+        }
+    }
+
+    private async Task HandleSearch() => await LoadCategories(1);
+
+    private async Task ResetFilters()
+    {
+        searchQuery = string.Empty;
+        await LoadCategories(1);
+    }
+
+    private async Task HandlePageSizeChange() => await LoadCategories(1);
+
+    private void ShowCreateModal()
+    {
+        isEditMode = false;
+        selectedCategory = null;
+        formData = new CategoryFormData();
+        errorMessage = string.Empty;
+        showModal = true;
+    }
+
+    private void ShowEditModal(CategoryDto category)
+    {
+        isEditMode = true;
+        selectedCategory = category;
+        formData = new CategoryFormData
+        {
+            CategoryName = category.CategoryName,
+            Description = category.Description,
+            IsActive = category.Status == "1"  // Chỉ active nếu status = 1
+        };
+        errorMessage = string.Empty;
+        showModal = true;
+    }
+
+    private void ShowViewModal(CategoryDto category)
+    {
+        selectedCategory = category;
+        showViewModal = true;
+    }
+
+    public async Task HandleModalSubmit()
+    {
+        errorMessage = string.Empty;
+        if (string.IsNullOrWhiteSpace(formData.CategoryName))
+        {
+            errorMessage = "Tên danh mục không được để trống";
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            if (isEditMode && selectedCategory != null)
+            {
+                var request = new UpdateCategoryRequest
+                {
+                    CategoryName = formData.CategoryName,
+                    Description = formData.Description,
+                    IsActive = formData.IsActive
+                };
+
+                // Chuyển Guid thành string đúng định dạng
+                var categoryId = selectedCategory.Id.ToString("D");
+                Console.WriteLine($"Updating category with ID: {categoryId}"); // Debug log
+                var response = await CategoryService.UpdateCategoryAsync(categoryId, request);
+                if (response?.StatusCode == 200)
+                {
+                    Toast.ShowSuccess("Cập nhật danh mục thành công!");
+                    CloseModal();
+                    await LoadCategories(pagination?.CurrentPage ?? 1);
+                }
+                else
+                {
+                    errorMessage = response?.Message ?? "Có lỗi xảy ra khi lưu dữ liệu";
+                }
+            }
+            else
+            {
+                var request = new CreateCategoryRequest
+                {
+                    CategoryName = formData.CategoryName,
+                    Description = formData.Description,
+                    IsActive = true  // Mặc định là active (status = 1)
+                };
+                var response = await CategoryService.CreateCategoryAsync(request);
+                if (response?.StatusCode == 200 || response?.StatusCode == 201)
+                {
+                    Toast.ShowSuccess("Thêm danh mục thành công!");
+                    CloseModal();
+                    await LoadCategories(pagination?.CurrentPage ?? 1);
+                }
+                else
+                {
+                    errorMessage = response?.Message ?? "Lỗi khi tạo danh mục";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Lỗi: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (selectedCategory == null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(formData.CategoryName))
+        {
+            errorMessage = "Tên danh mục không được để trống";
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            var request = new UpdateCategoryRequest
+            {
+                CategoryName = formData.CategoryName,
+                Description = formData.Description,
+                IsActive = formData.IsActive
+            };
+
+            var response = await CategoryService.UpdateCategoryAsync(selectedCategory.Id.ToString(), request);
+            if (response?.StatusCode == 200)
+            {
+                Toast.ShowSuccess("Cập nhật danh mục thành công!");
+                CloseModal();
+                await LoadCategories(pagination?.CurrentPage ?? 1);
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra khi lưu dữ liệu";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Lỗi: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        selectedCategory = null;
+        formData = new();
+        errorMessage = string.Empty;
+    }
+
+    private string GetStatusDisplay(string status) => status switch
+    {
+        "0" => "Tạm dừng",
+        "1" => "Đang hoạt động",
+        "Active" => "Đang hoạt động",
+        "Deleted" => "Đã xóa",
+        _ => status
+    };
+
+    private string GetStatusBadgeClass(string status) => status switch
+    {
+        "0" => "bg-warning",
+        "1" => "bg-success",
+        "Active" => "bg-success",
+        "Deleted" => "bg-secondary",
+        _ => "bg-secondary"
+    };
+
+    private class CategoryFormData
+    {
+        public string CategoryName { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public bool IsActive { get; set; } = true;
+    }
+}
