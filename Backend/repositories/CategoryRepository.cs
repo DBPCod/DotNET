@@ -19,7 +19,7 @@ public class CategoryRepository(AppDbContext context)
         }
 
         return await query
-            .OrderBy(c => c.CategoryName)
+            .OrderBy(c => c.CategoryName)  // Sắp xếp theo tên danh mục A-Z
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
