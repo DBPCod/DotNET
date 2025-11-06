@@ -641,9 +641,10 @@
 
             if (success)
             {
+                var wasEdit = isEdit;
                 CloseModal();
                 await LoadDiscountCodes();
-                Toast.ShowSuccess(isEdit ? "Cập nhật thành công!" : "Tạo mã giảm giá thành công!");
+                Toast.ShowSuccess(wasEdit ? "Cập nhật thành công!" : "Tạo mã giảm giá thành công!");
             }
             else
             {

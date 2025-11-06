@@ -572,9 +572,10 @@
 
             if (success)
             {
+                var wasEdit = isEdit;
                 CloseModal();
                 await LoadPromotions();
-                Toast.ShowSuccess(isEdit ? "Cập nhật thành công!" : "Tạo khuyến mãi thành công!");
+                Toast.ShowSuccess(wasEdit ? "Cập nhật thành công!" : "Tạo khuyến mãi thành công!");
             }
             else
             {
