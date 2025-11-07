@@ -8,6 +8,7 @@
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.JSInterop
+@using System.ComponentModel.DataAnnotations
 @inject SupplierService SupplierService
 @inject IJSRuntime JS
 @inject Blazored.Toast.Services.IToastService Toast
@@ -21,13 +22,10 @@
                 <h2>Quản lý nhà cung cấp</h2>
                 <p class="text-muted">Danh sách và thông tin nhà cung cấp</p>
             </div>
+            <button class="btn btn-primary" @onclick="() => ShowModal(null)">
+                <i class="bi bi-plus"></i> Thêm nhà cung cấp
+            </button>
         </div>
-    </div>
-
-    <div class="mb-4">
-        <button class="btn btn-primary" @onclick="() => ShowModal(null)">
-            <i class="bi bi-plus-circle"></i> Thêm nhà cung cấp
-        </button>
     </div>
 
     @if (_showModal)
@@ -39,33 +37,49 @@
                         <h5 class="modal-title">@(_editingId == null ? "Thêm nhà cung cấp" : "Cập nhật nhà cung cấp")</h5>
                         <button type="button" class="btn-close" @onclick="CloseModal"></button>
                     </div>
-                    <form @onsubmit="HandleSubmit">
+                    <EditForm Model="@_request" OnValidSubmit="HandleSubmit">
+                        <DataAnnotationsValidator />
                         <div class="modal-body">
-                            <div class="mb-3">
-                                <label class="form-label">Tên nhà cung cấp <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" @bind="_request.Name" required />
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Số điện thoại</label>
-                                <input type="text" class="form-control" @bind="_request.Phone" />
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Email</label>
-                                <input type="email" class="form-control" @bind="_request.Email" />
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Địa chỉ</label>
-                                <textarea class="form-control" @bind="_request.Address" rows="3"></textarea>
-                            </div>
-
-                            <div class="mb-3">
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="status" @bind="_request.Status" />
-                                    <label class="form-check-label" for="status">Hoạt động</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Tên nhà cung cấp <span class="text-danger">*</span></label>
+                                        <InputText class="form-control" @bind-Value="_request.Name" />
+                                        <ValidationMessage For="@(() => _request.Name)" class="text-danger" />
+                                    </div>
                                 </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
+                                        <InputText class="form-control" @bind-Value="_request.Phone" placeholder="VD: 0909000001" />
+                                        <ValidationMessage For="@(() => _request.Phone)" class="text-danger" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Email <span class="text-danger">*</span></label>
+                                        <InputText type="email" class="form-control" @bind-Value="_request.Email" placeholder="VD: example@mail.com" />
+                                        <ValidationMessage For="@(() => _request.Email)" class="text-danger" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Trạng thái <span class="text-danger">*</span></label>
+                                        <InputSelect class="form-select" @bind-Value="_request.Status">
+                                            <option value="true">Đang hợp tác</option>
+                                            <option value="false">Ngừng hợp tác</option>
+                                        </InputSelect>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Địa chỉ <span class="text-danger">*</span></label>
+                                <InputTextArea class="form-control" @bind-Value="_request.Address" rows="3" placeholder="Nhập địa chỉ đầy đủ (tối thiểu 10 ký tự)" />
+                                <ValidationMessage For="@(() => _request.Address)" class="text-danger" />
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -85,39 +99,44 @@
                                 }
                             </button>
                         </div>
-                    </form>
+                    </EditForm>
                 </div>
             </div>
         </div>
     }
     
-    <div class="page-filters">
-        <div class="row">
-            <div class="col-md-4">
-                <input type="text" class="form-control" placeholder="Tìm kiếm nhà cung cấp..." 
-                       value="@_searchTerm"
-                       @onchange="@(e => OnSearchTermChanged((e.Value as string) ?? string.Empty))" />
-            </div>
-            <div class="col-md-3">  
-                <select class="form-select" value="@_statusFilter" 
-                        @onchange="@(e => OnStatusFilterChanged((e.Value as string) ?? "all"))">
-                    <option value="all">Tất cả trạng thái</option>
-                    <option value="active">Hoạt động</option>
-                    <option value="inactive">Ngừng hoạt động</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <select class="form-select" value="@_sortBy"
-                        @onchange="@(e => OnSortByChanged((e.Value as string) ?? "name"))">
-                    <option value="name">Tên A-Z</option>
-                    <option value="name_desc">Tên Z-A</option>
-                    <option value="status">Trạng thái</option>
-                </select>
-            </div>
-        </div>
-    </div>
     
     <div class="page-content">
+        <div class="page-filters mb-3">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" placeholder="Tìm kiếm..." 
+                           @bind="_searchTerm" />
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" @bind="_statusFilter">
+                        <option value="all">Trạng thái</option>
+                        <option value="active">Đang hợp tác</option>
+                        <option value="inactive">Ngừng hợp tác</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" @bind="_pageSize" @bind:after="HandlePageSizeChange">
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+                <div class="col-md-3 text-end">
+                    <button class="btn btn-outline-secondary me-2" @onclick="HandleSearch">
+                        <i class="bi bi-search"></i> Lọc
+                    </button>
+                    <button class="btn btn-outline-primary" @onclick="ResetFilters">
+                        <i class="bi bi-arrow-clockwise"></i> Làm mới
+                    </button>
+                </div>
+            </div>
+        </div>
         @if (_loading)
         {
             <div class="text-center p-5">
@@ -143,32 +162,23 @@
                                         <p class="text-muted">Nhà cung cấp</p>
                                     </div>
                                     <span class="badge @GetStatusBadgeClass(supplier.Status)">
-                                        @(supplier.Status ? "Hoạt động" : "Ngừng hoạt động")
+                                        @(supplier.Status ? "Đang hợp tác" : "Ngừng hợp tác")
                                     </span>
                                 </div>
                                 
                                 <div class="supplier-details">
-                                    @if (!string.IsNullOrEmpty(supplier.Email))
-                                    {
-                                        <div class="detail-item">
-                                            <i class="bi bi-envelope"></i>
-                                            <span>@supplier.Email</span>
-                                        </div>
-                                    }
-                                    @if (!string.IsNullOrEmpty(supplier.Phone))
-                                    {
-                                        <div class="detail-item">
-                                            <i class="bi bi-telephone"></i>
-                                            <span>@supplier.Phone</span>
-                                        </div>
-                                    }
-                                    @if (!string.IsNullOrEmpty(supplier.Address))
-                                    {
-                                        <div class="detail-item">
-                                            <i class="bi bi-geo-alt"></i>
-                                            <span>@supplier.Address</span>
-                                        </div>
-                                    }
+                                    <div class="detail-item">
+                                        <i class="bi bi-envelope"></i>
+                                        <span>@supplier.Email</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="bi bi-telephone"></i>
+                                        <span>@supplier.Phone</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="bi bi-geo-alt"></i>
+                                        <span>@supplier.Address</span>
+                                    </div>
                                 </div>
                                 
                                 <div class="supplier-actions">
@@ -182,7 +192,7 @@
                                             @onclick="() => ConfirmToggleStatus(supplier)">
                                         @if (supplier.Status)
                                         {
-                                            <span><i class="bi bi-x-circle"></i> Ngừng hoạt động</span>
+                                            <span><i class="bi bi-x-circle"></i> Ngừng hợp tác</span>
                                         }
                                         else
                                         {
@@ -195,6 +205,41 @@
                     </div>
                 }
             </div>
+
+            @* Pagination *@
+            @if (_pagination != null && _pagination.TotalPages > 1)
+            {
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item @(_pagination.CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" @onclick="() => LoadSuppliers(_pagination.CurrentPage - 1)">Trước</a>
+                        </li>
+
+                        @for (int i = 1; i <= _pagination.TotalPages; i++)
+                        {
+                            var pageNumber = i;
+                            <li class="page-item @(_pagination.CurrentPage == pageNumber ? "active" : "")">
+                                <a class="page-link" @onclick="() => LoadSuppliers(pageNumber)">@pageNumber</a>
+                            </li>
+                        }
+
+                        <li class="page-item @(_pagination.CurrentPage == _pagination.TotalPages ? "disabled" : "")">
+                            <a class="page-link" @onclick="() => LoadSuppliers(_pagination.CurrentPage + 1)">Tiếp</a>
+                        </li>
+                    </ul>
+                </nav>
+            }
+
+            @if (_pagination != null)
+            {
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="text-muted">
+                        Hiển thị @((_pagination.CurrentPage - 1) * _pagination.PageSize + 1)
+                        đến @(Math.Min(_pagination.CurrentPage * _pagination.PageSize, _pagination.TotalCount))
+                        trong tổng số @_pagination.TotalCount nhà cung cấp
+                    </div>
+                </div>
+            }
         }
     </div>
 
@@ -219,32 +264,23 @@
                                     <div class="col-4 fw-bold">Tên nhà cung cấp:</div>
                                     <div class="col-8">@_selectedSupplier.Name</div>
                                 </div>
-                                @if (!string.IsNullOrEmpty(_selectedSupplier.Phone))
-                                {
-                                    <div class="row mb-3">
-                                        <div class="col-4 fw-bold">Số điện thoại:</div>
-                                        <div class="col-8">@_selectedSupplier.Phone</div>
-                                    </div>
-                                }
-                                @if (!string.IsNullOrEmpty(_selectedSupplier.Email))
-                                {
-                                    <div class="row mb-3">
-                                        <div class="col-4 fw-bold">Email:</div>
-                                        <div class="col-8">@_selectedSupplier.Email</div>
-                                    </div>
-                                }
-                                @if (!string.IsNullOrEmpty(_selectedSupplier.Address))
-                                {
-                                    <div class="row mb-3">
-                                        <div class="col-4 fw-bold">Địa chỉ:</div>
-                                        <div class="col-8">@_selectedSupplier.Address</div>
-                                    </div>
-                                }
+                                <div class="row mb-3">
+                                    <div class="col-4 fw-bold">Số điện thoại:</div>
+                                    <div class="col-8">@_selectedSupplier.Phone</div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-4 fw-bold">Email:</div>
+                                    <div class="col-8">@_selectedSupplier.Email</div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-4 fw-bold">Địa chỉ:</div>
+                                    <div class="col-8">@_selectedSupplier.Address</div>
+                                </div>
                                 <div class="row mb-3">
                                     <div class="col-4 fw-bold">Trạng thái:</div>
                                     <div class="col-8">
                                         <span class="badge @GetStatusBadgeClass(_selectedSupplier.Status)">
-                                            @(_selectedSupplier.Status ? "Hoạt động" : "Ngừng hoạt động")
+                                            @(_selectedSupplier.Status ? "Đang hợp tác" : "Ngừng hợp tác")
                                         </span>
                                     </div>
                                 </div>
@@ -266,6 +302,7 @@
 @code {
     private List<SupplierDto> _suppliers = [];
     private List<SupplierDto> _filteredSuppliers = [];
+    private PaginationInfo? _pagination;
     private bool _loading = true;
     private bool _isSaving = false;
     private string _editingId = "";
@@ -276,23 +313,42 @@
     private string _searchTerm = "";
     private string _statusFilter = "all";
     private string _sortBy = "name";
+    private int _pageSize = 10;
 
     private void OnSearchTermChanged(string value)
     {
         _searchTerm = value;
-        ApplyFilters();
+        ApplyClientFilters();
     }
 
     private void OnStatusFilterChanged(string value)
     {
         _statusFilter = value;
-        ApplyFilters();
+        ApplyClientFilters();
     }
 
     private void OnSortByChanged(string value)
     {
         _sortBy = value;
-        ApplyFilters();
+        ApplyClientFilters();
+    }
+
+    private async Task HandleSearch()
+    {
+        await LoadSuppliers(1);
+    }
+
+    private async Task ResetFilters()
+    {
+        _searchTerm = "";
+        _statusFilter = "all";
+        _sortBy = "name";
+        await LoadSuppliers(1);
+    }
+
+    private async Task HandlePageSizeChange()
+    {
+        await LoadSuppliers(1);
     }
 
     protected override async Task OnInitializedAsync()
@@ -300,45 +356,54 @@
         await LoadSuppliers();
     }
 
-    private async Task LoadSuppliers()
+    private async Task LoadSuppliers(int page = 1)
     {
         _loading = true;
+        await InvokeAsync(StateHasChanged);
+
         try
         {
-            var response = await SupplierService.GetAllAsync();
-            if (response.StatusCode == 200 && response.Data?.Suppliers != null)
+            // Sử dụng server-side filtering thay vì client-side
+            string? statusParam = _statusFilter == "all" ? null : _statusFilter == "active" ? "true" : "false";
+            string? searchParam = string.IsNullOrWhiteSpace(_searchTerm) ? null : _searchTerm;
+            
+            var response = await SupplierService.GetAllAsync(
+                page: page, 
+                pageSize: _pageSize, 
+                q: searchParam);
+
+            if (response?.StatusCode == 200 && response.Data != null)
             {
-                _suppliers = response.Data.Suppliers;
-                ApplyFilters();
+                _suppliers = response.Data.Suppliers ?? new List<SupplierDto>();
+                _pagination = response.Data.Pagination;
+                
+                // Apply client-side filtering for status (if needed)
+                ApplyClientFilters();
             }
             else
             {
-                Toast.ShowError(response.Message ?? "Không thể tải danh sách nhà cung cấp");
+                _suppliers = new List<SupplierDto>();
+                Toast.ShowError(response?.Message ?? "Không thể tải danh sách nhà cung cấp");
             }
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"Error: {ex.Message}");
             Toast.ShowError($"Lỗi: {ex.Message}");
+            _suppliers = new List<SupplierDto>();
         }
-        _loading = false;
+        finally
+        {
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
-    private void ApplyFilters()
+    private void ApplyClientFilters()
     {
         _filteredSuppliers = _suppliers;
 
-        // Apply search
-        if (!string.IsNullOrWhiteSpace(_searchTerm))
-        {
-            _filteredSuppliers = _filteredSuppliers.Where(s => 
-                (s.Name?.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (s.Email?.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (s.Phone?.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (s.Address?.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ?? false))
-                .ToList();
-        }
-
-        // Apply status filter  
+        // Apply status filter (client-side since we might need to filter server results)
         if (_statusFilter != "all")
         {
             var status = _statusFilter == "active";
@@ -355,8 +420,14 @@
         };
     }
 
-    private async Task HandleSubmit()
+    private async Task HandleSubmit(EditContext editContext)
     {
+        if (!editContext.Validate())
+        {
+            Toast.ShowWarning("Vui lòng kiểm tra lại thông tin đã nhập!");
+            return;
+        }
+
         _isSaving = true;
         try
         {
@@ -386,7 +457,7 @@
                 Toast.ShowSuccess(message);
                 
                 CloseModal();
-                await LoadSuppliers();
+                await LoadSuppliers(_pagination?.CurrentPage ?? 1);
             }
             else
             {
@@ -411,8 +482,8 @@
             _request = new CreateSupplierRequest
             {
                 Name = supplier.Name,
-                Phone = supplier.Phone,
-                Email = supplier.Email,
+                Phone = supplier.Phone ?? "",
+                Email = supplier.Email ?? "",
                 Address = supplier.Address,
                 Status = supplier.Status
             };
@@ -420,7 +491,14 @@
         else
         {
             _editingId = "";
-            _request = new CreateSupplierRequest { Status = true };
+            _request = new CreateSupplierRequest 
+            { 
+                Name = "",
+                Phone = "",
+                Email = "",
+                Address = "",
+                Status = true 
+            };
         }
         _showModal = true;
     }
@@ -447,11 +525,11 @@
     private async Task ConfirmToggleStatus(SupplierDto supplier)
     {
         var parameters = new ModalParameters()
-            .Add(nameof(ConfirmDialog.Title), supplier.Status ? "Xác nhận ngừng hoạt động" : "Xác nhận kích hoạt")
+            .Add(nameof(ConfirmDialog.Title), supplier.Status ? "Xác nhận ngừng hợp tác" : "Xác nhận kích hoạt")
             .Add(nameof(ConfirmDialog.Message), supplier.Status 
                 ? $"Bạn có chắc chắn muốn ngừng hợp tác với nhà cung cấp '{supplier.Name}'? Nhà cung cấp sẽ không thể sử dụng trong hệ thống."
                 : $"Bạn có chắc chắn muốn kích hoạt lại nhà cung cấp '{supplier.Name}'?")
-            .Add(nameof(ConfirmDialog.ConfirmText), supplier.Status ? "Ngừng hoạt động" : "Kích hoạt")
+            .Add(nameof(ConfirmDialog.ConfirmText), supplier.Status ? "Ngừng hợp tác" : "Kích hoạt")
             .Add(nameof(ConfirmDialog.CancelText), "Hủy")
             .Add(nameof(ConfirmDialog.Type), supplier.Status ? "warning" : "success");
 
@@ -472,25 +550,16 @@
 
     private async Task ToggleStatus(SupplierDto supplier)
     {
-        var request = new UpdateSupplierRequest
-        {
-            Name = supplier.Name,
-            Phone = supplier.Phone,
-            Email = supplier.Email,
-            Address = supplier.Address,
-            Status = !supplier.Status
-        };
-
         try
         {
-            var response = await SupplierService.UpdateAsync(supplier.Id, request);
+            var response = await SupplierService.ToggleStatusAsync(supplier.Id);
             if (response.StatusCode == 200)
             {
                 string message = supplier.Status 
                     ? "Đã ngừng hợp tác với nhà cung cấp!" 
                     : "Đã kích hoạt lại nhà cung cấp!";
                 Toast.ShowSuccess(message);
-                await LoadSuppliers();
+                await LoadSuppliers(_pagination?.CurrentPage ?? 1);
             }
             else
             {
@@ -508,9 +577,7 @@
 
 <style>
     .admin-page {
-        max-width: 1200px;
-        margin-left: auto;
-        margin-right: auto;
+        padding: 2rem;
     }
     
     .page-header {
@@ -606,5 +673,18 @@
     
     .badge.bg-secondary {
         background-color: #6c757d !important;
+    }
+
+    .page-link {
+        cursor: pointer;
+    }
+
+    .pagination .page-item.disabled .page-link {
+        cursor: not-allowed;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
     }
 </style>

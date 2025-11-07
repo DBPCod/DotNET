@@ -4,18 +4,23 @@ namespace Backend.Dtos.Requests;
 
 public class CreateSupplierRequest
 {
-    [Required(ErrorMessage = "Name is required")]
-    [MaxLength(100, ErrorMessage = "Name cannot exceed 100 characters")]
+    [Required(ErrorMessage = "Tên nhà cung cấp là bắt buộc")]
+    [MaxLength(100, ErrorMessage = "Tên không được vượt quá 100 ký tự")]
     public string Name { get; set; } = "";
 
-    [MaxLength(20, ErrorMessage = "Phone cannot exceed 20 characters")]
-    public string? Phone { get; set; }
+    [Required(ErrorMessage = "Số điện thoại là bắt buộc")]
+    [MaxLength(20, ErrorMessage = "Số điện thoại không được vượt quá 20 ký tự")]
+    [RegularExpression(@"^(\+84|0)[3-9]\d{8}$", ErrorMessage = "Số điện thoại không hợp lệ")]
+    public string Phone { get; set; } = "";
 
-    [MaxLength(100, ErrorMessage = "Email cannot exceed 100 characters")]
-    [EmailAddress(ErrorMessage = "Invalid email format")]
-    public string? Email { get; set; }
+    [Required(ErrorMessage = "Email là bắt buộc")]
+    [MaxLength(100, ErrorMessage = "Email không được vượt quá 100 ký tự")]
+    [EmailAddress(ErrorMessage = "Định dạng email không hợp lệ")]
+    public string Email { get; set; } = "";
 
-    public string? Address { get; set; }
+    [Required(ErrorMessage = "Địa chỉ là bắt buộc")]
+    [MaxLength(500, ErrorMessage = "Địa chỉ không được vượt quá 500 ký tự")]
+    public string Address { get; set; } = "";
 
     public bool Status { get; set; } = true;
 }

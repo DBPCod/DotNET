@@ -13,9 +13,10 @@ public class SupplierService(SupplierRepository supplierRepository)
     // Lấy tất cả suppliers (cho admin)
     public async Task<Response> GetAllAsync(int page, int pageSize)
     {
-        var list = await _supplierRepository.GetAllAsync(page, pageSize);
+        var (suppliers, totalCount) = await _supplierRepository.GetAllAsync(page, pageSize);
         var response = new Response { StatusCode = 200, Message = "OK" };
-        response.Data.Suppliers = list.Select(s => new SupplierDto
+        
+        response.Data.Suppliers = suppliers.Select(s => new SupplierDto
         {
             Id = s.Id.ToString(),
             Name = s.Name,
@@ -24,6 +25,16 @@ public class SupplierService(SupplierRepository supplierRepository)
             Address = s.Address,
             Status = s.Status
         }).ToList();
+        
+        // Thêm thông tin pagination
+        response.Data.Pagination = new PaginationInfo
+        {
+            CurrentPage = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+        };
+        
         return response;
     }
 
@@ -110,11 +121,41 @@ public class SupplierService(SupplierRepository supplierRepository)
         entity.Phone = req.Phone;
         entity.Email = req.Email;
         entity.Address = req.Address;
+        entity.Status = req.Status; // Cập nhật trạng thái
 
         await _supplierRepository.UpdateAsync(entity);
 
         response.StatusCode = 200;
         response.Message = "Updated";
+        response.Data.Supplier = new SupplierDto
+        {
+            Id = entity.Id.ToString(),
+            Name = entity.Name,
+            Phone = entity.Phone,
+            Email = entity.Email,
+            Address = entity.Address,
+            Status = entity.Status
+        };
+        return response;
+    }
+
+    // Toggle Status (Bật/Tắt hoạt động)
+    public async Task<Response> ToggleStatusAsync(Guid id)
+    {
+        var entity = await _supplierRepository.GetByIdAsync(id);
+        var response = new Response();
+        if (entity == null)
+        {
+            response.StatusCode = 404;
+            response.Message = "Supplier not found";
+            return response;
+        }
+
+        entity.Status = !entity.Status;
+        await _supplierRepository.UpdateAsync(entity);
+
+        response.StatusCode = 200;
+        response.Message = entity.Status ? "Supplier activated" : "Supplier deactivated";
         response.Data.Supplier = new SupplierDto
         {
             Id = entity.Id.ToString(),

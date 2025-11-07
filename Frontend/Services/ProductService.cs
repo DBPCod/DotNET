@@ -81,10 +81,21 @@ public class ProductService
     {
         try
         {
+            // Validate price trước khi gửi (decimal(10,2) = max 99999999.99)
+            if (request.Price > 99999999.99m)
+            {
+                return new ApiResponse<ProductDetailResponse>
+                {
+                    Message = "Giá sản phẩm không được vượt quá 99,999,999.99",
+                    StatusCode = 400
+                };
+            }
+
             var formData = new MultipartFormDataContent();
             
             formData.Add(new StringContent(request.ProductName), "ProductName");
-            formData.Add(new StringContent(request.Price.ToString("F2")), "Price");
+            // Sử dụng InvariantCulture để tránh dấu phẩy ngăn cách hàng nghìn
+            formData.Add(new StringContent(request.Price.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)), "Price");
             formData.Add(new StringContent(request.Unit), "Unit");
             formData.Add(new StringContent(request.Status.ToString().ToLower()), "Status");
             
@@ -100,25 +111,51 @@ public class ProductService
             // Handle image upload
             if (request.Image != null)
             {
-                var imageContent = new StreamContent(request.Image.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024));
-                imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(request.Image.ContentType);
-                formData.Add(imageContent, "Image", request.Image.Name);
+                try
+                {
+                    var imageContent = new StreamContent(request.Image.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024));
+                    imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(request.Image.ContentType);
+                    formData.Add(imageContent, "Image", request.Image.Name);
+                    Console.WriteLine($"Added image to form data: {request.Image.Name}, Size: {request.Image.Size} bytes");
+                }
+                catch (Exception imgEx)
+                {
+                    Console.WriteLine($"Error adding image: {imgEx.Message}");
+                }
             }
 
+            Console.WriteLine("Sending create product request to backend...");
             var response = await _httpClient.PostAsync(BaseUrl, formData);
+            
+            var responseContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Response status: {response.StatusCode}");
+            Console.WriteLine($"Response content: {responseContent}");
             
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"Error response: {errorContent}");
-                return new ApiResponse<ProductDetailResponse> 
-                { 
-                    Message = $"Server error: {response.StatusCode}", 
-                    StatusCode = (int)response.StatusCode 
-                };
+                Console.WriteLine($"Error response: {responseContent}");
+                try
+                {
+                    var errorResponse = System.Text.Json.JsonSerializer.Deserialize<ApiResponse<ProductDetailResponse>>(
+                        responseContent,
+                        new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                    );
+                    return errorResponse;
+                }
+                catch
+                {
+                    return new ApiResponse<ProductDetailResponse> 
+                    { 
+                        Message = $"Server error: {response.StatusCode} - {responseContent}", 
+                        StatusCode = (int)response.StatusCode 
+                    };
+                }
             }
             
-            var result = await response.Content.ReadFromJsonAsync<ApiResponse<ProductDetailResponse>>();
+            var result = System.Text.Json.JsonSerializer.Deserialize<ApiResponse<ProductDetailResponse>>(
+                responseContent,
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            );
             return result;
         }
         catch (Exception ex)
@@ -138,10 +175,21 @@ public class ProductService
     {
         try
         {
+            // Validate price trước khi gửi (decimal(10,2) = max 99999999.99)
+            if (request.Price > 99999999.99m)
+            {
+                return new ApiResponse<ProductDetailResponse>
+                {
+                    Message = "Giá sản phẩm không được vượt quá 99,999,999.99",
+                    StatusCode = 400
+                };
+            }
+
             var formData = new MultipartFormDataContent();
             
             formData.Add(new StringContent(request.ProductName), "ProductName");
-            formData.Add(new StringContent(request.Price.ToString("F2")), "Price");
+            // Sử dụng InvariantCulture để tránh dấu phẩy ngăn cách hàng nghìn
+            formData.Add(new StringContent(request.Price.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)), "Price");
             formData.Add(new StringContent(request.Unit), "Unit");
             formData.Add(new StringContent(request.Status.ToString().ToLower()), "Status");
             
@@ -157,25 +205,50 @@ public class ProductService
             // Handle image upload
             if (request.Image != null)
             {
-                var imageContent = new StreamContent(request.Image.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024));
-                imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(request.Image.ContentType);
-                formData.Add(imageContent, "Image", request.Image.Name);
+                try
+                {
+                    var imageContent = new StreamContent(request.Image.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024));
+                    imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(request.Image.ContentType);
+                    formData.Add(imageContent, "Image", request.Image.Name);
+                    Console.WriteLine($"Added image to form data: {request.Image.Name}");
+                }
+                catch (Exception imgEx)
+                {
+                    Console.WriteLine($"Error adding image: {imgEx.Message}");
+                }
             }
 
+            Console.WriteLine($"Sending update product request to backend for ID: {id}...");
             var response = await _httpClient.PutAsync($"{BaseUrl}/{id}", formData);
+            
+            var responseContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Response status: {response.StatusCode}");
             
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"Error response: {errorContent}");
-                return new ApiResponse<ProductDetailResponse> 
-                { 
-                    Message = $"Server error: {response.StatusCode}", 
-                    StatusCode = (int)response.StatusCode 
-                };
+                Console.WriteLine($"Error response: {responseContent}");
+                try
+                {
+                    var errorResponse = System.Text.Json.JsonSerializer.Deserialize<ApiResponse<ProductDetailResponse>>(
+                        responseContent,
+                        new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                    );
+                    return errorResponse;
+                }
+                catch
+                {
+                    return new ApiResponse<ProductDetailResponse> 
+                    { 
+                        Message = $"Server error: {response.StatusCode} - {responseContent}", 
+                        StatusCode = (int)response.StatusCode 
+                    };
+                }
             }
             
-            var result = await response.Content.ReadFromJsonAsync<ApiResponse<ProductDetailResponse>>();
+            var result = System.Text.Json.JsonSerializer.Deserialize<ApiResponse<ProductDetailResponse>>(
+                responseContent,
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            );
             return result;
         }
         catch (Exception ex)

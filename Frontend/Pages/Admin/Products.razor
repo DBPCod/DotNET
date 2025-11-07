@@ -30,9 +30,9 @@
     </div>
     
     <div class="page-filters">
-        <div class="row align-items-center">
+        <div class="row align-items-center g-3">
             <div class="col-md-3">
-                <input type="text" class="form-control" placeholder="Tìm kiếm sản phẩm..." 
+                <input type="text" class="form-control" placeholder="Tìm kiếm..." 
                     @bind="searchQuery" @bind:event="oninput" />
             </div>
             <div class="col-md-2">
@@ -45,17 +45,8 @@
                 </select>
             </div>
             <div class="col-md-2">
-                <select class="form-select" @bind="selectedSupplier">
-                    <option value="">Tất cả NCC</option>
-                    @foreach (var supplier in suppliers)
-                    {
-                        <option value="@supplier.Id">@supplier.Name</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-2">
                 <select class="form-select" @bind="selectedStatus">
-                    <option value="">Tất cả trạng thái</option>
+                    <option value="">Trạng thái</option>
                     <option value="true">Đang bán</option>
                     <option value="false">Ngừng bán</option>
                 </select>
@@ -68,7 +59,7 @@
                     <option value="50">50</option>
                 </select>
             </div>
-            <div class="col-md-2 text-end">
+            <div class="col-md-4 text-end">
                 <button class="btn btn-outline-secondary me-2" @onclick="HandleSearch">
                     <i class="bi bi-search"></i> Lọc
                 </button>
@@ -107,7 +98,6 @@
                                     <th>Tên sản phẩm</th>
                                     <th>Mã vạch</th>
                                     <th>Danh mục</th>
-                                    <th>NCC</th>
                                     <th>Giá</th>
                                     <th>Đơn vị</th>
                                     <th>Trạng thái</th>
@@ -123,7 +113,7 @@
                                             <div class="product-image">
                                                 @if (!string.IsNullOrEmpty(product.ImagePath))
                                                 {
-                                                    <img src="@product.ImagePath" alt="@product.ProductName" />
+                                                    <img src="http://localhost:4040@(product.ImagePath)" alt="@product.ProductName" />
                                                 }
                                                 else
                                                 {
@@ -146,16 +136,6 @@
                                             }
                                         </td>
                                         <td>
-                                            @if (!string.IsNullOrEmpty(product.SupplierName))
-                                            {
-                                                <span class="text-muted">@product.SupplierName</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">-</span>
-                                            }
-                                        </td>
-                                        <td>
                                             <div class="fw-bold text-success">@ProductService.FormatPrice(product.Price)</div>
                                         </td>
                                         <td>@product.Unit</td>
@@ -168,16 +148,19 @@
                                         <td>
                                             <div class="btn-group" role="group">
                                                 <button class="btn btn-sm btn-outline-primary" 
-                                                        @onclick="() => ShowViewModal(product)">
+                                                        @onclick="() => ShowViewModal(product)"
+                                                        title="Xem chi tiết">
                                                     <i class="bi bi-eye"></i>
                                                 </button>
                                                 <button class="btn btn-sm btn-outline-warning" 
-                                                        @onclick="() => ShowEditModal(product)">
+                                                        @onclick="() => ShowEditModal(product)"
+                                                        title="Chỉnh sửa">
                                                     <i class="bi bi-pencil"></i>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-danger" 
-                                                        @onclick="() => ConfirmDelete(product)">
-                                                    <i class="bi bi-trash"></i>
+                                                <button class="btn btn-sm @(product.Status ? "btn-outline-danger" : "status-check-btn")" 
+                                                        @onclick="() => ToggleProductStatus(product)"
+                                                        title="@(product.Status ? "Ngừng bán" : "Kích hoạt bán")">
+                                                    <i class="bi @(product.Status ? "bi-trash" : "bi-check-circle-fill")"></i>
                                                 </button>
                                             </div>
                                         </td>
@@ -244,7 +227,7 @@
                                    placeholder="Nhập tên sản phẩm" />
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Mã vạch</label>
+                            <label class="form-label">Mã vạch <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" @bind="formData.Barcode" 
                                    placeholder="Nhập mã vạch" />
                         </div>
@@ -253,7 +236,8 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Giá <span class="text-danger">*</span></label>
                             <input type="number" class="form-control" @bind="formData.Price" 
-                                   step="0.01" min="0" placeholder="Nhập giá" />
+                                   step="0.01" min="0.01" max="99999999.99" placeholder="Nhập giá (tối đa 99,999,999.99)" />
+                            <small class="form-text text-muted">Giá tối đa: 99,999,999.99</small>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Đơn vị <span class="text-danger">*</span></label>
@@ -262,8 +246,8 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Danh mục</label>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Danh mục <span class="text-danger">*</span></label>
                             <select class="form-select" @bind="formData.CategoryId">
                                 <option value="">-- Chọn danh mục --</option>
                                 @foreach (var category in categories)
@@ -272,8 +256,8 @@
                                 }
                             </select>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Nhà cung cấp</label>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Nhà cung cấp <span class="text-danger">*</span></label>
                             <select class="form-select" @bind="formData.SupplierId">
                                 <option value="">-- Chọn nhà cung cấp --</option>
                                 @foreach (var supplier in activeSuppliers)
@@ -282,16 +266,29 @@
                                 }
                             </select>
                         </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Trạng thái <span class="text-danger">*</span></label>
+                            <select class="form-select" value="@(formData.Status ? "true" : "false")" @onchange="@(e => UpdateStatus(e.Value?.ToString() ?? "true"))">
+                                <option value="true">Đang bán</option>
+                                <option value="false">Ngừng bán</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Hình ảnh sản phẩm</label>
-                        <InputFile OnChange="HandleImageUpload" class="form-control" accept="image/*" />
+                        <label class="form-label">Hình ảnh sản phẩm <span class="text-danger">*</span></label>
+                        <InputFile id="productImageInput" class="form-control" accept="image/*" OnChange="HandleImageUpload" />
                         @if (!string.IsNullOrEmpty(imagePreview))
                         {
-                            <div class="mt-2">
-                                <img src="@imagePreview" alt="Preview" style="max-width: 200px; max-height: 200px;" />
+                            <div class="mt-2 text-center">
+                                <img src="@imagePreview" alt="Preview" class="img-thumbnail" style="max-width: 200px; max-height: 200px;" />
+                                <button type="button" class="btn btn-sm btn-danger d-block mt-2" @onclick="ClearImage">
+                                    <i class="bi bi-x"></i> Xóa ảnh
+                                </button>
                             </div>
                         }
+                        <small class="form-text text-muted">
+                            Chấp nhận: JPG, PNG, GIF, WEBP. Tối đa 5MB
+                        </small>
                     </div>
                     @if (!string.IsNullOrEmpty(errorMessage))
                     {
@@ -327,7 +324,7 @@
                     @if (!string.IsNullOrEmpty(selectedProduct.ImagePath))
                     {
                         <div class="text-center mb-3">
-                            <img src="@selectedProduct.ImagePath" alt="@selectedProduct.ProductName" 
+                            <img src="http://localhost:4040@(selectedProduct.ImagePath)" alt="@selectedProduct.ProductName" 
                                  style="max-width: 100%; max-height: 300px;" />
                         </div>
                     }
@@ -394,7 +391,6 @@
     // Filter
     private string searchQuery = "";
     private string selectedCategory = "";
-    private string selectedSupplier = "";
     private string selectedStatus = "";
     private int pageSize = 10;
 
@@ -477,7 +473,7 @@
                 pageSize: pageSize,
                 searchQuery: string.IsNullOrEmpty(searchQuery) ? null : searchQuery,
                 categoryId: string.IsNullOrEmpty(selectedCategory) ? null : selectedCategory,
-                supplierId: string.IsNullOrEmpty(selectedSupplier) ? null : selectedSupplier,
+                supplierId: null,
                 status: statusFilter
             );
 
@@ -512,7 +508,6 @@
     {
         searchQuery = "";
         selectedCategory = "";
-        selectedSupplier = "";
         selectedStatus = "";
         await LoadProducts(1);
     }
@@ -542,7 +537,8 @@
             Price = product.Price,
             Unit = product.Unit,
             CategoryId = product.CategoryId,
-            SupplierId = product.SupplierId
+            SupplierId = product.SupplierId,
+            Status = product.Status
         };
         imagePreview = product.ImagePath ?? "";
         errorMessage = "";
@@ -557,16 +553,48 @@
 
     private async Task HandleImageUpload(InputFileChangeEventArgs e)
     {
-        var file = e.File;
-        if (file != null)
+        try
         {
+            var file = e.File;
+            if (file == null) return;
+
+            // Validate file size (5MB)
+            if (file.Size > 5 * 1024 * 1024)
+            {
+                errorMessage = "Kích thước file không được vượt quá 5MB";
+                return;
+            }
+
+            // Validate file type
+            var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp" };
+            if (!allowedTypes.Contains(file.ContentType.ToLower()))
+            {
+                errorMessage = "Chỉ chấp nhận file ảnh JPG, PNG, GIF, WEBP";
+                return;
+            }
+
+            // Store file for upload
             formData.ImageFile = file;
-            
+
             // Create preview
             var buffer = new byte[file.Size];
             await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
-            imagePreview = $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
+            var base64 = Convert.ToBase64String(buffer);
+            imagePreview = $"data:{file.ContentType};base64,{base64}";
+            
+            errorMessage = "";
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error handling image: {ex.Message}");
+            errorMessage = $"Lỗi khi xử lý file ảnh: {ex.Message}";
+        }
+    }
+
+    private void ClearImage()
+    {
+        imagePreview = "";
+        formData.ImageFile = null;
     }
 
     private async Task HandleSubmit()
@@ -576,19 +604,50 @@
         // Validation
         if (string.IsNullOrWhiteSpace(formData.ProductName))
         {
-            errorMessage = "Tên sản phẩm không được để trống";
+            errorMessage = "Vui lòng nhập tên sản phẩm";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(formData.Barcode))
+        {
+            errorMessage = "Vui lòng nhập mã vạch";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(formData.CategoryId))
+        {
+            errorMessage = "Vui lòng chọn danh mục";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(formData.SupplierId))
+        {
+            errorMessage = "Vui lòng chọn nhà cung cấp";
+            return;
+        }
+
+        // Chỉ kiểm tra ảnh khi thêm mới (không phải edit)
+        if (!isEditMode && formData.ImageFile == null)
+        {
+            errorMessage = "Vui lòng chọn ảnh sản phẩm";
             return;
         }
 
         if (formData.Price <= 0)
         {
-            errorMessage = "Giá phải lớn hơn 0";
+            errorMessage = "Vui lòng nhập giá hợp lệ (lớn hơn 0)";
+            return;
+        }
+
+        if (formData.Price > 99999999.99m)
+        {
+            errorMessage = "Giá không được vượt quá 99,999,999.99";
             return;
         }
 
         if (string.IsNullOrWhiteSpace(formData.Unit))
         {
-            errorMessage = "Đơn vị không được để trống";
+            errorMessage = "Vui lòng nhập đơn vị";
             return;
         }
 
@@ -607,8 +666,11 @@
                     Unit = formData.Unit,
                     CategoryId = formData.CategoryId,
                     SupplierId = formData.SupplierId,
+                    Status = formData.Status,
                     Image = formData.ImageFile
                 };
+                
+                Console.WriteLine($"Updating product status to: {formData.Status}");
                 
                 response = await ProductService.UpdateProductAsync(selectedProduct.Id, updateRequest);
             }
@@ -622,6 +684,7 @@
                     Unit = formData.Unit,
                     CategoryId = formData.CategoryId,
                     SupplierId = formData.SupplierId,
+                    Status = formData.Status,
                     Image = formData.ImageFile
                 };
                 
@@ -633,8 +696,9 @@
                 var successMessage = isEditMode ? "Cập nhật sản phẩm thành công!" : "Tạo sản phẩm mới thành công!";
                 Toast.ShowSuccess(successMessage);
 
-                CloseModal();
+                // Cập nhật danh sách sản phẩm ngay lập tức
                 await LoadProducts(pagination?.CurrentPage ?? 1);
+                CloseModal();
             }
             else
             {
@@ -651,39 +715,41 @@
         }
     }
 
-    private async Task ConfirmDelete(ProductDto product)
+    private async Task ToggleProductStatus(ProductDto product)
     {
-        var parameters = new ModalParameters()
-            .Add(nameof(ConfirmDialog.Title), "Xác nhận ngừng bán")
-            .Add(nameof(ConfirmDialog.Message), $"Bạn có chắc muốn ngừng bán sản phẩm '{product.ProductName}'? Sản phẩm sẽ chuyển sang trạng thái 'Ngừng bán'.")
-            .Add(nameof(ConfirmDialog.ConfirmText), "Ngừng bán")
-            .Add(nameof(ConfirmDialog.CancelText), "Hủy")
-            .Add(nameof(ConfirmDialog.Type), "warning");
-
-        var options = new ModalOptions
-        {
-            HideCloseButton = false,
-            DisableBackgroundCancel = false
-        };
-
-        var modal = Modal.Show<ConfirmDialog>("", parameters, options);
-        var result = await modal.Result;
-
-        if (result.Cancelled)
-            return;
-
         try
         {
-            var response = await ProductService.DeleteProductAsync(product.Id);
+            // Chuyển đổi trạng thái ngược lại
+            var newStatus = !product.Status;
+            
+            var updateRequest = new UpdateProductRequest
+            {
+                ProductName = product.ProductName,
+                Barcode = product.Barcode,
+                Price = product.Price,
+                Unit = product.Unit,
+                CategoryId = product.CategoryId,
+                SupplierId = product.SupplierId,
+                Status = newStatus
+            };
+
+            var response = await ProductService.UpdateProductAsync(product.Id, updateRequest);
             
             if (response?.StatusCode == 200)
             {
-                Toast.ShowSuccess("Sản phẩm đã chuyển sang trạng thái ngừng bán!");
+                var message = newStatus ? "Sản phẩm đã được kích hoạt bán!" : "Sản phẩm đã ngừng bán!";
+                Toast.ShowSuccess(message);
+                
+                // Cập nhật trạng thái trực tiếp trong danh sách để UI phản hồi nhanh
+                product.Status = newStatus;
+                StateHasChanged();
+                
+                // Tải lại dữ liệu để đồng bộ với server
                 await LoadProducts(pagination?.CurrentPage ?? 1);
             }
             else
             {
-                Toast.ShowError(response?.Message ?? "Lỗi khi cập nhật trạng thái sản phẩm");
+                Toast.ShowError(response?.Message ?? "Lỗi khi thay đổi trạng thái sản phẩm");
             }
         }
         catch (Exception ex)
@@ -691,6 +757,8 @@
             Toast.ShowError($"Lỗi: {ex.Message}");
         }
     }
+
+
 
     private void CloseModal()
     {
@@ -706,6 +774,12 @@
         return status ? "bg-success" : "bg-secondary";
     }
 
+    private void UpdateStatus(string value)
+    {
+        formData.Status = value.ToLower() == "true";
+        StateHasChanged();
+    }
+
     private class ProductFormData
     {
         public string ProductName { get; set; } = "";
@@ -714,6 +788,7 @@
         public string Unit { get; set; } = "pcs";
         public string? CategoryId { get; set; }
         public string? SupplierId { get; set; }
+        public bool Status { get; set; } = true;
         public IBrowserFile? ImageFile { get; set; }
     }
 }
@@ -742,14 +817,28 @@
         margin-bottom: 2rem;
     }
     
+    .page-filters .form-control,
+    .page-filters .form-select {
+        font-size: 14px;
+        height: 38px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .page-filters .btn {
+        height: 38px;
+        font-size: 14px;
+        padding: 0 16px;
+        white-space: nowrap;
+    }
+    
     .page-content .card {
         border: none;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
     .product-image {
-        width: 50px;
-        height: 50px;
+        width: 80px;
+        height: 80px;
         background-color: #f8f9fa;
         border: 1px solid #dee2e6;
         border-radius: 4px;
@@ -766,7 +855,7 @@
     }
     
     .product-image i {
-        font-size: 1.5rem;
+        font-size: 2rem;
         color: #6c757d;
     }
     
@@ -787,5 +876,24 @@
     
     .pagination .page-link {
         cursor: pointer;
+    }
+    
+    .status-check-btn {
+        background: none;
+        border: 2px solid #198754;
+        color: #198754;
+        border-radius: 4px;
+        padding: 4px 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .status-check-btn:hover {
+        background-color: #198754;
+        color: white;
+        transform: scale(1.05);
+    }
+    
+    .status-check-btn:focus {
+        box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
     }
 </style>

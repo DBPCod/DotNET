@@ -9,13 +9,18 @@ public class SupplierRepository(AppDbContext context)
     private readonly AppDbContext _context = context;
 
     // Lấy tất cả suppliers (bao gồm cả inactive) - dùng cho admin xem
-    public async Task<List<Supplier>> GetAllAsync(int page, int pageSize)
+    public async Task<(List<Supplier> suppliers, int totalCount)> GetAllAsync(int page, int pageSize)
     {
-        return await _context.Supplier
+        var query = _context.Supplier.AsQueryable();
+        
+        var totalCount = await query.CountAsync();
+        var suppliers = await query
             .OrderBy(s => s.Name)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
+            
+        return (suppliers, totalCount);
     }
 
     // Lấy chỉ các suppliers đang hoạt động - dùng cho dropdown

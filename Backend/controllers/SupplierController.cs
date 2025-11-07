@@ -46,6 +46,13 @@ public class SupplierController(SupplierService supplierService) : ControllerBas
         return StatusCode(response.StatusCode, response);
     }
 
+    [HttpPatch("{id}/toggle-status")]
+    public async Task<IActionResult> ToggleStatus([FromRoute] Guid id)
+    {
+        var response = await _supplierService.ToggleStatusAsync(id);
+        return StatusCode(response.StatusCode, response);
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete([FromRoute] Guid id)
     {

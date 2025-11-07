@@ -60,10 +60,27 @@ public class SupplierService
         }
     }
 
-    public async Task<ApiResponse<SupplierListData>> GetAllAsync(int page = 1, int pageSize = 10)
+    public async Task<ApiResponse<SupplierListData>> GetAllAsync(int page = 1, int pageSize = 10, string? q = null)
     {
-        return await GetSuppliersAsync(page, pageSize) 
-            ?? new ApiResponse<SupplierListData> { StatusCode = 500, Message = "Failed to fetch suppliers" };
+        try
+        {
+            var query = $"{BaseUrl}?page={page}&pageSize={pageSize}";
+            
+            if (!string.IsNullOrEmpty(q))
+                query += $"&q={Uri.EscapeDataString(q)}";
+
+            return await _httpClient.GetFromJsonAsync<ApiResponse<SupplierListData>>(query)
+                ?? new ApiResponse<SupplierListData> { StatusCode = 500, Message = "Failed to fetch suppliers" };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting suppliers: {ex.Message}");
+            return new ApiResponse<SupplierListData>
+            {
+                Message = ex.Message,
+                StatusCode = 500
+            };
+        }
     }
 
     public async Task<ApiResponse<SupplierDetailData>> GetByIdAsync(string id)
@@ -74,32 +91,24 @@ public class SupplierService
 
     public async Task<ApiResponse<SupplierDetailData>> CreateAsync(CreateSupplierRequest request)
     {
-        var formData = new MultipartFormDataContent
-        {
-            { new StringContent(request.Name), "name" },
-            { new StringContent(request.Phone ?? ""), "phone" },
-            { new StringContent(request.Email ?? ""), "email" },
-            { new StringContent(request.Address ?? ""), "address" }
-        };
-
-        var response = await _httpClient.PostAsync(BaseUrl, formData);
+        var response = await _httpClient.PostAsJsonAsync(BaseUrl, request);
         return await response.Content.ReadFromJsonAsync<ApiResponse<SupplierDetailData>>()
             ?? new ApiResponse<SupplierDetailData> { StatusCode = 500, Message = "Failed to create supplier" };
     }
 
     public async Task<ApiResponse<SupplierDetailData>> UpdateAsync(string id, UpdateSupplierRequest request)
     {
-        var formData = new MultipartFormDataContent
-        {
-            { new StringContent(request.Name), "name" },
-            { new StringContent(request.Phone ?? ""), "phone" },
-            { new StringContent(request.Email ?? ""), "email" },
-            { new StringContent(request.Address ?? ""), "address" }
-        };
-
-        var response = await _httpClient.PutAsync($"{BaseUrl}/{id}", formData);
+        var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", request);
         return await response.Content.ReadFromJsonAsync<ApiResponse<SupplierDetailData>>()
             ?? new ApiResponse<SupplierDetailData> { StatusCode = 500, Message = "Failed to update supplier" };
+    }
+
+    // Phương thức mới để toggle status
+    public async Task<ApiResponse<SupplierDetailData>> ToggleStatusAsync(string id)
+    {
+        var response = await _httpClient.PatchAsync($"{BaseUrl}/{id}/toggle-status", null);
+        return await response.Content.ReadFromJsonAsync<ApiResponse<SupplierDetailData>>()
+            ?? new ApiResponse<SupplierDetailData> { StatusCode = 500, Message = "Failed to toggle supplier status" };
     }
 
     public async Task<ApiResponse<object>> DeleteAsync(string id)

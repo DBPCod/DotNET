@@ -1,71 +1,58 @@
-using Microsoft.AspNetCore.Http;
-
-namespace Backend.Services;
+﻿namespace Backend.Services;
 
 public class FileUploadService
 {
     private readonly string _uploadFolder;
-    private readonly long _maxFileSize = 5 * 1024 * 1024; // 5MB
-    private readonly string[] _allowedExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+    private readonly ILogger<FileUploadService> _logger;
 
-    public FileUploadService(IWebHostEnvironment environment)
+    public FileUploadService(IWebHostEnvironment environment, ILogger<FileUploadService> logger)
     {
         _uploadFolder = Path.Combine(environment.WebRootPath, "uploads", "products");
+        _logger = logger;
         
-        // Tạo thư mục nếu chưa tồn tại
         if (!Directory.Exists(_uploadFolder))
         {
             Directory.CreateDirectory(_uploadFolder);
         }
     }
 
-
-    public async Task<(bool success, string? filePath, string? error)> UploadImageAsync(IFormFile file)
+    public async Task<(bool Success, string? FilePath, string? Error)> UploadImageAsync(IFormFile file)
     {
         try
         {
-            // Validate file
             if (file == null || file.Length == 0)
                 return (false, null, "File is empty");
 
-            // Kiểm tra kích thước
-            if (file.Length > _maxFileSize)
-                return (false, null, $"File size exceeds {_maxFileSize / 1024 / 1024}MB");
+            if (file.Length > 5 * 1024 * 1024)
+                return (false, null, "File exceeds 5MB");
 
-            // Kiểm tra extension
-            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            if (!_allowedExtensions.Contains(extension))
-                return (false, null, $"Only {string.Join(", ", _allowedExtensions)} files are allowed");
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" }.Contains(ext))
+                return (false, null, "Invalid file type");
 
-            // Tạo tên file unique
-            var fileName = $"{Guid.NewGuid()}{extension}";
-            var filePath = Path.Combine(_uploadFolder, fileName);
+            var fileName = Guid.NewGuid().ToString() + ext;
+            var fullPath = Path.Combine(_uploadFolder, fileName);
 
-            // Lưu file
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            using (var stream = new FileStream(fullPath, FileMode.Create))
             {
                 await file.CopyToAsync(stream);
             }
 
-            // Trả về đường dẫn tương đối
-            var relativePath = $"/uploads/products/{fileName}";
-            return (true, relativePath, null);
+            return (true, "/uploads/products/" + fileName, null);
         }
         catch (Exception ex)
         {
-            return (false, null, $"Error uploading file: {ex.Message}");
+            _logger.LogError(ex, "Upload failed");
+            return (false, null, ex.Message);
         }
     }
-
 
     public bool DeleteImage(string? imagePath)
     {
         try
         {
-            if (string.IsNullOrEmpty(imagePath))
-                return true;
+            if (string.IsNullOrEmpty(imagePath)) return true;
 
-            // Chuyển từ đường dẫn tương đối sang đường dẫn tuyệt đối
             var fileName = Path.GetFileName(imagePath);
             var fullPath = Path.Combine(_uploadFolder, fileName);
 
@@ -74,7 +61,6 @@ public class FileUploadService
                 File.Delete(fullPath);
                 return true;
             }
-
             return false;
         }
         catch

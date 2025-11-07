@@ -49,11 +49,7 @@ public class ProductRepository(AppDbContext context)
         {
             query = query.Where(p => p.Status == status.Value);
         }
-        else
-        {
-            // Default: only show active products
-            query = query.Where(p => p.Status == true);
-        }
+        // Nếu status = null thì hiển thị cả đang bán và ngừng bán (không filter)
 
         var totalCount = await query.CountAsync();
 
@@ -79,13 +75,13 @@ public class ProductRepository(AppDbContext context)
             .ToListAsync();
     }
 
-    // Láº¥y theo ID, chá»‰ láº¥y sáº£n pháº©m chÆ°a bá»‹ xÃ³a
+    // Láº¥y theo ID, láº¥y cáº£ sáº£n pháº©m Ä'ang báº£n vÃ  ngÆ°á»ng báº£n
     public async Task<Product?> GetByIdAsync(Guid id)
     {
         return await _context.Product
             .Include(p => p.Category)
             .Include(p => p.Supplier)
-            .FirstOrDefaultAsync(p => p.Id == id && p.Status == true);
+            .FirstOrDefaultAsync(p => p.Id == id);
     }
 
     public async Task AddAsync(Product product)
@@ -112,6 +108,14 @@ public class ProductRepository(AppDbContext context)
     public async Task HardDeleteAsync(Product product)
     {
         _context.Product.Remove(product);
+        await _context.SaveChangesAsync();
+    }
+
+    // Toggle Status: Chuyển đổi giữa đang bán và ngừng bán
+    public async Task ToggleStatusAsync(Product product)
+    {
+        product.Status = !product.Status;
+        _context.Product.Update(product);
         await _context.SaveChangesAsync();
     }
 }

@@ -13,7 +13,7 @@ public class CreateProductRequest
     public string? Barcode { get; set; }
 
     [Required(ErrorMessage = "Price is required")]
-    [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than 0")]
+    [Range(0.01, 99999999.99, ErrorMessage = "Price must be between 0.01 and 99,999,999.99")]
     public decimal Price { get; set; }
 
     [MaxLength(20, ErrorMessage = "Unit cannot exceed 20 characters")]
