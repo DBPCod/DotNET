@@ -4,7 +4,9 @@
 @using Frontend.Models.Common
 @using Frontend.Models
 @using Frontend.Models.Customer.Responses
+@using Frontend.Models.OrderItem.Responses 
 @inject OrderService OrderService
+@inject OrderItemService OrderItemService
 @inject CustomerService CustomerService
 @inject IJSRuntime JSRuntime
 @layout AdminLayout
@@ -112,7 +114,7 @@
                                         <td>@order.OrderDate.ToString("yyyy-MM-dd")</td>
                                         <td>
                                             <div class="btn-group" role="group">
-                                                <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewOrder(Guid.Parse(order.Id))">
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="@(async () => await ViewOrder(Guid.Parse(order.Id)))">
                                                     <i class="bi bi-eye"></i>
                                                 </button>
                                                 <button class="btn btn-sm btn-outline-warning" @onclick="() => EditOrder(Guid.Parse(order.Id))">
@@ -152,6 +154,96 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal hiển thị chi tiết Order Items (thêm mới) -->
+    @if (showModal)
+    {
+        <div class="modal fade show" tabindex="-1" style="display: block;" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Chi tiết đơn hàng #@selectedOrderId.ToString().Substring(selectedOrderId.ToString().Length - 8).ToUpper()</h5>
+                        <button type="button" class="btn-close" @onclick="CloseModal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if (isLoadingOrderItems)
+                        {
+                            <div class="text-center py-4">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Đang tải...</span>
+                                </div>
+                                <p class="mt-2">Đang tải chi tiết đơn hàng...</p>
+                            </div>
+                        }
+                        else if (!orderItems.Any())
+                        {
+                            <div class="text-center py-4">
+                                <i class="bi bi-inbox display-4 text-muted"></i>
+                                <p class="text-muted">Không có sản phẩm nào trong đơn hàng này.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Sản phẩm (ID)</th>
+                                            <th>Số lượng</th>
+                                            <th>Đơn giá</th>
+                                            <th>Thành tiền</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in orderItems)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <div class="fw-bold">@item.ProductId</div> <!-- Tạm hiển thị ID, sau có thể fetch tên product -->
+                                                </td>
+                                                <td>@item.Quantity</td>
+                                                <td>@FormatCurrency(item.Price) VND</td>
+                                                <td>@FormatCurrency(item.Subtotal) VND</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                    @if (orderPagination != null)
+                    {
+                        <div class="modal-footer">
+                            <nav aria-label="Order items pagination">
+                                <ul class="pagination mb-0">
+                                    <li class="page-item @(orderPagination.HasPreviousPage ? "" : "disabled")">
+                                        <a class="page-link" href="#" @onclick="() => NavigateOrderItemsPage(orderPagination.CurrentPage - 1)" @onclick:preventDefault="@(!orderPagination.HasPreviousPage)">Trước</a>
+                                    </li>
+                                    @for (int i = 1; i <= orderPagination.TotalPages; i++)
+                                    {
+                                        <li class="page-item @(i == orderItemCurrentPage ? "active" : "")">
+                                            <a class="page-link" href="#" @onclick="() => NavigateOrderItemsPage(i)">@i</a>
+                                        </li>
+                                    }
+                                    <li class="page-item @(orderPagination.HasNextPage ? "" : "disabled")">
+                                        <a class="page-link" href="#" @onclick="() => NavigateOrderItemsPage(orderPagination.CurrentPage + 1)" @onclick:preventDefault="@(!orderPagination.HasNextPage)">Tiếp</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Đóng</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Đóng</button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="modal-backdrop fade show"></div>
+    }
 </div>
 
 <style>
@@ -193,6 +285,21 @@
     .btn-group .btn {
         margin: 0 2px;
     }
+
+    /* Modal backdrop fix (thêm mới) */
+    .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1040;
+        width: 100vw;
+        height: 100vh;
+        background-color: #000;
+    }
+
+    .modal-backdrop.fade {
+        opacity: 0.5;
+    }
 </style>
 
 @code {
@@ -209,6 +316,14 @@
     private string? _statusFilter;
     private DateTime? _fromDate;
     private DateTime? _toDate;
+
+    // Modal and Order Items state (thêm mới)
+    private bool showModal = false;
+    private List<OrderItemDto> orderItems = new();
+    private PaginationInfo? orderPagination;
+    private Guid selectedOrderId;
+    private int orderItemCurrentPage = 1;
+    private bool isLoadingOrderItems = false;
 
     public string? StatusFilter
     {
@@ -355,12 +470,6 @@
         }
     }
 
-    private void ViewOrder(Guid id)
-    {
-        // NavigationManager.NavigateTo($"/admin/orders/{id}");
-        Console.WriteLine($"Viewing order: {id}");
-    }
-
     private void EditOrder(Guid id)
     {
         // Open edit modal or navigate
@@ -439,5 +548,106 @@
             await Task.Run(() => cts.Cancel());
             cts.Dispose();
         }
+    }
+
+    private async Task ViewOrder(Guid id)
+    {
+        selectedOrderId = id;  // Thêm mới: Set selected order ID
+        orderItemCurrentPage = 1;
+        showModal = true;  // Thêm mới: Mở modal
+        isLoadingOrderItems = true;  // Thêm mới: Bắt đầu loading
+        StateHasChanged();  // Thêm mới: Update UI ngay
+
+        try
+        {
+            Console.WriteLine($"Calling API to fetch order items for OrderId: {id}");
+
+            // Gọi API với page=1, pageSize=10 (có thể adjust sau)
+            var response = await OrderItemService.GetOrderItemsByOrderIdAsync(id, page: 1, pageSize: 10);
+
+            // Log response để test (bạn có thể xem trong browser console hoặc server logs)
+            if (response?.StatusCode == 200 && response.Data != null)
+            {
+                orderItems = response.Data.orderItems ?? new();  // Thêm mới: Set data (lưu ý: dùng lowercase 'orderItems' nếu model là vậy, dựa trên response trước)
+                orderPagination = response.Data.Pagination;  // Thêm mới: Set pagination (lowercase nếu cần)
+                Console.WriteLine($"Success! Fetched {orderItems.Count} order items for {id}.");
+                Console.WriteLine($"Full response: {System.Text.Json.JsonSerializer.Serialize(response, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })}");
+            }
+            else
+            {
+                orderItems = new();  // Thêm mới: Clear nếu error
+                orderPagination = null;
+                Console.WriteLine($"API returned non-200 status: {response?.StatusCode}. Message: {response?.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching order items for {id}: {ex.Message}");
+            orderItems = new();  // Thêm mới: Clear nếu exception
+            orderPagination = null;
+            // Có thể thêm toast notification ở đây nếu bạn dùng library như Blazored.Toast
+        }
+        finally
+        {
+            isLoadingOrderItems = false;  // Thêm mới: Kết thúc loading
+            StateHasChanged();  // Thêm mới: Update UI cuối
+        }
+
+        // Tạm thời không navigate, chỉ log để test. Sau này uncomment nếu cần:
+        // NavigationManager.NavigateTo($"/admin/orders/{id}");
+    }
+
+    // Thêm mới: Methods cho modal và pagination
+    private async Task NavigateOrderItemsPage(int page)
+    {
+        if (page >= 1 && page <= (orderPagination?.TotalPages ?? 1))
+        {
+            orderItemCurrentPage = page;
+            await LoadOrderItems(selectedOrderId, page);
+        }
+    }
+
+    private async Task LoadOrderItems(Guid orderId, int page = 1)
+    {
+        isLoadingOrderItems = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await OrderItemService.GetOrderItemsByOrderIdAsync(orderId, page: page, pageSize: 10);
+
+            if (response?.StatusCode == 200 && response.Data != null)
+            {
+                orderItems = response.Data.orderItems ?? new();
+                orderPagination = response.Data.Pagination;
+                orderItemCurrentPage = orderPagination.CurrentPage;
+                Console.WriteLine($"Loaded page {page} for order items: {orderItems.Count} items.");
+            }
+            else
+            {
+                orderItems = new();
+                orderPagination = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading order items page {page}: {ex.Message}");
+            orderItems = new();
+            orderPagination = null;
+        }
+        finally
+        {
+            isLoadingOrderItems = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        orderItems.Clear();
+        orderPagination = null;
+        isLoadingOrderItems = false;
+        StateHasChanged();
     }
 }

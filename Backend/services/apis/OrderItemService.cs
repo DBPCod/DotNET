@@ -46,9 +46,25 @@ public class OrderItemService
         return await _orderItemRepository.GetAllOrderItemsAsync();
     }
 
-    public async Task<List<OrderItem>> GetOrderItemsByOrderIdAsync(Guid orderId)
+    public async Task<(List<OrderItem> orderItems, int totalCount)> HandleGetOrdersWithPagination(
+    int page, int pageSize)
     {
-        return await _orderItemRepository.GetOrderItemsAsync(orderId);
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 10;
+        if (pageSize > 100) pageSize = 100;
+
+        return await _orderItemRepository.HandleGetOrderItemsWithPagination(
+            page, pageSize);
+    }
+    public async Task<(List<OrderItem> orderItems, int totalCount)> HandleGetOrderItemsByOrderIdWithPagination(
+    Guid orderId, int page, int pageSize)
+    {
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 10;
+        if (pageSize > 100) pageSize = 100;
+
+        return await _orderItemRepository.HandleGetOrderItemsByOrderIdWithPagination(
+            orderId, page, pageSize);
     }
 
 

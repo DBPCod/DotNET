@@ -1,5 +1,6 @@
-namespace Backend.Repositories;
 using Microsoft.EntityFrameworkCore;
+
+namespace Backend.Repositories;
 
 public class OrderItemRepository
 {
@@ -9,7 +10,6 @@ public class OrderItemRepository
     {
         _context = context;
     }
-
 
     public async Task<List<OrderItem>> AddOrderItemAsync(List<OrderItem> items)
     {
@@ -40,12 +40,58 @@ public class OrderItemRepository
         return await _context.OrderItem.ToListAsync();
     }
 
-   public async Task<List<OrderItem>> GetOrderItemsAsync(Guid orderId)
+    // GET - Order items theo orderId với phân trang (tương tự HandleGetOrderItemsWithPagination, không search)
+    public async Task<(List<OrderItem> orderItems, int totalCount)> HandleGetOrderItemsByOrderIdWithPagination(
+        Guid orderId, int page, int pageSize)
     {
-        return await _context.OrderItem
-            .Where(oi => oi.OrderId == orderId)
-            .ToListAsync();
+        try
+        {
+            var query = _context.OrderItem
+                .Include(oi => oi.Order)  // Include Order để load data nếu cần
+                .Include(oi => oi.Product)  // Include Product để display nếu cần
+                .Where(oi => oi.OrderId == orderId)  // Filter theo orderId
+                .AsQueryable();
+
+            var totalCount = await query.CountAsync();
+
+            var orderItems = await query
+                .OrderBy(oi => oi.Id)  // OrderBy theo ID (có thể thay bằng CreatedAt nếu có field đó)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (orderItems, totalCount);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception(ex.Message);
+        }
     }
 
+    // GET - Order items với phân trang và tìm kiếm (tương tự HandleGetOrdersWithPagination ở OrderRepository)
+    public async Task<(List<OrderItem> orderItems, int totalCount)> HandleGetOrderItemsWithPagination(
+        int page, int pageSize)
+    {
+        try
+        {
+            var query = _context.OrderItem
+                .Include(oi => oi.Order)  // Include Order để load data cho search/display nếu cần
+                .Include(oi => oi.Product)  // Include Product để search theo tên sản phẩm
+                .AsQueryable();
 
+            var totalCount = await query.CountAsync();
+
+            var orderItems = await query
+                .OrderBy(oi => oi.Id)  // OrderBy theo ID (có thể thay bằng CreatedAt nếu có field đó)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (orderItems, totalCount);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception(ex.Message);
+        }
+    }
 }

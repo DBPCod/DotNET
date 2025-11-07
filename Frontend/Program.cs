@@ -30,6 +30,7 @@ builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<CustomerService>();
 builder.Services.AddScoped<PromotionService>();
 builder.Services.AddScoped<OrderService>();
+builder.Services.AddScoped<OrderItemService>();
 // Đăng ký service cho toast và modal của blazored
 builder.Services.AddBlazoredToast();
 builder.Services.AddBlazoredModal();
