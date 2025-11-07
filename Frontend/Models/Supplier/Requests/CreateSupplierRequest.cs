@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Backend.Dtos.Requests;
+namespace Frontend.Models.Supplier.Requests;
 
 public class CreateSupplierRequest
 {
