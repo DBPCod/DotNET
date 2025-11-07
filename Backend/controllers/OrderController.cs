@@ -43,20 +43,21 @@ public class OrderController(OrderService orderService, PromotionService promoti
         return StatusCode(response.StatusCode, response);
     }
 
-    // GET /api/v1/orders - Lấy danh sách orders với phân trang và filter (tương tự UserController)
     [HttpGet]
-    // [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> GetOrders([FromQuery] GetOrdersRequest request)
     {
         var response = new Response();
 
         try
         {
+            // Sửa: Truyền thêm fromDate và toDate từ request
             var (orders, totalCount) = await _orderService.HandleGetOrdersWithPagination(
                 request.Page,
                 request.PageSize,
                 request.Q,
-                request.Status
+                request.Status,
+                request.FromDate,  // Thêm
+                request.ToDate     // Thêm
             );
 
             var orderDtos = OrderMapper.MapListEntityToListDto(orders);

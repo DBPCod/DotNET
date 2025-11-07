@@ -7,6 +7,7 @@ public class OrderService(OrderRepository orderRepository, CustomerRepository cu
     private readonly OrderRepository _orderRepository = orderRepository;
     private readonly CustomerRepository _customerRepository = customerRepository;
     private readonly UserRepository _userRepository = userRepository;
+
     public async Task<List<Order>> HandleGetAllOrder()
     {
         try
@@ -18,15 +19,28 @@ public class OrderService(OrderRepository orderRepository, CustomerRepository cu
             throw new Exception(ex.Message);
         }
     }
+
+    // Sửa: Thêm fromDate và toDate (optional) để filter ngày, không phụ thuộc DTO
     public async Task<(List<Order> orders, int totalCount)> HandleGetOrdersWithPagination(
-    int page, int pageSize, string? searchTerm = null, string? status = null)
+        int page, int pageSize, string? searchTerm = null, string? status = null,
+        DateTime? fromDate = null,  // Thêm: Ngày bắt đầu (optional)
+        DateTime? toDate = null     // Thêm: Ngày kết thúc (optional)
+    )
     {
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 10;
         if (pageSize > 100) pageSize = 100;
 
+        // Thêm: Validate fromDate <= toDate (nếu cả hai có giá trị)
+        if (fromDate.HasValue && toDate.HasValue && fromDate > toDate)
+        {
+            // Trả empty nếu invalid (hoặc throw ExceptionCustom nếu bạn có)
+            return (new List<Order>(), 0);
+        }
+
+        // Sửa: Gọi Repository với thêm fromDate/toDate (bạn cần sửa Repository signature tương ứng)
         return await _orderRepository.HandleGetOrdersWithPagination(
-            page, pageSize, searchTerm, status);
+            page, pageSize, searchTerm, status, fromDate, toDate);
     }
 
     public async Task<Order> HandleGetOrderById(Guid id)
@@ -70,7 +84,6 @@ public class OrderService(OrderRepository orderRepository, CustomerRepository cu
         return created;
     }
 
-
     public async Task<bool> HandleUpdateStatus(Guid id, string newStatus)
     {
         var validStatuses = new[] { "pending", "paid", "canceled" };
@@ -87,6 +100,7 @@ public class OrderService(OrderRepository orderRepository, CustomerRepository cu
 
         return success;
     }
+
     public async Task<bool> HandleDeleteOrder(Guid id)
     {
         try
@@ -98,5 +112,4 @@ public class OrderService(OrderRepository orderRepository, CustomerRepository cu
             throw new Exception(ex.Message);
         }
     }
-
 }

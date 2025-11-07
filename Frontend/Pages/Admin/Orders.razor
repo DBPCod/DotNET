@@ -5,6 +5,7 @@
 @using Frontend.Models
 @using Frontend.Models.Customer.Responses
 @using Frontend.Models.OrderItem.Responses 
+@using System.Threading  // Thêm using cho Timer
 @inject OrderService OrderService
 @inject OrderItemService OrderItemService
 @inject CustomerService CustomerService
@@ -311,6 +312,7 @@
     private bool isLoading = true;
     private bool allCheckboxesSelected = false;
     private CancellationTokenSource? cts;
+    private System.Threading.Timer? _debounceTimer;  // Thêm mới: Timer cho debounce search
 
     // Backing fields for filters with auto-load on change
     private string? _statusFilter;
@@ -379,6 +381,8 @@
     protected override async Task OnInitializedAsync()
     {
         cts = new CancellationTokenSource();
+        _toDate = DateTime.Today;  // Thêm mới: Set ToDate mặc định là ngày hiện tại
+        StateHasChanged();  // Thêm mới: Update UI để hiển thị giá trị mặc định
         await LoadOrders();
     }
 
@@ -489,11 +493,23 @@
         StateHasChanged();
     }
 
+    // Cập nhật: OnSearchChanged với debounce (chờ 500ms trước khi gọi API)
     private async Task OnSearchChanged(ChangeEventArgs e)
     {
         searchTerm = e.Value?.ToString();
         currentPage = 1;
-        await LoadOrders();
+
+        // Hủy timer cũ nếu có
+        _debounceTimer?.Dispose();
+
+        // Tạo timer mới: Sau 500ms, gọi LoadOrders
+        _debounceTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await LoadOrders();
+            });
+        }, null, TimeSpan.FromMilliseconds(500), Timeout.InfiniteTimeSpan);
     }
 
     private void ToggleAdvancedFilters()
@@ -548,6 +564,7 @@
             await Task.Run(() => cts.Cancel());
             cts.Dispose();
         }
+        _debounceTimer?.Dispose();  // Thêm mới: Dispose timer khi dispose component
     }
 
     private async Task ViewOrder(Guid id)

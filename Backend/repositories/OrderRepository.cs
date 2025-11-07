@@ -19,15 +19,21 @@ public class OrderRepository(AppDbContext context)
     }
 
     public async Task<(List<Order> orders, int totalCount)> HandleGetOrdersWithPagination(
-        int page, int pageSize, string? searchTerm = null, string? status = null)
+    int page, int pageSize, string? searchTerm = null, string? status = null,
+    DateTime? fromDate = null,
+    DateTime? toDate = null
+    )
     {
         try
         {
+            // Thêm log params vào repo
+            Console.WriteLine($"Repo Called - Search: {searchTerm}, Status: {status}");
+            Console.WriteLine($"Repo FromDate: {fromDate?.Date}, ToDate: {toDate?.Date}");
+
             var query = _context.Order
-                .Include(o => o.Customer)  // Include Customer để load data cho search và display
+                .Include(o => o.Customer)
                 .AsQueryable();
 
-            // Search by order ID, customer name, or customer email (tương tự search bằng username, email, full name ở User)
             if (!string.IsNullOrEmpty(searchTerm))
             {
                 query = query.Where(o =>
@@ -36,19 +42,42 @@ public class OrderRepository(AppDbContext context)
                     (!string.IsNullOrEmpty(o.Customer.Email) && o.Customer.Email.Contains(searchTerm)));
             }
 
-            // Filter by status (tương tự status ở User, case-insensitive vì Status là string)
             if (!string.IsNullOrEmpty(status))
             {
                 query = query.Where(o => o.Status.ToLower() == status.ToLower());
             }
 
+            // Log trước filter ngày
+            Console.WriteLine("Before date filter - Query count: " + await query.CountAsync());
+
+            if (fromDate.HasValue)
+            {
+                var from = fromDate.Value.Date;
+                Console.WriteLine($"Applying fromDate filter: >= {from}");
+                query = query.Where(o => o.OrderDate.Date >= from);
+            }
+
+            if (toDate.HasValue)
+            {
+                var to = toDate.Value.Date.AddDays(1).AddTicks(-1);
+                Console.WriteLine($"Applying toDate filter: <= {to}");
+                query = query.Where(o => o.OrderDate <= to);
+            }
+
             var totalCount = await query.CountAsync();
+            Console.WriteLine("After date filter - Total count: " + totalCount);
 
             var orders = await query
-                .OrderBy(o => o.OrderDate)  // Tương tự OrderBy CreatedAt ở User (ascending, dùng field có sẵn)
+                .OrderBy(o => o.OrderDate)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
+
+            Console.WriteLine($"Final orders count: {orders.Count}");
+            if (orders.Any())
+            {
+                Console.WriteLine($"Sample filtered OrderDate: {orders.First().OrderDate} (Date: {orders.First().OrderDate.Date})");
+            }
 
             return (orders, totalCount);
         }
