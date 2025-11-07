@@ -18,6 +18,16 @@ public class OrderService(OrderRepository orderRepository, CustomerRepository cu
             throw new Exception(ex.Message);
         }
     }
+    public async Task<(List<Order> orders, int totalCount)> HandleGetOrdersWithPagination(
+    int page, int pageSize, string? searchTerm = null, string? status = null)
+    {
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 10;
+        if (pageSize > 100) pageSize = 100;
+
+        return await _orderRepository.HandleGetOrdersWithPagination(
+            page, pageSize, searchTerm, status);
+    }
 
     public async Task<Order> HandleGetOrderById(Guid id)
     {
@@ -81,7 +91,7 @@ public class OrderService(OrderRepository orderRepository, CustomerRepository cu
     {
         try
         {
-            return await _orderRepository.HandleDeleteOrder(id);
+            return await _orderRepository.HandleSoftDeleteOrder(id);
         }
         catch (Exception ex)
         {
