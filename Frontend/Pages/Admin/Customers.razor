@@ -1,5 +1,14 @@
 @page "/admin/customers"
 @layout AdminLayout
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@using Frontend.Models.Customer
+@using Frontend.Models.Customer.Requests
+@using Frontend.Models.Customer.Responses
+@using Frontend.Models.Common
+@using Frontend.Services
+@inject CustomerService CustomerService
+@inject Blazored.Toast.Services.IToastService Toast
 
 <div class="admin-page">
     <div class="page-header">
@@ -8,104 +17,319 @@
                 <h2>Quản lý khách hàng</h2>
                 <p class="text-muted">Danh sách và thông tin khách hàng</p>
             </div>
-            <button class="btn btn-primary">
+            <button class="btn btn-primary" @onclick="ShowCreateModal">
                 <i class="bi bi-plus"></i> Thêm khách hàng
             </button>
         </div>
     </div>
     
-    <div class="page-filters">
-        <div class="row">
-            <div class="col-md-4">
-                <input type="text" class="form-control" placeholder="Tìm kiếm khách hàng..." />
-            </div>
-            <div class="col-md-3">
-                <select class="form-select">
-                    <option>Tất cả trạng thái</option>
-                    <option>Hoạt động</option>
-                    <option>Không hoạt động</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <select class="form-select">
-                    <option>Sắp xếp theo</option>
-                    <option>Tên A-Z</option>
-                    <option>Ngày đăng ký</option>
-                    <option>Số đơn hàng</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <button class="btn btn-outline-secondary w-100">Lọc</button>
+    <div class="page-content">
+        <div class="page-filters mb-3">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" placeholder="Tìm kiếm..."
+                           @bind="searchQuery" />
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" @bind="statusFilter">
+                        <option value="">Trạng thái</option>
+                        <option value="ACTIVE">Hoạt động</option>
+                        <option value="PENDING">Khóa</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" @bind="pageSize" @bind:after="HandlePageSizeChange">
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+                <div class="col-md-3 text-end">
+                    <button class="btn btn-outline-secondary me-2" @onclick="HandleSearch">
+                        <i class="bi bi-search"></i> Lọc
+                    </button>
+                    <button class="btn btn-outline-primary" @onclick="ResetFilters">
+                        <i class="bi bi-arrow-clockwise"></i> Làm mới
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
-    
-    <div class="page-content">
+
         <div class="card">
+            <div class="card-header">
+                <h5>Danh sách khách hàng</h5>
+            </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Khách hàng</th>
-                                <th>Liên hệ</th>
-                                <th>Địa chỉ</th>
-                                <th>Số đơn hàng</th>
-                                <th>Tổng chi tiêu</th>
-                                <th>Trạng thái</th>
-                                <th>Hành động</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar me-3">A</div>
-                                        <div>
-                                            <div class="fw-bold">Nguyễn Văn A</div>
-                                            <small class="text-muted">ID: CUS001</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div>
-                                        <div>nguyenvana@email.com</div>
-                                        <small class="text-muted">0123456789</small>
-                                    </div>
-                                </td>
-                                <td>123 Đường ABC, Quận 1, TP.HCM</td>
-                                <td><span class="badge bg-primary">5</span></td>
-                                <td>
-                                    <div class="fw-bold text-success">$2,500.00</div>
-                                </td>
-                                <td><span class="badge bg-success">Hoạt động</span></td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <button class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-warning">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-info">
-                                            <i class="bi bi-chat"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                @if (isLoading)
+                {
+                    <div class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <div class="mt-2 text-muted">Đang tải dữ liệu...</div>
+                    </div>
+                }
+                else if (customers == null || !customers.Any())
+                {
+                    <div class="text-center p-5 text-muted">Không có khách hàng nào</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Khách hàng</th>
+                                    <th>Liên hệ</th>
+                                    <th>Địa chỉ</th>
+                                    <th>Số đơn hàng</th>
+                                    <th>Tổng chi tiêu</th>
+                                    <th>Ngày tạo</th>
+                                    <th>Trạng thái</th>
+                                    <th class="text-end">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var customer in customers)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar me-2">@GetInitials(customer.Name)</div>
+                                                <div>
+                                                    <div class="fw-bold">@customer.Name</div>
+                                                    <small class="text-muted">@(customer.CustomerId ?? "N/A")</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div>@(customer.Email ?? "-")</div>
+                                            <small class="text-muted">@(customer.Phone ?? "-")</small>
+                                        </td>
+                                        <td class="address-cell">@(string.IsNullOrWhiteSpace(customer.Address) ? "-" : customer.Address)</td>
+                                        <td class="text-center">
+                                            <span class="badge bg-info">0</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="text-success fw-bold">0</span>
+                                        </td>
+                                        <td>@customer.CreatedAt.ToString("dd/MM/yyyy")</td>
+                                        <td>
+                                            <span class="badge @GetStatusBadgeClass(customer.Status)">
+                                                @GetStatusDisplay(customer.Status)
+                                            </span>
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="btn-group">
+                                                <button class="btn btn-sm btn-outline-primary" title="Xem chi tiết" 
+                                                        @onclick="() => ShowViewModal(customer)">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-warning" title="Sửa" 
+                                                        @onclick="() => ShowEditModal(customer)">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" title="Xóa" 
+                                                        @onclick="() => ShowDeleteConfirm(customer)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @* Pagination *@
+                    @if (pagination != null && pagination.TotalPages > 1)
+                    {
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center">
+                                <li class="page-item @(pagination.CurrentPage == 1 ? "disabled" : "")">
+                                    <a class="page-link" @onclick="() => LoadCustomers(pagination.CurrentPage - 1)">Trước</a>
+                                </li>
+
+                                @for (int i = 1; i <= pagination.TotalPages; i++)
+                                {
+                                    var pageNumber = i;
+                                    <li class="page-item @(pagination.CurrentPage == pageNumber ? "active" : "")">
+                                        <a class="page-link" @onclick="() => LoadCustomers(pageNumber)">@pageNumber</a>
+                                    </li>
+                                }
+
+                                <li class="page-item @(pagination.CurrentPage == pagination.TotalPages ? "disabled" : "")">
+                                    <a class="page-link" @onclick="() => LoadCustomers(pagination.CurrentPage + 1)">Tiếp</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    }
+
+                    @if (pagination != null)
+                    {
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div class="text-muted">
+                                Hiển thị @((pagination.CurrentPage - 1) * pagination.PageSize + 1)
+                                đến @(Math.Min(pagination.CurrentPage * pagination.PageSize, pagination.TotalCount))
+                                trong tổng số @pagination.TotalCount khách hàng
+                            </div>
+                        </div>
+                    }
+                }
             </div>
         </div>
     </div>
 </div>
 
+@* Modal Tạo/Sửa *@
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(isEditMode ? "Sửa khách hàng" : "Thêm khách hàng mới")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">@errorMessage</div>
+                    }
+                    <EditForm Model="formData" OnValidSubmit="HandleSubmit">
+                        <DataAnnotationsValidator />
+                        <div class="mb-3">
+                            <label class="form-label">Tên khách hàng <span class="text-danger">*</span></label>
+                            <InputText @bind-Value="formData.Name" class="form-control" placeholder="Nhập tên khách hàng" />
+                            <ValidationMessage For="@(() => formData.Name)" class="text-danger" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
+                            <InputText @bind-Value="formData.Phone" class="form-control" placeholder="VD: 0909000001" />
+                            <ValidationMessage For="@(() => formData.Phone)" class="text-danger" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email <span class="text-danger">*</span></label>
+                            <InputText @bind-Value="formData.Email" type="email" class="form-control" placeholder="VD: example@mail.com" />
+                            <ValidationMessage For="@(() => formData.Email)" class="text-danger" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Địa chỉ <span class="text-danger">*</span></label>
+                            <InputTextArea @bind-Value="formData.Address" class="form-control" rows="3" placeholder="Nhập địa chỉ đầy đủ (tối thiểu 10 ký tự)" />
+                            <ValidationMessage For="@(() => formData.Address)" class="text-danger" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Trạng thái <span class="text-danger">*</span></label>
+                            <InputSelect @bind-Value="formData.Status" class="form-select">
+                                <option value="ACTIVE">Hoạt động</option>
+                                <option value="PENDING">Khóa</option>
+                            </InputSelect>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal" disabled="@isSaving">Hủy</button>
+                            <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                                @if (isSaving)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                @(isEditMode ? "Cập nhật" : "Tạo mới")
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Modal Xem chi tiết *@
+@if (showViewModal && selectedCustomer != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Chi tiết khách hàng</h5>
+                    <button type="button" class="btn-close" @onclick="CloseViewModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Mã KH:</div>
+                        <div class="col-8">
+                            <span class="badge bg-primary">@(selectedCustomer.CustomerId ?? "N/A")</span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Tên:</div>
+                        <div class="col-8">@selectedCustomer.Name</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Điện thoại:</div>
+                        <div class="col-8">@(selectedCustomer.Phone ?? "-")</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Email:</div>
+                        <div class="col-8">@(selectedCustomer.Email ?? "-")</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Địa chỉ:</div>
+                        <div class="col-8">@(selectedCustomer.Address ?? "-")</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Trạng thái:</div>
+                        <div class="col-8">
+                            <span class="badge @GetStatusBadgeClass(selectedCustomer.Status)">
+                                @GetStatusDisplay(selectedCustomer.Status)
+                            </span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Ngày tạo:</div>
+                        <div class="col-8">@selectedCustomer.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseViewModal">Đóng</button>
+                    <button type="button" class="btn btn-warning" @onclick="() => { CloseViewModal(); ShowEditModal(selectedCustomer); }">
+                        <i class="bi bi-pencil"></i> Sửa
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Modal Xác nhận xóa *@
+@if (showDeleteModal && selectedCustomer != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Xác nhận xóa</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseDeleteModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Bạn có chắc chắn muốn xóa khách hàng <strong>@selectedCustomer.Name</strong> không?</p>
+                    <p class="text-danger">Hành động này không thể hoàn tác!</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal" disabled="@isSaving">Hủy</button>
+                    <button type="button" class="btn btn-danger" @onclick="HandleDelete" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Xóa
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 <style>
     .admin-page {
-        max-width: 1200px;
-        margin-left: auto;
-        margin-right: auto;
+        padding: 2rem;
     }
     
     .page-header {
@@ -122,12 +346,16 @@
         padding: 1.5rem;
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        margin-bottom: 2rem;
     }
     
-    .page-content .card {
+    .card {
         border: none;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
     }
     
     .avatar {
@@ -140,6 +368,14 @@
         align-items: center;
         justify-content: center;
         font-weight: bold;
+        font-size: 14px;
+    }
+    
+    .address-cell {
+        max-width: 250px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     
     .table th {
@@ -152,4 +388,305 @@
     .btn-group .btn {
         margin: 0 2px;
     }
+
+    .modal.show {
+        display: block;
+    }
+
+    .modal-backdrop {
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .page-link {
+        cursor: pointer;
+    }
+
+    .pagination .page-item.disabled .page-link {
+        cursor: not-allowed;
+    }
 </style>
+
+@code {
+    // Data
+    private List<CustomerDto> customers = new();
+    private PaginationInfo? pagination;
+
+    // State
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private bool showModal = false;
+    private bool showViewModal = false;
+    private bool showDeleteModal = false;
+    private bool isEditMode = false;
+
+    // Filter
+    private string searchQuery = string.Empty;
+    private string statusFilter = string.Empty;
+    private int pageSize = 10;
+
+    // Form
+    private CustomerFormData formData = new();
+    private CustomerDto? selectedCustomer;
+    private string errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCustomers();
+    }
+
+    private async Task LoadCustomers(int page = 1)
+    {
+        isLoading = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var response = await CustomerService.GetCustomersAsync(
+                page: page,
+                pageSize: pageSize,
+                q: string.IsNullOrWhiteSpace(searchQuery) ? null : searchQuery,
+                status: string.IsNullOrWhiteSpace(statusFilter) ? null : statusFilter
+            );
+
+            if (response?.StatusCode == 200 && response.Data != null)
+            {
+                customers = response.Data.Customers ?? new List<CustomerDto>();
+                pagination = response.Data.Pagination;
+            }
+            else
+            {
+                customers = new List<CustomerDto>();
+                Toast.ShowError(response?.Message ?? "Lỗi khi tải dữ liệu");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            Toast.ShowError("Có lỗi xảy ra khi tải dữ liệu");
+            customers = new List<CustomerDto>();
+        }
+        finally
+        {
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task HandleSearch() => await LoadCustomers(1);
+
+    private async Task ResetFilters()
+    {
+        searchQuery = string.Empty;
+        statusFilter = string.Empty;
+        await LoadCustomers(1);
+    }
+    
+    private async Task HandlePageSizeChange() => await LoadCustomers(1);
+
+    private void ShowCreateModal()
+    {
+        isEditMode = false;
+        selectedCustomer = null;
+        formData = new CustomerFormData();
+        errorMessage = string.Empty;
+        showModal = true;
+    }
+
+    private void ShowEditModal(CustomerDto customer)
+    {
+        isEditMode = true;
+        selectedCustomer = customer;
+        formData = new CustomerFormData
+        {
+            Name = customer.Name,
+            Phone = customer.Phone,
+            Email = customer.Email,
+            Address = customer.Address,
+            Status = customer.Status
+        };
+        errorMessage = string.Empty;
+        showModal = true;
+    }
+
+    private void ShowViewModal(CustomerDto customer)
+    {
+        selectedCustomer = customer;
+        showViewModal = true;
+    }
+
+    private void ShowDeleteConfirm(CustomerDto customer)
+    {
+        selectedCustomer = customer;
+        showDeleteModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        formData = new CustomerFormData();
+        errorMessage = string.Empty;
+    }
+
+    private void CloseViewModal()
+    {
+        showViewModal = false;
+        selectedCustomer = null;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        selectedCustomer = null;
+    }
+
+    private async Task HandleSubmit()
+    {
+        isSaving = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            if (isEditMode && selectedCustomer != null)
+            {
+                var request = new UpdateCustomerRequest
+                {
+                    Name = formData.Name,
+                    Phone = formData.Phone,
+                    Email = formData.Email,
+                    Address = formData.Address,
+                    Status = formData.Status
+                };
+
+                var response = await CustomerService.UpdateCustomerAsync(selectedCustomer.Id, request);
+
+                if (response?.StatusCode == 200)
+                {
+                    Toast.ShowSuccess("Cập nhật khách hàng thành công!");
+                    CloseModal();
+                    await LoadCustomers(pagination?.CurrentPage ?? 1);
+                }
+                else
+                {
+                    errorMessage = response?.Message ?? "Có lỗi xảy ra";
+                    Toast.ShowError(errorMessage);
+                }
+            }
+            else
+            {
+                var request = new CreateCustomerRequest
+                {
+                    Name = formData.Name,
+                    Phone = formData.Phone,
+                    Email = formData.Email,
+                    Address = formData.Address,
+                    Status = formData.Status
+                };
+
+                var response = await CustomerService.CreateCustomerAsync(request);
+
+                if (response?.StatusCode == 201)
+                {
+                    Toast.ShowSuccess("Tạo khách hàng mới thành công!");
+                    CloseModal();
+                    await LoadCustomers(1);
+                }
+                else
+                {
+                    errorMessage = response?.Message ?? "Có lỗi xảy ra";
+                    Toast.ShowError(errorMessage);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Lỗi: {ex.Message}";
+            Toast.ShowError(errorMessage);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task HandleDelete()
+    {
+        if (selectedCustomer == null) return;
+
+        isSaving = true;
+        try
+        {
+            var response = await CustomerService.DeleteCustomerAsync(selectedCustomer.Id);
+
+            if (response?.StatusCode == 200)
+            {
+                Toast.ShowSuccess("Xóa khách hàng thành công!");
+                CloseDeleteModal();
+                await LoadCustomers(pagination?.CurrentPage ?? 1);
+            }
+            else
+            {
+                Toast.ShowError(response?.Message ?? "Có lỗi xảy ra");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Lỗi: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+            return $"{parts[0][0]}{parts[^1][0]}".ToUpper();
+        return name[0].ToString().ToUpper();
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status?.ToUpper() switch
+        {
+            "ACTIVE" => "bg-success",
+            "PENDING" => "bg-warning text-dark",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetStatusDisplay(string status)
+    {
+        return status?.ToUpper() switch
+        {
+            "ACTIVE" => "Hoạt động",
+            "PENDING" => "Khóa",
+            _ => "Không xác định"
+        };
+    }
+
+    public class CustomerFormData
+    {
+        [Required(ErrorMessage = "Tên khách hàng là bắt buộc")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Tên phải từ 2-100 ký tự")]
+        public string Name { get; set; } = "";
+        
+        [Required(ErrorMessage = "Số điện thoại là bắt buộc")]
+        [RegularExpression(@"^(0|\+84)(3|5|7|8|9)\d{8}$", ErrorMessage = "Số điện thoại không hợp lệ (VD: 0909000001 hoặc +84909000001)")]
+        public string? Phone { get; set; }
+        
+        [Required(ErrorMessage = "Email là bắt buộc")]
+        [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
+        [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", ErrorMessage = "Email phải có dạng: example@domain.com")]
+        public string? Email { get; set; }
+        
+        [Required(ErrorMessage = "Địa chỉ là bắt buộc")]
+        [StringLength(500, MinimumLength = 10, ErrorMessage = "Địa chỉ phải từ 10-500 ký tự")]
+        public string? Address { get; set; }
+        
+        [Required(ErrorMessage = "Trạng thái là bắt buộc")]
+        public string Status { get; set; } = "ACTIVE";
+    }
+}

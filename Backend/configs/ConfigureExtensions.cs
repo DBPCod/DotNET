@@ -44,7 +44,7 @@ public class ConfigureExtensions
         // Services
         builder.Services.AddScoped<AuthService>();
         builder.Services.AddScoped<CategoryService>();
-    builder.Services.AddScoped<Backend.Services.CustomerAppService>();
+        builder.Services.AddScoped<Backend.Services.Apis.CustomerService>();
         builder.Services.AddScoped<InventoryService>();
         builder.Services.AddScoped<OrderService>();
         builder.Services.AddScoped<OrderItemService>();
@@ -118,6 +118,7 @@ public class ConfigureExtensions
             .AddJsonOptions(options =>
             {
                 options.JsonSerializerOptions.Converters.Add(new JsonNullEmptyIgnoreConverter());
+                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
                 options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
             });
     }

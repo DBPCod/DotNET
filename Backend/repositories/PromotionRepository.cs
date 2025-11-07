@@ -53,19 +53,47 @@ public class PromotionRepository(AppDbContext context)
             // Filter by status
             if (!string.IsNullOrEmpty(status))
             {
-                query = query.Where(p => p.Status == status);
+                var statusEnum = (status.ToLower()) switch
+                {
+                    "active" => PromotionStatus.Active,
+                    "inactive" => PromotionStatus.Inactive,
+                    _ => (PromotionStatus?)null
+                };
+                if (statusEnum.HasValue)
+                {
+                    query = query.Where(p => p.Status == statusEnum.Value);
+                }
             }
 
             // Filter by discount type
             if (!string.IsNullOrEmpty(discountType))
             {
-                query = query.Where(p => p.DiscountType == discountType);
+                var discountEnum = (discountType.ToLower()) switch
+                {
+                    "percent" => DiscountType.Percent,
+                    "fixed" => DiscountType.Fixed,
+                    "free_shipping" => DiscountType.FreeShipping,
+                    _ => (DiscountType?)null
+                };
+                if (discountEnum.HasValue)
+                {
+                    query = query.Where(p => p.DiscountType == discountEnum.Value);
+                }
             }
 
             // Filter by promotion type
             if (!string.IsNullOrEmpty(promotionType))
             {
-                query = query.Where(p => p.PromotionType == promotionType);
+                var promoTypeEnum = (promotionType.ToLower()) switch
+                {
+                    "promotion" => PromotionType.Promotion,
+                    "discount_code" => PromotionType.DiscountCode,
+                    _ => (PromotionType?)null
+                };
+                if (promoTypeEnum.HasValue)
+                {
+                    query = query.Where(p => p.PromotionType == promoTypeEnum.Value);
+                }
             }
 
             // Filter by date range
@@ -131,8 +159,9 @@ public class PromotionRepository(AppDbContext context)
             if (promotion == null)
                 return false;
 
-            promotion.Status = "inactive";
-            _context.Promotion.Update(promotion);
+            promotion.Status = PromotionStatus.Inactive;
+            // Entity đang được tracking; chỉ đổi Status và lưu, tránh cập nhật các cột khác
+            _context.Entry(promotion).Property(p => p.Status).IsModified = true;
             await _context.SaveChangesAsync();
             return true;
         }

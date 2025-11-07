@@ -26,7 +26,8 @@ builder.Services.AddScoped(sp => {
 // Đăng ký UserService
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<AuthService>();
-builder.Services.AddBlazoredToast();
+builder.Services.AddScoped<CategoryService>();
+builder.Services.AddScoped<CustomerService>();
 builder.Services.AddScoped<PromotionService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<CategoryService>();
