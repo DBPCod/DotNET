@@ -1,4 +1,5 @@
 @page "/admin/orders"
+@using Frontend.Models.Customer
 @using Frontend.Models.Product
 @using Frontend.Services
 @using Frontend.Models.Order.Responses
@@ -17,6 +18,7 @@
 @inject OrderService OrderService
 @inject OrderItemService OrderItemService
 @inject CustomerService CustomerService
+@inject ProductService ProductService
 @inject IJSRuntime JSRuntime
 @inject Blazored.Toast.Services.IToastService Toast  // Giả sử dùng Blazored.Toast cho notification
 @layout AdminLayout
@@ -276,6 +278,14 @@
                                             <input type="text" class="form-control" @bind="customerSearchTerm" @oninput="OnCustomerSearchChanged" placeholder="Tìm kiếm theo tên khách hàng..." />
                                             <i class="bi bi-search position-absolute top-50 end-0 translate-middle-y me-3 text-muted"></i>
                                         </div>
+                                        @if (isLoadingCustomers)
+                                        {
+                                            <div class="text-center py-2">
+                                                <div class="spinner-border spinner-border-sm" role="status">
+                                                    <span class="visually-hidden">Đang tải...</span>
+                                                </div>
+                                            </div>
+                                        }
                                         @if (filteredCustomers.Any())
                                         {
                                             <ul class="list-group position-absolute w-100 mt-1" style="z-index: 1050; max-height: 200px; overflow-y: auto;">
@@ -283,10 +293,10 @@
                                                 {
                                                     <li class="list-group-item list-group-item-action" @onclick="() => SelectCustomer(cust)">
                                                         <div class="d-flex w-100 justify-content-between">
-                                                            <h6 class="mb-1">@cust.Customer.Name</h6>
-                                                            <small class="text-muted">@cust.Customer.CustomerId</small>
+                                                            <h6 class="mb-1">@cust.Name</h6>
+                                                            <small class="text-muted">@cust.Id</small>
                                                         </div>
-                                                        <p class="mb-1 text-muted small">@cust.Customer.Email</p>
+                                                        <p class="mb-1 text-muted small">@cust.Email</p>
                                                     </li>
                                                 }
                                             </ul>
@@ -294,7 +304,7 @@
                                         <ValidationMessage For="@(() => createOrderForm.CustomerId)" class="text-danger" />
                                         @if (selectedCustomerForCreate != null)
                                         {
-                                            <small class="text-success">Đã chọn: @selectedCustomerForCreate.Customer.Name</small>
+                                            <small class="text-success">Đã chọn: @selectedCustomerForCreate.Name</small>
                                         }
                                     </div>
                                     <div class="mb-3">
@@ -348,7 +358,16 @@
                                             </button>
                                         </div>
                                     </div>
-                                    @if (availableProducts.Any())
+                                    @if (isLoadingProducts)
+                                    {
+                                        <div class="text-center py-3">
+                                            <div class="spinner-border" role="status">
+                                                <span class="visually-hidden">Đang tải...</span>
+                                            </div>
+                                            <p class="mt-2 text-muted">Đang tải danh sách sản phẩm...</p>
+                                        </div>
+                                    }
+                                    else if (availableProducts.Any())
                                     {
                                         <div class="table-responsive mb-3">
                                             <div class="product-scroll-container" style="max-height: 140px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 8px;">
@@ -376,6 +395,13 @@
                                                     </tbody>
                                                 </table>
                                             </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-center py-4">
+                                            <i class="bi bi-inbox display-4 text-muted"></i>
+                                            <p class="text-muted">Hiện tại chưa có sản phẩm.</p>
                                         </div>
                                     }
                                 </div>
@@ -600,8 +626,8 @@
     private bool isCreatingOrder = false;
     private string createErrorMessage = string.Empty;
     private string customerSearchTerm = string.Empty;
-    private List<CustomerDetailResponse> filteredCustomers = new();  // Mock data
-    private CustomerDetailResponse? selectedCustomerForCreate;
+    private List<CustomerDto> filteredCustomers = new();  // Thay đổi từ CustomerDetailResponse sang CustomerDto để phù hợp với API
+    private CustomerDto? selectedCustomerForCreate;
     private string currentUserId = "user-123";  // Mock UserId
     private string userName = "";  // Thêm mới: Tên người dùng để hiển thị
     private string productSearchTerm = string.Empty;
@@ -611,6 +637,9 @@
     private decimal subTotal = 0;
     private decimal totalAmount = 0;
     private string selectedPromotionId = string.Empty;  // Thêm mới: ID của promotion được chọn
+    private bool isLoadingCustomers = false;  // Thêm mới: Loading state cho search khách hàng
+    private System.Threading.Timer? _customerDebounceTimer;
+    private System.Threading.Timer? _productDebounceTimer;
 
     // Form model for create order
     private CreateOrderForm createOrderForm = new();
@@ -849,6 +878,8 @@
             cts.Dispose();
         }
         _debounceTimer?.Dispose();
+        _customerDebounceTimer?.Dispose();
+        _productDebounceTimer?.Dispose();
     }
 
     private async Task ViewOrder(Guid id)
@@ -947,6 +978,8 @@
     // New methods for create order (UI demo - mock)
     private void ShowCreateOrderModal()
     {
+        _customerDebounceTimer?.Dispose();
+        _productDebounceTimer?.Dispose();
         showCreateOrderModal = true;
         createErrorMessage = string.Empty;
         customerSearchTerm = string.Empty;
@@ -960,11 +993,15 @@
         createOrderForm.DiscountAmount = 0;  // Reset discount
         subTotal = 0;
         totalAmount = 0;
+        isLoadingCustomers = false;
+        isLoadingProducts = false;
         StateHasChanged();
     }
 
     private void CloseCreateOrderModal()
     {
+        _customerDebounceTimer?.Dispose();
+        _productDebounceTimer?.Dispose();
         showCreateOrderModal = false;
     }
 
@@ -974,18 +1011,64 @@
         if (string.IsNullOrWhiteSpace(customerSearchTerm))
         {
             filteredCustomers.Clear();
+            selectedCustomerForCreate = null;
+            createOrderForm.CustomerId = string.Empty;
+            StateHasChanged();
             return;
         }
-        // Mock data cho demo (thay vì gọi API)
-        filteredCustomers = MockCustomers.Where(c => c.Customer.Name.Contains(customerSearchTerm, StringComparison.OrdinalIgnoreCase)).Take(5).ToList();
-        StateHasChanged();
+
+        _customerDebounceTimer?.Dispose();
+        _customerDebounceTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await LoadFilteredCustomers();
+            });
+        }, null, TimeSpan.FromMilliseconds(300), Timeout.InfiniteTimeSpan);
     }
 
-    private void SelectCustomer(CustomerDetailResponse customer)
+    private async Task LoadFilteredCustomers()
+    {
+        isLoadingCustomers = true;
+        StateHasChanged();
+
+        try
+        {
+            // Gọi API để lấy danh sách khách hàng với tìm kiếm
+            var response = await CustomerService.GetCustomersAsync(
+                page: 1,
+                pageSize: 20,  // Giới hạn số lượng để phù hợp với dropdown
+                q: customerSearchTerm
+            );
+
+            if (response?.StatusCode == 200 && response.Data?.Customers != null)
+            {
+                filteredCustomers = response.Data.Customers;
+            }
+            else
+            {
+                filteredCustomers.Clear();
+                Toast.ShowWarning("Không tìm thấy khách hàng nào phù hợp.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error searching customers: {ex.Message}");
+            filteredCustomers.Clear();
+            Toast.ShowError("Lỗi khi tìm kiếm khách hàng.");
+        }
+        finally
+        {
+            isLoadingCustomers = false;
+            StateHasChanged();
+        }
+    }
+
+    private void SelectCustomer(CustomerDto customer)
     {
         selectedCustomerForCreate = customer;
-        createOrderForm.CustomerId = customer.Customer.CustomerId;
-        customerSearchTerm = customer.Customer.Name;
+        createOrderForm.CustomerId = customer.Id;
+        customerSearchTerm = customer.Name;
         filteredCustomers.Clear();
         StateHasChanged();
     }
@@ -993,18 +1076,53 @@
     private async Task OnProductSearchChanged(ChangeEventArgs e)
     {
         productSearchTerm = e.Value?.ToString() ?? string.Empty;
-        // Mock load sau debounce ngắn
-        await Task.Delay(300);  // Simulate debounce
-        LoadProducts();
+
+        _productDebounceTimer?.Dispose();
+        _productDebounceTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await LoadProducts();
+            });
+        }, null, TimeSpan.FromMilliseconds(300), Timeout.InfiniteTimeSpan);
     }
 
-    private void LoadProducts()
+    private async Task LoadProducts()
     {
         isLoadingProducts = true;
-        // Mock data cho demo, giới hạn 3 sản phẩm
-        availableProducts = MockProducts.Where(p => string.IsNullOrEmpty(productSearchTerm) || p.ProductName.Contains(productSearchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
-        isLoadingProducts = false;
+        availableProducts.Clear();  // Clear ngay để tránh hiển thị dữ liệu cũ trong khi loading
         StateHasChanged();
+
+        try
+        {
+            // Gọi API để lấy danh sách sản phẩm với tìm kiếm
+            var response = await ProductService.GetProductsAsync(
+                page: 1,
+                pageSize: 20,  // Giới hạn số lượng để phù hợp với dropdown
+                searchQuery: productSearchTerm
+            );
+
+            if (response?.StatusCode == 200 && response.Data?.Products != null)
+            {
+                availableProducts = response.Data.Products;
+            }
+            else
+            {
+                availableProducts.Clear();
+                // Không show Toast nữa, để UI xử lý hiển thị thông báo
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading products: {ex.Message}");
+            availableProducts.Clear();
+            Toast.ShowError("Lỗi khi tìm kiếm sản phẩm.");
+        }
+        finally
+        {
+            isLoadingProducts = false;
+            StateHasChanged();
+        }
     }
 
     private void AddToCart(ProductDto product)
@@ -1091,29 +1209,6 @@
             StateHasChanged();
         }
     }
-
-    // Mock data for demo
-    private List<CustomerDetailResponse> MockCustomers = new()
-    {
-        new CustomerDetailResponse { Customer = new() { Name = "Nguyễn Văn A", Email = "a@example.com", CustomerId = "cust-001" } },
-        new CustomerDetailResponse { Customer = new() { Name = "Trần Thị B", Email = "b@example.com", CustomerId = "cust-002" } },
-        new CustomerDetailResponse { Customer = new() { Name = "Lê Văn C", Email = "c@example.com", CustomerId = "cust-003" } },
-        // Add more if needed
-    };
-
-    private List<ProductDto> MockProducts = new()
-    {
-        new ProductDto { Id = "prod-001", ProductName = "Sản phẩm 1", Price = 100000 },
-        new ProductDto { Id = "prod-002", ProductName = "Sản phẩm 2", Price = 200000 },
-        new ProductDto { Id = "prod-003", ProductName = "Sản phẩm 3", Price = 150000 },
-        new ProductDto { Id = "prod-004", ProductName = "Sản phẩm 4", Price = 150000 },
-        new ProductDto { Id = "prod-005", ProductName = "Sản phẩm 5", Price = 150000 },
-        new ProductDto { Id = "prod-006", ProductName = "Sản phẩm 6", Price = 150000 },
-        new ProductDto { Id = "prod-007", ProductName = "Sản phẩm 7", Price = 150000 },
-        new ProductDto { Id = "prod-007", ProductName = "Sản phẩm 7", Price = 150000 },
-        new ProductDto { Id = "prod-007", ProductName = "Sản phẩm 7", Price = 150000 },
-        // Add more if needed
-    };
 
     private List<PromotionDto> MockPromotions = new()
     {
