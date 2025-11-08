@@ -1,15 +1,24 @@
 @page "/admin/orders"
+@using Frontend.Models.Product
 @using Frontend.Services
 @using Frontend.Models.Order.Responses
 @using Frontend.Models.Common
 @using Frontend.Models
 @using Frontend.Models.Customer.Responses
 @using Frontend.Models.OrderItem.Responses 
-@using System.Threading  // Thêm using cho Timer
+@* @using Frontend.Models.Order.Requests  // Giả sử có namespace cho CreateOrderRequest *@
+@using Frontend.Models.Product.Responses  // Giả sử có ProductDto
+@* @using Microsoft.AspNetCore.Components.Authorization *@
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Threading  
+@using System.Text.Json
+@using System.Collections.Generic
 @inject OrderService OrderService
 @inject OrderItemService OrderItemService
 @inject CustomerService CustomerService
 @inject IJSRuntime JSRuntime
+@inject Blazored.Toast.Services.IToastService Toast  // Giả sử dùng Blazored.Toast cho notification
 @layout AdminLayout
 @implements IAsyncDisposable
 
@@ -24,7 +33,7 @@
                 <button class="btn btn-outline-success me-2" @onclick="ExportReport">
                     <i class="bi bi-download"></i> Xuất báo cáo
                 </button>
-                <button class="btn btn-primary" @onclick="CreateOrder">
+                <button class="btn btn-primary" @onclick="ShowCreateOrderModal">
                     <i class="bi bi-plus"></i> Tạo đơn hàng
                 </button>
             </div>
@@ -133,7 +142,7 @@
                     </div>
                 }
                 
-                @if (pagination != null)
+                @if (pagination != null && orders.Any())
                 {
                     <nav aria-label="Page navigation">
                         <ul class="pagination justify-content-center">
@@ -156,7 +165,7 @@
         </div>
     </div>
 
-    <!-- Modal hiển thị chi tiết Order Items (thêm mới) -->
+    <!-- Modal hiển thị chi tiết Order Items -->
     @if (showModal)
     {
         <div class="modal fade show" tabindex="-1" style="display: block;" role="dialog">
@@ -212,7 +221,7 @@
                             </div>
                         }
                     </div>
-                    @if (orderPagination != null)
+                    @if (orderPagination != null && orderItems.Any())
                     {
                         <div class="modal-footer">
                             <nav aria-label="Order items pagination">
@@ -240,6 +249,193 @@
                             <button type="button" class="btn btn-secondary" @onclick="CloseModal">Đóng</button>
                         </div>
                     }
+                </div>
+            </div>
+        </div>
+        <div class="modal-backdrop fade show"></div>
+    }
+
+    <!-- Modal Tạo đơn hàng mới (UI demo - mock data) -->
+    @if (showCreateOrderModal)
+    {
+        <div class="modal fade show" tabindex="-1" style="display: block;" role="dialog">
+            <div class="modal-dialog modal-xl" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title">Tạo đơn hàng mới</h2>
+                        <button type="button" class="btn-close" @onclick="CloseCreateOrderModal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <EditForm Model="createOrderForm" OnValidSubmit="HandleCreateOrderSubmit">
+                            <DataAnnotationsValidator />
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Khách hàng <span class="text-danger">*</span></label>
+                                        <div class="position-relative">
+                                            <input type="text" class="form-control" @bind="customerSearchTerm" @oninput="OnCustomerSearchChanged" placeholder="Tìm kiếm theo tên khách hàng..." />
+                                            <i class="bi bi-search position-absolute top-50 end-0 translate-middle-y me-3 text-muted"></i>
+                                        </div>
+                                        @if (filteredCustomers.Any())
+                                        {
+                                            <ul class="list-group position-absolute w-100 mt-1" style="z-index: 1050; max-height: 200px; overflow-y: auto;">
+                                                @foreach (var cust in filteredCustomers)
+                                                {
+                                                    <li class="list-group-item list-group-item-action" @onclick="() => SelectCustomer(cust)">
+                                                        <div class="d-flex w-100 justify-content-between">
+                                                            <h6 class="mb-1">@cust.Customer.Name</h6>
+                                                            <small class="text-muted">@cust.Customer.CustomerId</small>
+                                                        </div>
+                                                        <p class="mb-1 text-muted small">@cust.Customer.Email</p>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        }
+                                        <ValidationMessage For="@(() => createOrderForm.CustomerId)" class="text-danger" />
+                                        @if (selectedCustomerForCreate != null)
+                                        {
+                                            <small class="text-success">Đã chọn: @selectedCustomerForCreate.Customer.Name</small>
+                                        }
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Nhân viên tạo (UserId)</label>
+                                        <input type="text" class="form-control" value="@userName" readonly />
+                                        <small class="text-muted">Tự động lấy theo người dùng đang đăng nhập</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Khuyến mãi <span class="text-danger">*</span></label>
+                                        <InputSelect @bind-Value="selectedPromotionId" class="form-select" @onchange="OnPromotionChanged">
+                                            <option value="">Không áp dụng</option>
+                                            @foreach (var promo in MockPromotions)
+                                            {
+                                                <option value="@promo.Id">@promo.Name - Giảm @FormatCurrency(promo.DiscountAmount) VND (@promo.Description)</option>
+                                            }
+                                        </InputSelect>
+                                        <small class="text-muted">Chọn phiếu khuyến mãi áp dụng (hiện có @MockPromotions.Count phiếu)</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Tổng tiền (trước giảm)</label>
+                                        <input type="text" class="form-control" value="@FormatCurrency(subTotal) VND" readonly />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Giá tiền được giảm</label>
+                                        <input type="text" class="form-control" value="@FormatCurrency(createOrderForm.DiscountAmount ?? 0) VND" readonly />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Tổng giá tiền (sau giảm)</label>
+                                        <input type="text" class="form-control" value="@FormatCurrency(totalAmount) VND" readonly />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Phần chọn sản phẩm (UI demo - mock data) -->
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h6>Chọn sản phẩm</h6>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <input type="text" class="form-control" @bind="productSearchTerm" @oninput="OnProductSearchChanged" placeholder="Tìm kiếm sản phẩm theo tên hoặc ID..." />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <button class="btn btn-outline-primary" @onclick="LoadProducts" disabled="@isLoadingProducts">
+                                                @if (isLoadingProducts)
+                                                {
+                                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                                }
+                                                Tải danh sách sản phẩm
+                                            </button>
+                                        </div>
+                                    </div>
+                                    @if (availableProducts.Any())
+                                    {
+                                        <div class="table-responsive mb-3" style="max-height: 300px; overflow-y: auto;">
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Sản phẩm</th>
+                                                        <th>Giá</th>
+                                                        <th>Thêm vào giỏ</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var product in availableProducts)
+                                                    {
+                                                        <tr>
+                                                            <td>@product.ProductName (ID: @product.Id)</td>
+                                                            <td>@FormatCurrency(product.Price) VND</td>
+                                                            <td>
+                                                                <button class="btn btn-sm btn-success" @onclick="() => AddToCart(product)">
+                                                                    <i class="bi bi-plus-circle"></i> Thêm
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Giỏ hàng (Cart) -->
+                            <h6>Giỏ hàng (@cartItems.Count sản phẩm)</h6>
+                            @if (cartItems.Any())
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Sản phẩm</th>
+                                                <th>Số lượng</th>
+                                                <th>Đơn giá</th>
+                                                <th>Thành tiền</th>
+                                                <th>Hành động</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var item in cartItems)
+                                            {
+                                                <tr>
+                                                    <td>@item.ProductName (ID: @item.ProductId)</td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm" style="width: 120px;">
+                                                            <button class="btn btn-outline-secondary" @onclick="() => UpdateQuantity(item, -1)">-</button>
+                                                            <input type="number" class="form-control text-center" @bind="item.Quantity" min="1" @oninput="UpdateTotals" />
+                                                            <button class="btn btn-outline-secondary" @onclick="() => UpdateQuantity(item, 1)">+</button>
+                                                        </div>
+                                                    </td>
+                                                    <td>@FormatCurrency(item.Price) VND</td>
+                                                    <td>@FormatCurrency(item.Subtotal) VND</td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-danger" @onclick="() => RemoveFromCart(item)">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted">Giỏ hàng trống. Hãy thêm sản phẩm từ danh sách trên.</p>
+                            }
+
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" @onclick="CloseCreateOrderModal" disabled="@isCreatingOrder">Hủy</button>
+                                <button type="submit" class="btn btn-primary" disabled="@(!cartItems.Any() || isCreatingOrder)">
+                                    @if (isCreatingOrder)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    Tạo đơn hàng
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
                 </div>
             </div>
         </div>
@@ -287,7 +483,7 @@
         margin: 0 2px;
     }
 
-    /* Modal backdrop fix (thêm mới) */
+    /* Modal backdrop fix */
     .modal-backdrop {
         position: fixed;
         top: 0;
@@ -301,9 +497,21 @@
     .modal-backdrop.fade {
         opacity: 0.5;
     }
+
+    /* Custom styles for create modal */
+    .list-group {
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        z-index: 1051;
+    }
+
+    .list-group-item-action:hover {
+        background-color: #f8f9fa;
+    }
 </style>
 
 @code {
+    // Existing code for orders list...
     private List<OrderDto> orders = new();
     private PaginationInfo? pagination;
     private Dictionary<string, CustomerDetailResponse?> customerMap = new();
@@ -312,14 +520,14 @@
     private bool isLoading = true;
     private bool allCheckboxesSelected = false;
     private CancellationTokenSource? cts;
-    private System.Threading.Timer? _debounceTimer;  // Thêm mới: Timer cho debounce search
+    private System.Threading.Timer? _debounceTimer;
 
-    // Backing fields for filters with auto-load on change
+    // Backing fields for filters
     private string? _statusFilter;
     private DateTime? _fromDate;
     private DateTime? _toDate;
 
-    // Modal and Order Items state (thêm mới)
+    // Modal and Order Items state
     private bool showModal = false;
     private List<OrderItemDto> orderItems = new();
     private PaginationInfo? orderPagination;
@@ -327,6 +535,27 @@
     private int orderItemCurrentPage = 1;
     private bool isLoadingOrderItems = false;
 
+    // New state for create order modal (UI demo)
+    private bool showCreateOrderModal = false;
+    private bool isCreatingOrder = false;
+    private string createErrorMessage = string.Empty;
+    private string customerSearchTerm = string.Empty;
+    private List<CustomerDetailResponse> filteredCustomers = new();  // Mock data
+    private CustomerDetailResponse? selectedCustomerForCreate;
+    private string currentUserId = "user-123";  // Mock UserId
+    private string userName = "";  // Thêm mới: Tên người dùng để hiển thị
+    private string productSearchTerm = string.Empty;
+    private List<ProductDto> availableProducts = new();  // Mock data
+    private bool isLoadingProducts = false;
+    private List<CartItem> cartItems = new();  // Local cart for order items
+    private decimal subTotal = 0;
+    private decimal totalAmount = 0;
+    private string selectedPromotionId = string.Empty;  // Thêm mới: ID của promotion được chọn
+
+    // Form model for create order
+    private CreateOrderForm createOrderForm = new();
+
+    // Properties for filters...
     public string? StatusFilter
     {
         get => _statusFilter;
@@ -381,11 +610,20 @@
     protected override async Task OnInitializedAsync()
     {
         cts = new CancellationTokenSource();
-        _toDate = DateTime.Today;  // Thêm mới: Set ToDate mặc định là ngày hiện tại
-        StateHasChanged();  // Thêm mới: Update UI để hiển thị giá trị mặc định
+        _toDate = DateTime.Today;
+        // Thêm mới: Lấy dữ liệu từ localStorage
+        var json = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "auth_user");
+        if (!string.IsNullOrEmpty(json))
+        {
+            var user = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+            currentUserId = user["Id"].ToString() ?? "user-123";
+            userName = user["Username"].ToString() ?? "Administrator";
+        }
+        StateHasChanged();
         await LoadOrders();
     }
 
+    // Existing methods: LoadOrders, etc. (giữ nguyên từ code trước)
     private async Task LoadOrders()
     {
         isLoading = true;
@@ -476,33 +714,27 @@
 
     private void EditOrder(Guid id)
     {
-        // Open edit modal or navigate
         Console.WriteLine($"Editing order: {id}");
     }
 
     private void PrintOrder(Guid id)
     {
-        // Implement print
         Console.WriteLine($"Printing order: {id}");
     }
 
     private void ToggleAllCheckboxes(ChangeEventArgs e)
     {
         allCheckboxesSelected = (bool)e.Value;
-        // Có thể thêm logic để toggle tất cả checkbox con nếu cần
         StateHasChanged();
     }
 
-    // Cập nhật: OnSearchChanged với debounce (chờ 500ms trước khi gọi API)
     private async Task OnSearchChanged(ChangeEventArgs e)
     {
         searchTerm = e.Value?.ToString();
         currentPage = 1;
 
-        // Hủy timer cũ nếu có
         _debounceTimer?.Dispose();
 
-        // Tạo timer mới: Sau 500ms, gọi LoadOrders
         _debounceTimer = new System.Threading.Timer(async _ =>
         {
             await InvokeAsync(async () =>
@@ -514,19 +746,11 @@
 
     private void ToggleAdvancedFilters()
     {
-        // Implement advanced filters modal nếu cần
         Console.WriteLine("Advanced filters toggled");
-    }
-
-    private void CreateOrder()
-    {
-        // Navigate to create order page
-        Console.WriteLine("Creating new order");
     }
 
     private void ExportReport()
     {
-        // Implement export logic
         Console.WriteLine("Exporting report");
     }
 
@@ -554,7 +778,7 @@
 
     private string FormatCurrency(decimal amount)
     {
-        return amount.ToString("N0"); // Format số với dấu phẩy, ví dụ: 12,000
+        return amount.ToString("N0");
     }
 
     public async ValueTask DisposeAsync()
@@ -564,35 +788,32 @@
             await Task.Run(() => cts.Cancel());
             cts.Dispose();
         }
-        _debounceTimer?.Dispose();  // Thêm mới: Dispose timer khi dispose component
+        _debounceTimer?.Dispose();
     }
 
     private async Task ViewOrder(Guid id)
     {
-        selectedOrderId = id;  // Thêm mới: Set selected order ID
+        selectedOrderId = id;
         orderItemCurrentPage = 1;
-        showModal = true;  // Thêm mới: Mở modal
-        isLoadingOrderItems = true;  // Thêm mới: Bắt đầu loading
-        StateHasChanged();  // Thêm mới: Update UI ngay
+        showModal = true;
+        isLoadingOrderItems = true;
+        StateHasChanged();
 
         try
         {
             Console.WriteLine($"Calling API to fetch order items for OrderId: {id}");
 
-            // Gọi API với page=1, pageSize=10 (có thể adjust sau)
             var response = await OrderItemService.GetOrderItemsByOrderIdAsync(id, page: 1, pageSize: 10);
 
-            // Log response để test (bạn có thể xem trong browser console hoặc server logs)
             if (response?.StatusCode == 200 && response.Data != null)
             {
-                orderItems = response.Data.orderItems ?? new();  // Thêm mới: Set data (lưu ý: dùng lowercase 'orderItems' nếu model là vậy, dựa trên response trước)
-                orderPagination = response.Data.Pagination;  // Thêm mới: Set pagination (lowercase nếu cần)
+                orderItems = response.Data.orderItems ?? new();
+                orderPagination = response.Data.Pagination;
                 Console.WriteLine($"Success! Fetched {orderItems.Count} order items for {id}.");
-                Console.WriteLine($"Full response: {System.Text.Json.JsonSerializer.Serialize(response, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })}");
             }
             else
             {
-                orderItems = new();  // Thêm mới: Clear nếu error
+                orderItems = new();
                 orderPagination = null;
                 Console.WriteLine($"API returned non-200 status: {response?.StatusCode}. Message: {response?.Message}");
             }
@@ -600,21 +821,16 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Error fetching order items for {id}: {ex.Message}");
-            orderItems = new();  // Thêm mới: Clear nếu exception
+            orderItems = new();
             orderPagination = null;
-            // Có thể thêm toast notification ở đây nếu bạn dùng library như Blazored.Toast
         }
         finally
         {
-            isLoadingOrderItems = false;  // Thêm mới: Kết thúc loading
-            StateHasChanged();  // Thêm mới: Update UI cuối
+            isLoadingOrderItems = false;
+            StateHasChanged();
         }
-
-        // Tạm thời không navigate, chỉ log để test. Sau này uncomment nếu cần:
-        // NavigationManager.NavigateTo($"/admin/orders/{id}");
     }
 
-    // Thêm mới: Methods cho modal và pagination
     private async Task NavigateOrderItemsPage(int page)
     {
         if (page >= 1 && page <= (orderPagination?.TotalPages ?? 1))
@@ -666,5 +882,212 @@
         orderPagination = null;
         isLoadingOrderItems = false;
         StateHasChanged();
+    }
+
+    // New methods for create order (UI demo - mock)
+    private void ShowCreateOrderModal()
+    {
+        showCreateOrderModal = true;
+        createErrorMessage = string.Empty;
+        customerSearchTerm = string.Empty;
+        productSearchTerm = string.Empty;
+        selectedPromotionId = string.Empty;  // Thêm mới: Reset promotion
+        filteredCustomers.Clear();
+        availableProducts.Clear();
+        cartItems.Clear();
+        createOrderForm = new CreateOrderForm();
+        createOrderForm.UserId = currentUserId;
+        createOrderForm.DiscountAmount = 0;  // Reset discount
+        subTotal = 0;
+        totalAmount = 0;
+        StateHasChanged();
+    }
+
+    private void CloseCreateOrderModal()
+    {
+        showCreateOrderModal = false;
+    }
+
+    private async Task OnCustomerSearchChanged(ChangeEventArgs e)
+    {
+        customerSearchTerm = e.Value?.ToString() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(customerSearchTerm))
+        {
+            filteredCustomers.Clear();
+            return;
+        }
+        // Mock data cho demo (thay vì gọi API)
+        filteredCustomers = MockCustomers.Where(c => c.Customer.Name.Contains(customerSearchTerm, StringComparison.OrdinalIgnoreCase)).Take(5).ToList();
+        StateHasChanged();
+    }
+
+    private void SelectCustomer(CustomerDetailResponse customer)
+    {
+        selectedCustomerForCreate = customer;
+        createOrderForm.CustomerId = customer.Customer.CustomerId;
+        customerSearchTerm = customer.Customer.Name;
+        filteredCustomers.Clear();
+        StateHasChanged();
+    }
+
+    private async Task OnProductSearchChanged(ChangeEventArgs e)
+    {
+        productSearchTerm = e.Value?.ToString() ?? string.Empty;
+        // Mock load sau debounce ngắn
+        await Task.Delay(300);  // Simulate debounce
+        LoadProducts();
+    }
+
+    private void LoadProducts()
+    {
+        isLoadingProducts = true;
+        // Mock data cho demo
+        availableProducts = MockProducts.Where(p => p.ProductName.Contains(productSearchTerm, StringComparison.OrdinalIgnoreCase)).Take(10).ToList();
+        isLoadingProducts = false;
+        StateHasChanged();
+    }
+
+    private void AddToCart(ProductDto product)
+    {
+        var existingItem = cartItems.FirstOrDefault(x => x.ProductId == product.Id);
+        if (existingItem != null)
+        {
+            existingItem.Quantity += 1;
+        }
+        else
+        {
+            cartItems.Add(new CartItem
+            {
+                ProductId = product.Id,
+                ProductName = product.ProductName,
+                Price = product.Price,
+                Quantity = 1
+            });
+        }
+        UpdateTotals();
+    }
+
+    private void UpdateQuantity(CartItem item, int delta)
+    {
+        if (item.Quantity + delta >= 1)
+        {
+            item.Quantity += delta;
+            UpdateTotals();
+        }
+        StateHasChanged();
+    }
+
+    private void RemoveFromCart(CartItem item)
+    {
+        cartItems.Remove(item);
+        UpdateTotals();
+        StateHasChanged();
+    }
+
+    private async Task OnPromotionChanged(ChangeEventArgs e)
+    {
+        selectedPromotionId = e.Value?.ToString() ?? string.Empty;
+        var promo = MockPromotions.FirstOrDefault(p => p.Id == selectedPromotionId);
+        createOrderForm.DiscountAmount = promo?.DiscountAmount ?? 0;
+        await UpdateTotals();  // Thêm await nếu cần, nhưng UpdateTotals là sync
+    }
+
+    private Task UpdateTotals()
+    {
+        subTotal = cartItems.Sum(x => x.Price * x.Quantity);
+        var discount = createOrderForm.DiscountAmount ?? 0;
+        totalAmount = subTotal - discount;
+        createOrderForm.TotalAmount = totalAmount;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task HandleCreateOrderSubmit()
+    {
+        if (selectedCustomerForCreate == null || !cartItems.Any())
+        {
+            createErrorMessage = "Vui lòng chọn khách hàng và thêm ít nhất một sản phẩm.";
+            return;
+        }
+
+        isCreatingOrder = true;
+        createErrorMessage = string.Empty;
+
+        try
+        {
+            // Mock submit (simulate API call)
+            await Task.Delay(2000);  // Simulate delay
+            Toast.ShowSuccess("Tạo đơn hàng thành công! (Demo)");
+            CloseCreateOrderModal();
+            await LoadOrders();  // Reload list
+        }
+        catch (Exception ex)
+        {
+            createErrorMessage = $"Lỗi: {ex.Message}";
+        }
+        finally
+        {
+            isCreatingOrder = false;
+            StateHasChanged();
+        }
+    }
+
+    // Mock data for demo
+    private List<CustomerDetailResponse> MockCustomers = new()
+    {
+        new CustomerDetailResponse { Customer = new() { Name = "Nguyễn Văn A", Email = "a@example.com", CustomerId = "cust-001" } },
+        new CustomerDetailResponse { Customer = new() { Name = "Trần Thị B", Email = "b@example.com", CustomerId = "cust-002" } },
+        new CustomerDetailResponse { Customer = new() { Name = "Lê Văn C", Email = "c@example.com", CustomerId = "cust-003" } },
+        // Add more if needed
+    };
+
+    private List<ProductDto> MockProducts = new()
+    {
+        new ProductDto { Id = "prod-001", ProductName = "Sản phẩm 1", Price = 100000 },
+        new ProductDto { Id = "prod-002", ProductName = "Sản phẩm 2", Price = 200000 },
+        new ProductDto { Id = "prod-003", ProductName = "Sản phẩm 3", Price = 150000 },
+        // Add more if needed
+    };
+
+    private List<PromotionDto> MockPromotions = new()
+    {
+        new PromotionDto { Id = "promo-001", Name = "Giảm 10% cho đơn đầu", DiscountAmount = 50000, Description = "Áp dụng cho đơn hàng đầu tiên" },
+        new PromotionDto { Id = "promo-002", Name = "Flash sale cuối tuần", DiscountAmount = 100000, Description = "Giảm giá lớn cho đơn từ 500k" },
+        new PromotionDto { Id = "promo-003", Name = "Mua 1 tặng 1", DiscountAmount = 75000, Description = "Tặng sản phẩm thứ 2 miễn phí" },
+        new PromotionDto { Id = "promo-004", Name = "Khuyến mãi sinh nhật", DiscountAmount = 20000, Description = "Giảm giá nhân dịp sinh nhật" },
+        new PromotionDto { Id = "promo-005", Name = "Đơn hàng lớn", DiscountAmount = 150000, Description = "Giảm cho đơn trên 1 triệu" },
+        // Thêm thêm dữ liệu giá cho combobox khuyến mãi (5 mẫu, có thể mở rộng)
+    };
+
+    // Helper classes
+    public class CreateOrderForm
+    {
+        [Required(ErrorMessage = "Khách hàng là bắt buộc")]
+        public string CustomerId { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "UserId là bắt buộc")]
+        public string UserId { get; set; } = string.Empty;
+
+        public decimal? DiscountAmount { get; set; }
+
+        [Required]
+        public decimal TotalAmount { get; set; }
+    }
+
+    public class CartItem
+    {
+        public string ProductId { get; set; } = string.Empty;
+        public string ProductName { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public int Quantity { get; set; } = 1;
+        public decimal Subtotal => Price * Quantity;
+    }
+
+    public class PromotionDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public decimal DiscountAmount { get; set; }
+        public string Description { get; set; } = string.Empty;  // Thêm mô tả để hiển thị chi tiết hơn
     }
 }
