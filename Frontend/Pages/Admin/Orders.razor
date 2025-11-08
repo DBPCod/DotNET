@@ -8,7 +8,8 @@
 @using Frontend.Models
 @using Frontend.Models.Customer.Responses
 @using Frontend.Models.OrderItem.Responses 
-@* @using Frontend.Models.Order.Requests  // Giả sử có namespace cho CreateOrderRequest *@
+@using Frontend.Models.Order
+@using Frontend.Models.OrderItem
 @using Frontend.Models.Product.Responses  // Giả sử có ProductDto
 @using Frontend.Models.Promotions.Responses
 @* @using Microsoft.AspNetCore.Components.Authorization *@
@@ -273,6 +274,10 @@
                     <div class="modal-body">
                         <EditForm Model="createOrderForm" OnValidSubmit="HandleCreateOrderSubmit">
                             <DataAnnotationsValidator />
+                            @if (!string.IsNullOrEmpty(createErrorMessage))
+                            {
+                                <div class="alert alert-danger">@createErrorMessage</div>
+                            }
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
@@ -434,7 +439,7 @@
                                                         <td>
                                                             <div class="input-group input-group-sm" style="width: 120px;">
                                                                 <button type="button" class="btn btn-outline-secondary" @onclick="() => UpdateQuantity(item, -1)">-</button>
-                                                                <input type="number" class="form-control text-center" @bind="item.Quantity" min="1" @oninput="UpdateTotals" />
+                                                                <input type="number" class="form-control text-center" @bind="item.Quantity" min="1" max="999" @oninput="() => { if (item.Quantity < 1) { item.Quantity = 1; } UpdateTotals(); }" />
                                                                 <button type="button" class="btn btn-outline-secondary" @onclick="() => UpdateQuantity(item, 1)">+</button>
                                                             </div>
                                                         </td>
@@ -631,7 +636,7 @@
     private string customerSearchTerm = string.Empty;
     private List<CustomerDto> filteredCustomers = new();  // Thay đổi từ CustomerDetailResponse sang CustomerDto để phù hợp với API
     private CustomerDto? selectedCustomerForCreate;
-    private string currentUserId = "user-123";  // Mock UserId
+    private Guid currentUserId = Guid.NewGuid();  // Mock UserId, sẽ parse từ localStorage
     private string userName = "";  // Thêm mới: Tên người dùng để hiển thị
     private string productSearchTerm = string.Empty;
     private List<ProductDto> availableProducts = new();  // Mock data
@@ -733,9 +738,11 @@
         if (!string.IsNullOrEmpty(json))
         {
             var user = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
-            currentUserId = user["Id"].ToString() ?? "user-123";
+            var userIdStr = user["Id"].ToString() ?? "00000000-0000-0000-0000-000000000000";
+            currentUserId = Guid.Parse(userIdStr);
             userName = user["Username"].ToString() ?? "Administrator";
         }
+        createOrderForm.UserId = currentUserId;
         StateHasChanged();
         await LoadOrders();
     }
@@ -1063,7 +1070,7 @@
         {
             filteredCustomers.Clear();
             selectedCustomerForCreate = null;
-            createOrderForm.CustomerId = string.Empty;
+            createOrderForm.CustomerId = Guid.Empty;
             StateHasChanged();
             return;
         }
@@ -1118,7 +1125,7 @@
     private void SelectCustomer(CustomerDto customer)
     {
         selectedCustomerForCreate = customer;
-        createOrderForm.CustomerId = customer.Id;
+        createOrderForm.CustomerId = Guid.Parse(customer.Id);
         customerSearchTerm = customer.Name;
         filteredCustomers.Clear();
         StateHasChanged();
@@ -1178,7 +1185,7 @@
 
     private void AddToCart(ProductDto product)
     {
-        var existingItem = cartItems.FirstOrDefault(x => x.ProductId == product.Id);
+        var existingItem = cartItems.FirstOrDefault(x => x.ProductId == Guid.Parse(product.Id));
         if (existingItem != null)
         {
             existingItem.Quantity += 1;
@@ -1187,7 +1194,7 @@
         {
             cartItems.Add(new CartItem
             {
-                ProductId = product.Id,
+                ProductId = Guid.Parse(product.Id),
                 ProductName = product.ProductName,
                 Price = product.Price,
                 Quantity = 1
@@ -1198,11 +1205,13 @@
 
     private void UpdateQuantity(CartItem item, int delta)
     {
-        if (item.Quantity + delta >= 1)
+        var newQuantity = item.Quantity + delta;
+        if (newQuantity >= 1)  // Strict >=1, không cho phép =0
         {
-            item.Quantity += delta;
+            item.Quantity = newQuantity;
             UpdateTotals();
         }
+        // Thêm: Disable +/- nếu cần, nhưng UI sẽ handle qua min=1 trên input
         StateHasChanged();
     }
 
@@ -1228,23 +1237,82 @@
         if (selectedCustomerForCreate == null || !cartItems.Any())
         {
             createErrorMessage = "Vui lòng chọn khách hàng và thêm ít nhất một sản phẩm.";
+            StateHasChanged();
+            return;
+        }
+
+        // THÊM MỚI: Validation quantity cho tất cả items
+        var invalidItems = cartItems.Where(i => i.Quantity <= 0).ToList();
+        if (invalidItems.Any())
+        {
+            createErrorMessage = $"Các sản phẩm sau có số lượng không hợp lệ (phải >=1): {string.Join(", ", invalidItems.Select(i => i.ProductName))}";
+            Toast.ShowWarning(createErrorMessage);
+            StateHasChanged();
             return;
         }
 
         isCreatingOrder = true;
         createErrorMessage = string.Empty;
+        StateHasChanged();
 
         try
         {
-            // Mock submit (simulate API call)
-            await Task.Delay(2000);  // Simulate delay
-            Toast.ShowSuccess("Tạo đơn hàng thành công! (Demo)");
+            // Bước 1: Tạo Order
+            var orderRequest = new CreateOrderRequest
+            {
+                CustomerId = createOrderForm.CustomerId,
+                UserId = createOrderForm.UserId,
+                PromoId = string.IsNullOrEmpty(SelectedPromotionId) ? null : Guid.Parse(SelectedPromotionId),
+                TotalAmount = totalAmount,
+                DiscountAmount = createOrderForm.DiscountAmount ?? 0
+            };
+
+            var orderResponse = await OrderService.CreateOrderAsync(orderRequest);
+
+            if (orderResponse?.StatusCode != 200 && orderResponse.StatusCode != 201 || orderResponse.Data == null)
+            {
+                createErrorMessage = $"Lỗi tạo đơn hàng: {orderResponse?.Message ?? "Unknown error"}";
+                Toast.ShowError(createErrorMessage);
+                return;
+            }
+
+            var newOrderId = orderResponse.Data.order.Id; // Giả sử OrderDetailResponse có property Id là Guid
+
+            // Bước 2: Tạo Order Items
+            var items = cartItems.Select(item => new OrderItemInput
+            {
+                ProductId = item.ProductId,
+                Quantity = item.Quantity  // Đảm bảo >0 từ validation
+            }).ToList();
+        
+            var itemsRequest = new CreateOrderItemsRequest
+            {
+                OrderId = Guid.Parse(newOrderId),
+                Items = items
+            };
+
+            var itemsResponse = await OrderItemService.CreateOrderItemsAsync(itemsRequest);
+
+            Console.WriteLine(itemsResponse);
+            if (itemsResponse?.StatusCode != 200 && itemsResponse.StatusCode != 201 || itemsResponse.Data == null)
+            {
+                // THÊM MỚI: Log chi tiết để debug
+                Console.WriteLine($"OrderItems fail: Status={itemsResponse?.StatusCode}, Message={itemsResponse?.Message}");
+                createErrorMessage = $"Lỗi tạo chi tiết đơn hàng: {itemsResponse?.Message ?? "Unknown error"}";
+                Toast.ShowError(createErrorMessage);
+                // Optional: Rollback order nếu cần (gọi API delete order)
+                return;
+            }
+
+            Toast.ShowSuccess($"Tạo đơn hàng thành công! Mã đơn: #{newOrderId.ToString().Substring(newOrderId.ToString().Length - 8).ToUpper()}");
             CloseCreateOrderModal();
             await LoadOrders();  // Reload list
         }
         catch (Exception ex)
         {
             createErrorMessage = $"Lỗi: {ex.Message}";
+            Toast.ShowError(createErrorMessage);
+            Console.WriteLine($"Full exception: {ex}");  // Log stack trace
         }
         finally
         {
@@ -1257,10 +1325,10 @@
     public class CreateOrderForm
     {
         [Required(ErrorMessage = "Khách hàng là bắt buộc")]
-        public string CustomerId { get; set; } = string.Empty;
+        public Guid CustomerId { get; set; }
 
         [Required(ErrorMessage = "UserId là bắt buộc")]
-        public string UserId { get; set; } = string.Empty;
+        public Guid UserId { get; set; }
 
         public decimal? DiscountAmount { get; set; }
 
@@ -1270,7 +1338,7 @@
 
     public class CartItem
     {
-        public string ProductId { get; set; } = string.Empty;
+        public Guid ProductId { get; set; }
         public string ProductName { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public int Quantity { get; set; } = 1;

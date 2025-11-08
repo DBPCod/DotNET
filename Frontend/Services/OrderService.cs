@@ -1,6 +1,8 @@
 using System.Net.Http.Json;
 using Frontend.Models.Common;
 using Frontend.Models.Order.Responses;
+using Frontend.Models.Order; // Assuming CreateOrderRequest is in this namespace
+
 namespace Frontend.Services;
 
 public class OrderService
@@ -55,6 +57,38 @@ public class OrderService
         }
     }
 
+    // POST - Tạo order mới (Gửi JSON)
+    public async Task<ApiResponse<OrderDetailResponse>?> CreateOrderAsync(CreateOrderRequest request)
+    {
+        try
+        {
+            Console.WriteLine("Creating new order...");
+            var response = await _httpClient.PostAsJsonAsync(BaseUrl, request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error response: {errorContent}");
+                return new ApiResponse<OrderDetailResponse>
+                {
+                    Message = $"HTTP {response.StatusCode}: {errorContent}",
+                    StatusCode = (int)response.StatusCode
+                };
+            }
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<OrderDetailResponse>>();
+            Console.WriteLine("Order created successfully.");
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error creating order: {ex.Message}");
+            return new ApiResponse<OrderDetailResponse> 
+            { 
+                Message = ex.Message, 
+                StatusCode = 500 
+            };
+        }
+    }
+
     // GET - Lấy order theo ID
     // public async Task<ApiResponse<OrderDetailResponse>?> GetOrderByIdAsync(Guid id)
     // {
@@ -66,26 +100,6 @@ public class OrderService
     //     catch (Exception ex)
     //     {
     //         Console.WriteLine($"Error getting order: {ex.Message}");
-    //         return new ApiResponse<OrderDetailResponse> 
-    //         { 
-    //             Message = ex.Message, 
-    //             StatusCode = 500 
-    //         };
-    //     }
-    // }
-
-    // POST - Tạo order mới (Gửi JSON)
-    // public async Task<ApiResponse<OrderDetailResponse>?> CreateOrderAsync(CreateOrderRequest request)
-    // {
-    //     try
-    //     {
-    //         var response = await _httpClient.PostAsJsonAsync(BaseUrl, request);
-    //         var result = await response.Content.ReadFromJsonAsync<ApiResponse<OrderDetailResponse>>();
-    //         return result;
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Console.WriteLine($"Error creating order: {ex.Message}");
     //         return new ApiResponse<OrderDetailResponse> 
     //         { 
     //             Message = ex.Message, 

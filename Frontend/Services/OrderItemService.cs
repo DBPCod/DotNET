@@ -2,6 +2,8 @@ using System.Net.Http.Json;
 using Frontend.Models.Common;
 using Frontend.Models;
 using Frontend.Models.OrderItem.Responses;
+using Frontend.Models.OrderItem; // Assuming CreateOrderItemsRequest and OrderItemInput are in this namespace
+
 namespace Frontend.Services;
 
 public class OrderItemService
@@ -68,21 +70,34 @@ public class OrderItemService
     }
 
     // POST - Tạo order items mới
-    // public async Task<ApiResponse<List<OrderItemDto>>?> CreateOrderItemsAsync(CreateOrderItemsRequest request)
-    // {
-    //     try
-    //     {
-    //         var response = await _httpClient.PostAsJsonAsync(BaseUrl, request);
-    //         return await response.Content.ReadFromJsonAsync<ApiResponse<List<OrderItemDto>>>();
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Console.WriteLine($"Error creating order items: {ex.Message}");
-    //         return new ApiResponse<List<OrderItemDto>>
-    //         {
-    //             Message = ex.Message,
-    //             StatusCode = 500
-    //         };
-    //     }
-    // }
+    public async Task<ApiResponse<List<OrderItemDto>>?> CreateOrderItemsAsync(CreateOrderItemsRequest request)
+    {
+        try
+        {
+            Console.WriteLine("Creating new order items...");
+            var response = await _httpClient.PostAsJsonAsync(BaseUrl, request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error response: {errorContent}");
+                return new ApiResponse<List<OrderItemDto>>
+                {
+                    Message = $"HTTP {response.StatusCode}: {errorContent}",
+                    StatusCode = (int)response.StatusCode
+                };
+            }
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<List<OrderItemDto>>>();
+            Console.WriteLine("Order items created successfully.");
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error creating order items: {ex.Message}");
+            return new ApiResponse<List<OrderItemDto>>
+            {
+                Message = ex.Message,
+                StatusCode = 500
+            };
+        }
+    }
 }
