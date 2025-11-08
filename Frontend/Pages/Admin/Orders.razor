@@ -350,30 +350,32 @@
                                     </div>
                                     @if (availableProducts.Any())
                                     {
-                                        <div class="table-responsive mb-3" style="max-height: 300px; overflow-y: auto;">
-                                            <table class="table table-sm">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Sản phẩm</th>
-                                                        <th>Giá</th>
-                                                        <th>Thêm vào giỏ</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @foreach (var product in availableProducts)
-                                                    {
+                                        <div class="table-responsive mb-3">
+                                            <div class="product-scroll-container" style="max-height: 140px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 8px;">
+                                                <table class="table table-sm">
+                                                    <thead>
                                                         <tr>
-                                                            <td>@product.ProductName (ID: @product.Id)</td>
-                                                            <td>@FormatCurrency(product.Price) VND</td>
-                                                            <td>
-                                                                <button class="btn btn-sm btn-success" @onclick="() => AddToCart(product)">
-                                                                    <i class="bi bi-plus-circle"></i> Thêm
-                                                                </button>
-                                                            </td>
+                                                            <th>Sản phẩm</th>
+                                                            <th>Giá</th>
+                                                            <th>Thêm vào giỏ</th>
                                                         </tr>
-                                                    }
-                                                </tbody>
-                                            </table>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var product in availableProducts)
+                                                        {
+                                                            <tr>
+                                                                <td>@product.ProductName (ID: @product.Id)</td>
+                                                                <td>@FormatCurrency(product.Price) VND</td>
+                                                                <td>
+                                                                    <button class="btn btn-sm btn-success" @onclick="() => AddToCart(product)">
+                                                                        <i class="bi bi-plus-circle"></i> Thêm
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
                                     }
                                 </div>
@@ -383,40 +385,42 @@
                             <h6>Giỏ hàng (@cartItems.Count sản phẩm)</h6>
                             @if (cartItems.Any())
                             {
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>Sản phẩm</th>
-                                                <th>Số lượng</th>
-                                                <th>Đơn giá</th>
-                                                <th>Thành tiền</th>
-                                                <th>Hành động</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var item in cartItems)
-                                            {
+                                <div class="table-responsive mb-3">
+                                    <div class="cart-scroll-container" style="max-height: 140px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 8px;">
+                                        <table class="table table-hover">
+                                            <thead>
                                                 <tr>
-                                                    <td>@item.ProductName (ID: @item.ProductId)</td>
-                                                    <td>
-                                                        <div class="input-group input-group-sm" style="width: 120px;">
-                                                            <button class="btn btn-outline-secondary" @onclick="() => UpdateQuantity(item, -1)">-</button>
-                                                            <input type="number" class="form-control text-center" @bind="item.Quantity" min="1" @oninput="UpdateTotals" />
-                                                            <button class="btn btn-outline-secondary" @onclick="() => UpdateQuantity(item, 1)">+</button>
-                                                        </div>
-                                                    </td>
-                                                    <td>@FormatCurrency(item.Price) VND</td>
-                                                    <td>@FormatCurrency(item.Subtotal) VND</td>
-                                                    <td>
-                                                        <button class="btn btn-sm btn-danger" @onclick="() => RemoveFromCart(item)">
-                                                            <i class="bi bi-trash"></i>
-                                                        </button>
-                                                    </td>
+                                                    <th>Sản phẩm</th>
+                                                    <th>Số lượng</th>
+                                                    <th>Đơn giá</th>
+                                                    <th>Thành tiền</th>
+                                                    <th>Hành động</th>
                                                 </tr>
-                                            }
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var item in cartItems)
+                                                {
+                                                    <tr>
+                                                        <td>@item.ProductName (ID: @item.ProductId)</td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm" style="width: 120px;">
+                                                                <button class="btn btn-outline-secondary" @onclick="() => UpdateQuantity(item, -1)">-</button>
+                                                                <input type="number" class="form-control text-center" @bind="item.Quantity" min="1" @oninput="UpdateTotals" />
+                                                                <button class="btn btn-outline-secondary" @onclick="() => UpdateQuantity(item, 1)">+</button>
+                                                            </div>
+                                                        </td>
+                                                        <td>@FormatCurrency(item.Price) VND</td>
+                                                        <td>@FormatCurrency(item.Subtotal) VND</td>
+                                                        <td>
+                                                            <button class="btn btn-sm btn-danger" @onclick="() => RemoveFromCart(item)">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             }
                             else
@@ -507,6 +511,62 @@
 
     .list-group-item-action:hover {
         background-color: #f8f9fa;
+    }
+
+    /* Scroll fix cho product list */
+    .product-scroll-container {
+        background: white;
+        border-radius: 0.375rem;
+    }
+
+    .product-scroll-container table {
+        margin-bottom: 0;
+    }
+
+    .product-scroll-container::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .product-scroll-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+
+    .product-scroll-container::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+    }
+
+    .product-scroll-container::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+
+    /* Scroll fix cho cart list */
+    .cart-scroll-container {
+        background: white;
+        border-radius: 0.375rem;
+    }
+
+    .cart-scroll-container table {
+        margin-bottom: 0;
+    }
+
+    .cart-scroll-container::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .cart-scroll-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+
+    .cart-scroll-container::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+    }
+
+    .cart-scroll-container::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
     }
 </style>
 
@@ -941,8 +1001,8 @@
     private void LoadProducts()
     {
         isLoadingProducts = true;
-        // Mock data cho demo
-        availableProducts = MockProducts.Where(p => p.ProductName.Contains(productSearchTerm, StringComparison.OrdinalIgnoreCase)).Take(10).ToList();
+        // Mock data cho demo, giới hạn 3 sản phẩm
+        availableProducts = MockProducts.Where(p => string.IsNullOrEmpty(productSearchTerm) || p.ProductName.Contains(productSearchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
         isLoadingProducts = false;
         StateHasChanged();
     }
@@ -1046,6 +1106,12 @@
         new ProductDto { Id = "prod-001", ProductName = "Sản phẩm 1", Price = 100000 },
         new ProductDto { Id = "prod-002", ProductName = "Sản phẩm 2", Price = 200000 },
         new ProductDto { Id = "prod-003", ProductName = "Sản phẩm 3", Price = 150000 },
+        new ProductDto { Id = "prod-004", ProductName = "Sản phẩm 4", Price = 150000 },
+        new ProductDto { Id = "prod-005", ProductName = "Sản phẩm 5", Price = 150000 },
+        new ProductDto { Id = "prod-006", ProductName = "Sản phẩm 6", Price = 150000 },
+        new ProductDto { Id = "prod-007", ProductName = "Sản phẩm 7", Price = 150000 },
+        new ProductDto { Id = "prod-007", ProductName = "Sản phẩm 7", Price = 150000 },
+        new ProductDto { Id = "prod-007", ProductName = "Sản phẩm 7", Price = 150000 },
         // Add more if needed
     };
 
