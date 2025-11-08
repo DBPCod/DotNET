@@ -1,6 +1,7 @@
 @page "/admin/orders"
 @using Frontend.Models.Customer
 @using Frontend.Models.Product
+@using Frontend.Models.Promotions
 @using Frontend.Services
 @using Frontend.Models.Order.Responses
 @using Frontend.Models.Common
@@ -9,6 +10,7 @@
 @using Frontend.Models.OrderItem.Responses 
 @* @using Frontend.Models.Order.Requests  // Giả sử có namespace cho CreateOrderRequest *@
 @using Frontend.Models.Product.Responses  // Giả sử có ProductDto
+@using Frontend.Models.Promotions.Responses
 @* @using Microsoft.AspNetCore.Components.Authorization *@
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Components.Forms
@@ -19,6 +21,7 @@
 @inject OrderItemService OrderItemService
 @inject CustomerService CustomerService
 @inject ProductService ProductService
+@inject PromotionService PromotionService
 @inject IJSRuntime JSRuntime
 @inject Blazored.Toast.Services.IToastService Toast  // Giả sử dùng Blazored.Toast cho notification
 @layout AdminLayout
@@ -35,7 +38,7 @@
                 <button class="btn btn-outline-success me-2" @onclick="ExportReport">
                     <i class="bi bi-download"></i> Xuất báo cáo
                 </button>
-                <button class="btn btn-primary" @onclick="ShowCreateOrderModal">
+                <button class="btn btn-primary" @onclick="@(async () => await ShowCreateOrderModal())">
                     <i class="bi bi-plus"></i> Tạo đơn hàng
                 </button>
             </div>
@@ -314,14 +317,14 @@
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Khuyến mãi <span class="text-danger">*</span></label>
-                                        <InputSelect @bind-Value="selectedPromotionId" class="form-select" @onchange="OnPromotionChanged">
+                                        <InputSelect @bind-Value="SelectedPromotionId" class="form-select">
                                             <option value="">Không áp dụng</option>
-                                            @foreach (var promo in MockPromotions)
+                                            @foreach (var promo in promotions)
                                             {
-                                                <option value="@promo.Id">@promo.Name - Giảm @FormatCurrency(promo.DiscountAmount) VND (@promo.Description)</option>
+                                                <option value="@promo.Id.ToString()">@promo.PromoCode - Giảm @FormatCurrency(promo.DiscountValue) VND (@promo.Description)</option>
                                             }
                                         </InputSelect>
-                                        <small class="text-muted">Chọn phiếu khuyến mãi áp dụng (hiện có @MockPromotions.Count phiếu)</small>
+                                        <small class="text-muted">Chọn phiếu khuyến mãi áp dụng (hiện có @promotions.Count phiếu)</small>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -349,7 +352,7 @@
                                             <input type="text" class="form-control" @bind="productSearchTerm" @oninput="OnProductSearchChanged" placeholder="Tìm kiếm sản phẩm theo tên hoặc ID..." />
                                         </div>
                                         <div class="col-md-6">
-                                            <button class="btn btn-outline-primary" @onclick="LoadProducts" disabled="@isLoadingProducts">
+                                            <button type="button" class="btn btn-outline-primary" @onclick="LoadProducts" disabled="@isLoadingProducts">
                                                 @if (isLoadingProducts)
                                                 {
                                                     <span class="spinner-border spinner-border-sm me-2"></span>
@@ -386,7 +389,7 @@
                                                                 <td>@product.ProductName (ID: @product.Id)</td>
                                                                 <td>@FormatCurrency(product.Price) VND</td>
                                                                 <td>
-                                                                    <button class="btn btn-sm btn-success" @onclick="() => AddToCart(product)">
+                                                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => AddToCart(product)">
                                                                         <i class="bi bi-plus-circle"></i> Thêm
                                                                     </button>
                                                                 </td>
@@ -430,15 +433,15 @@
                                                         <td>@item.ProductName (ID: @item.ProductId)</td>
                                                         <td>
                                                             <div class="input-group input-group-sm" style="width: 120px;">
-                                                                <button class="btn btn-outline-secondary" @onclick="() => UpdateQuantity(item, -1)">-</button>
+                                                                <button type="button" class="btn btn-outline-secondary" @onclick="() => UpdateQuantity(item, -1)">-</button>
                                                                 <input type="number" class="form-control text-center" @bind="item.Quantity" min="1" @oninput="UpdateTotals" />
-                                                                <button class="btn btn-outline-secondary" @onclick="() => UpdateQuantity(item, 1)">+</button>
+                                                                <button type="button" class="btn btn-outline-secondary" @onclick="() => UpdateQuantity(item, 1)">+</button>
                                                             </div>
                                                         </td>
                                                         <td>@FormatCurrency(item.Price) VND</td>
                                                         <td>@FormatCurrency(item.Subtotal) VND</td>
                                                         <td>
-                                                            <button class="btn btn-sm btn-danger" @onclick="() => RemoveFromCart(item)">
+                                                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveFromCart(item)">
                                                                 <i class="bi bi-trash"></i>
                                                             </button>
                                                         </td>
@@ -636,13 +639,38 @@
     private List<CartItem> cartItems = new();  // Local cart for order items
     private decimal subTotal = 0;
     private decimal totalAmount = 0;
-    private string selectedPromotionId = string.Empty;  // Thêm mới: ID của promotion được chọn
     private bool isLoadingCustomers = false;  // Thêm mới: Loading state cho search khách hàng
     private System.Threading.Timer? _customerDebounceTimer;
     private System.Threading.Timer? _productDebounceTimer;
+    private List<PromotionDto> promotions = new();
+
+    // Backing field cho SelectedPromotionId
+    private string _selectedPromotionId = string.Empty;
 
     // Form model for create order
     private CreateOrderForm createOrderForm = new();
+
+    // Property cho SelectedPromotionId với logic trong setter
+    public string SelectedPromotionId
+    {
+        get => _selectedPromotionId;
+        set
+        {
+            if (_selectedPromotionId != value)
+            {
+                _selectedPromotionId = value;
+                Console.WriteLine($"Promotion changed to: {value}");  // Log để debug
+
+                var promo = promotions.FirstOrDefault(p => p.Id.ToString() == value);  // An toàn với Guid/String
+                var discount = promo?.DiscountValue ?? 0;
+                createOrderForm.DiscountAmount = discount;
+                Console.WriteLine($"Discount updated to: {discount}");  // Log giá trị giảm
+
+                UpdateTotals();
+                StateHasChanged();  // Đảm bảo re-render
+            }
+        }
+    }
 
     // Properties for filters...
     public string? StatusFilter
@@ -976,7 +1004,7 @@
     }
 
     // New methods for create order (UI demo - mock)
-    private void ShowCreateOrderModal()
+    private async Task ShowCreateOrderModal()
     {
         _customerDebounceTimer?.Dispose();
         _productDebounceTimer?.Dispose();
@@ -984,7 +1012,7 @@
         createErrorMessage = string.Empty;
         customerSearchTerm = string.Empty;
         productSearchTerm = string.Empty;
-        selectedPromotionId = string.Empty;  // Thêm mới: Reset promotion
+        SelectedPromotionId = string.Empty;  // Reset property
         filteredCustomers.Clear();
         availableProducts.Clear();
         cartItems.Clear();
@@ -995,7 +1023,30 @@
         totalAmount = 0;
         isLoadingCustomers = false;
         isLoadingProducts = false;
+        promotions.Clear();
+        await LoadPromotions();
         StateHasChanged();
+    }
+
+    private async Task LoadPromotions()
+    {
+        try
+        {
+            var (promos, _) = await PromotionService.GetPromotionsAsync(pageSize: 50); // Lấy tối đa 50 phiếu khuyến mãi
+            promotions = promos ?? new List<PromotionDto>();
+            Console.WriteLine($"Loaded {promotions.Count} promotions.");  // Log để debug
+            if (promotions.Any())
+            {
+                var firstPromo = promotions.First();
+                Console.WriteLine($"Sample promo: ID={firstPromo.Id}, Discount={firstPromo.DiscountValue}");  // Log mẫu
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading promotions: {ex.Message}");
+            promotions = new List<PromotionDto>();
+            Toast.ShowError("Lỗi khi tải danh sách khuyến mãi.");
+        }
     }
 
     private void CloseCreateOrderModal()
@@ -1162,22 +1213,14 @@
         StateHasChanged();
     }
 
-    private async Task OnPromotionChanged(ChangeEventArgs e)
-    {
-        selectedPromotionId = e.Value?.ToString() ?? string.Empty;
-        var promo = MockPromotions.FirstOrDefault(p => p.Id == selectedPromotionId);
-        createOrderForm.DiscountAmount = promo?.DiscountAmount ?? 0;
-        await UpdateTotals();  // Thêm await nếu cần, nhưng UpdateTotals là sync
-    }
-
-    private Task UpdateTotals()
+    private void UpdateTotals()
     {
         subTotal = cartItems.Sum(x => x.Price * x.Quantity);
         var discount = createOrderForm.DiscountAmount ?? 0;
         totalAmount = subTotal - discount;
         createOrderForm.TotalAmount = totalAmount;
+        Console.WriteLine($"Totals updated: Sub={subTotal}, Discount={discount}, Total={totalAmount}");  // Log để debug
         StateHasChanged();
-        return Task.CompletedTask;
     }
 
     private async Task HandleCreateOrderSubmit()
@@ -1210,16 +1253,6 @@
         }
     }
 
-    private List<PromotionDto> MockPromotions = new()
-    {
-        new PromotionDto { Id = "promo-001", Name = "Giảm 10% cho đơn đầu", DiscountAmount = 50000, Description = "Áp dụng cho đơn hàng đầu tiên" },
-        new PromotionDto { Id = "promo-002", Name = "Flash sale cuối tuần", DiscountAmount = 100000, Description = "Giảm giá lớn cho đơn từ 500k" },
-        new PromotionDto { Id = "promo-003", Name = "Mua 1 tặng 1", DiscountAmount = 75000, Description = "Tặng sản phẩm thứ 2 miễn phí" },
-        new PromotionDto { Id = "promo-004", Name = "Khuyến mãi sinh nhật", DiscountAmount = 20000, Description = "Giảm giá nhân dịp sinh nhật" },
-        new PromotionDto { Id = "promo-005", Name = "Đơn hàng lớn", DiscountAmount = 150000, Description = "Giảm cho đơn trên 1 triệu" },
-        // Thêm thêm dữ liệu giá cho combobox khuyến mãi (5 mẫu, có thể mở rộng)
-    };
-
     // Helper classes
     public class CreateOrderForm
     {
@@ -1242,13 +1275,5 @@
         public decimal Price { get; set; }
         public int Quantity { get; set; } = 1;
         public decimal Subtotal => Price * Quantity;
-    }
-
-    public class PromotionDto
-    {
-        public string Id { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public decimal DiscountAmount { get; set; }
-        public string Description { get; set; } = string.Empty;  // Thêm mô tả để hiển thị chi tiết hơn
     }
 }
