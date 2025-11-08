@@ -4,5 +4,5 @@ public class Response
 {
     public string Message { get; set; } = "Internal Server Error";
     public int StatusCode { get; set; } = 200;
-    public Data Data { get; set; } = new Data();
+    public ResponseData Data { get; set; } = new ResponseData();
 }

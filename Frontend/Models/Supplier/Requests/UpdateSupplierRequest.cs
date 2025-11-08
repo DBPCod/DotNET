@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Backend.Dtos.Requests;
+namespace Frontend.Models.Supplier.Requests;
 
-public class CreateSupplierRequest
+public class UpdateSupplierRequest
 {
     [Required(ErrorMessage = "Tên nhà cung cấp là bắt buộc")]
     [MaxLength(100, ErrorMessage = "Tên không được vượt quá 100 ký tự")]

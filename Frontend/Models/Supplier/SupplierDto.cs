@@ -1,4 +1,4 @@
-namespace Backend.Dtos;
+namespace Frontend.Models.Supplier;
 
 public class SupplierDto
 {
@@ -8,4 +8,8 @@ public class SupplierDto
     public string Email { get; set; } = "";
     public string Address { get; set; } = "";
     public bool Status { get; set; } = true;
+    public DateTime CreatedAt { get; set; }
+    
+    // Helper property để hiển thị (optional)
+    public string SupplierName => Name;  // Alias cho compatibility
 }

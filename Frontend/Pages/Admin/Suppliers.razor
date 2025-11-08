@@ -1,4 +1,18 @@
 @page "/admin/suppliers"
+@using Frontend.Models.Common
+@using Frontend.Models.Supplier
+@using Frontend.Models.Supplier.Requests
+@using Frontend.Models.Supplier.Responses
+@using Frontend.Services
+@using Frontend.Components
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
+@using System.ComponentModel.DataAnnotations
+@inject SupplierService SupplierService
+@inject IJSRuntime JS
+@inject Blazored.Toast.Services.IToastService Toast
+@inject Blazored.Modal.Services.IModalService Modal
 @layout AdminLayout
 
 <div class="admin-page">
@@ -8,192 +22,562 @@
                 <h2>Quản lý nhà cung cấp</h2>
                 <p class="text-muted">Danh sách và thông tin nhà cung cấp</p>
             </div>
-            <button class="btn btn-primary">
+            <button class="btn btn-primary" @onclick="() => ShowModal(null)">
                 <i class="bi bi-plus"></i> Thêm nhà cung cấp
             </button>
         </div>
     </div>
-    
-    <div class="page-filters">
-        <div class="row">
-            <div class="col-md-4">
-                <input type="text" class="form-control" placeholder="Tìm kiếm nhà cung cấp..." />
-            </div>
-            <div class="col-md-3">  
-                <select class="form-select">
-                    <option>Tất cả trạng thái</option>
-                    <option>Hoạt động</option>
-                    <option>Ngừng hợp tác</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <select class="form-select">
-                    <option>Sắp xếp theo</option>
-                    <option>Tên A-Z</option>
-                    <option>Ngày hợp tác</option>
-                    <option>Số sản phẩm</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <button class="btn btn-outline-secondary w-100">Lọc</button>
+
+    @if (_showModal)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">@(_editingId == null ? "Thêm nhà cung cấp" : "Cập nhật nhà cung cấp")</h5>
+                        <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                    </div>
+                    <EditForm Model="@_request" OnValidSubmit="HandleSubmit">
+                        <DataAnnotationsValidator />
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Tên nhà cung cấp <span class="text-danger">*</span></label>
+                                        <InputText class="form-control" @bind-Value="_request.Name" />
+                                        <ValidationMessage For="@(() => _request.Name)" class="text-danger" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
+                                        <InputText class="form-control" @bind-Value="_request.Phone" placeholder="VD: 0909000001" />
+                                        <ValidationMessage For="@(() => _request.Phone)" class="text-danger" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Email <span class="text-danger">*</span></label>
+                                        <InputText type="email" class="form-control" @bind-Value="_request.Email" placeholder="VD: example@mail.com" />
+                                        <ValidationMessage For="@(() => _request.Email)" class="text-danger" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Trạng thái <span class="text-danger">*</span></label>
+                                        <InputSelect class="form-select" @bind-Value="_request.Status">
+                                            <option value="true">Đang hợp tác</option>
+                                            <option value="false">Ngừng hợp tác</option>
+                                        </InputSelect>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Địa chỉ <span class="text-danger">*</span></label>
+                                <InputTextArea class="form-control" @bind-Value="_request.Address" rows="3" placeholder="Nhập địa chỉ đầy đủ (tối thiểu 10 ký tự)" />
+                                <ValidationMessage For="@(() => _request.Address)" class="text-danger" />
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Hủy</button>
+                            <button type="submit" class="btn btn-primary" disabled="@_isSaving">
+                                @if (_isSaving)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                @if (string.IsNullOrEmpty(_editingId))
+                                {
+                                    <span>Thêm nhà cung cấp</span>
+                                }
+                                else
+                                {
+                                    <span>Cập nhật</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
             </div>
         </div>
-    </div>
+    }
+    
     
     <div class="page-content">
-        <div class="row">
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card supplier-card">
-                    <div class="card-body">
-                        <div class="supplier-header">
-                            <div class="supplier-logo">
-                                <i class="bi bi-building"></i>
-                            </div>
-                            <div class="supplier-info">
-                                <h5 class="card-title">Công ty ABC</h5>
-                                <p class="text-muted">Nhà cung cấp đa dạng</p>
-                            </div>
-                            <span class="badge bg-success">Hoạt động</span>
-                        </div>
-                        
-                        <div class="supplier-details">
-                            <div class="detail-item">
-                                <i class="bi bi-envelope"></i>
-                                <span>abc@gmail.com</span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="bi bi-telephone"></i>
-                                <span>0909123456</span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="bi bi-geo-alt"></i>
-                                <span>Hà Nội</span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="bi bi-box"></i>
-                                <span>17 sản phẩm</span>
-                            </div>
-                        </div>
-                        
-                        <div class="supplier-actions">
-                            <button class="btn btn-sm btn-outline-primary me-2">
-                                <i class="bi bi-eye"></i> Xem
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning me-2">
-                                <i class="bi bi-pencil"></i> Sửa
-                            </button>
-                            <button class="btn btn-sm btn-outline-info">
-                                <i class="bi bi-chat"></i> Liên hệ
-                            </button>
-                        </div>
-                    </div>
+        <div class="page-filters mb-3">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" placeholder="Tìm kiếm..." 
+                           @bind="_searchTerm" />
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" @bind="_statusFilter">
+                        <option value="all">Trạng thái</option>
+                        <option value="active">Đang hợp tác</option>
+                        <option value="inactive">Ngừng hợp tác</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" @bind="_pageSize" @bind:after="HandlePageSizeChange">
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+                <div class="col-md-3 text-end">
+                    <button class="btn btn-outline-secondary me-2" @onclick="HandleSearch">
+                        <i class="bi bi-search"></i> Lọc
+                    </button>
+                    <button class="btn btn-outline-primary" @onclick="ResetFilters">
+                        <i class="bi bi-arrow-clockwise"></i> Làm mới
+                    </button>
                 </div>
             </div>
-            
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card supplier-card">
-                    <div class="card-body">
-                        <div class="supplier-header">
-                            <div class="supplier-logo">
-                                <i class="bi bi-building"></i>
-                            </div>
-                            <div class="supplier-info">
-                                <h5 class="card-title">Công ty XYZ</h5>
-                                <p class="text-muted">Nhà cung cấp đa dạng</p>
-                            </div>
-                            <span class="badge bg-success">Hoạt động</span>
-                        </div>
-                        
-                        <div class="supplier-details">
-                            <div class="detail-item">
-                                <i class="bi bi-envelope"></i>
-                                <span>xyz@gmail.com</span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="bi bi-telephone"></i>
-                                <span>0912123456</span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="bi bi-geo-alt"></i>
-                                <span>TP HCM</span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="bi bi-box"></i>
-                                <span>16 sản phẩm</span>
-                            </div>
-                        </div>
-                        
-                        <div class="supplier-actions">
-                            <button class="btn btn-sm btn-outline-primary me-2">
-                                <i class="bi bi-eye"></i> Xem
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning me-2">
-                                <i class="bi bi-pencil"></i> Sửa
-                            </button>
-                            <button class="btn btn-sm btn-outline-info">
-                                <i class="bi bi-chat"></i> Liên hệ
-                            </button>
-                        </div>
-                    </div>
+        </div>
+        @if (_loading)
+        {
+            <div class="text-center p-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Đang tải...</span>
                 </div>
             </div>
-            
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card supplier-card">
-                    <div class="card-body">
-                        <div class="supplier-header">
-                            <div class="supplier-logo">
-                                <i class="bi bi-building"></i>
+        }
+        else
+        {
+            <div class="row">
+                @foreach (var supplier in _filteredSuppliers)
+                {
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card supplier-card">
+                            <div class="card-body">
+                                <div class="supplier-header">
+                                    <div class="supplier-logo">
+                                        <i class="bi bi-building"></i>
+                                    </div>
+                                    <div class="supplier-info">
+                                        <h5 class="card-title">@supplier.Name</h5>
+                                        <p class="text-muted">Nhà cung cấp</p>
+                                    </div>
+                                    <span class="badge @GetStatusBadgeClass(supplier.Status)">
+                                        @(supplier.Status ? "Đang hợp tác" : "Ngừng hợp tác")
+                                    </span>
+                                </div>
+                                
+                                <div class="supplier-details">
+                                    <div class="detail-item">
+                                        <i class="bi bi-envelope"></i>
+                                        <span>@supplier.Email</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="bi bi-telephone"></i>
+                                        <span>@supplier.Phone</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="bi bi-geo-alt"></i>
+                                        <span>@supplier.Address</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="supplier-actions">
+                                    <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => ShowViewModal(supplier)">
+                                        <i class="bi bi-eye"></i> Xem
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-warning me-2" @onclick="() => ShowModal(supplier)">
+                                        <i class="bi bi-pencil"></i> Sửa
+                                    </button>
+                                    <button class="btn btn-sm btn-@(supplier.Status ? "outline-danger" : "outline-success")" 
+                                            @onclick="() => ConfirmToggleStatus(supplier)">
+                                        @if (supplier.Status)
+                                        {
+                                            <span><i class="bi bi-x-circle"></i> Ngừng hợp tác</span>
+                                        }
+                                        else
+                                        {
+                                            <span><i class="bi bi-check-circle"></i> Kích hoạt</span>
+                                        }
+                                    </button>
+                                </div>
                             </div>
-                            <div class="supplier-info">
-                                <h5 class="card-title">Công ty 123</h5>
-                                <p class="text-muted">Nhà cung cấp đa dạng</p>
-                            </div>
-                            <span class="badge bg-success">Hoạt động</span>
                         </div>
-                        
-                        <div class="supplier-details">
-                            <div class="detail-item">
-                                <i class="bi bi-envelope"></i>
-                                <span>123@gmail.com</span>
+                    </div>
+                }
+            </div>
+
+            @* Pagination *@
+            @if (_pagination != null && _pagination.TotalPages > 1)
+            {
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item @(_pagination.CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" @onclick="() => LoadSuppliers(_pagination.CurrentPage - 1)">Trước</a>
+                        </li>
+
+                        @for (int i = 1; i <= _pagination.TotalPages; i++)
+                        {
+                            var pageNumber = i;
+                            <li class="page-item @(_pagination.CurrentPage == pageNumber ? "active" : "")">
+                                <a class="page-link" @onclick="() => LoadSuppliers(pageNumber)">@pageNumber</a>
+                            </li>
+                        }
+
+                        <li class="page-item @(_pagination.CurrentPage == _pagination.TotalPages ? "disabled" : "")">
+                            <a class="page-link" @onclick="() => LoadSuppliers(_pagination.CurrentPage + 1)">Tiếp</a>
+                        </li>
+                    </ul>
+                </nav>
+            }
+
+            @if (_pagination != null)
+            {
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="text-muted">
+                        Hiển thị @((_pagination.CurrentPage - 1) * _pagination.PageSize + 1)
+                        đến @(Math.Min(_pagination.CurrentPage * _pagination.PageSize, _pagination.TotalCount))
+                        trong tổng số @_pagination.TotalCount nhà cung cấp
+                    </div>
+                </div>
+            }
+        }
+    </div>
+
+    @if (_showViewModal && _selectedSupplier != null)
+    {
+        <div class="modal fade show d-block" style="background-color: rgba(0,0,0,0.5);" @onclick="CloseViewModal">
+            <div class="modal-dialog modal-lg" @onclick:stopPropagation="true">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Chi tiết nhà cung cấp</h5>
+                        <button type="button" class="btn-close" @onclick="CloseViewModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-4 text-center mb-3">
+                                <div class="supplier-logo-large">
+                                    <i class="bi bi-building"></i>
+                                </div>
                             </div>
-                            <div class="detail-item">
-                                <i class="bi bi-telephone"></i>
-                                <span>0933123456</span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="bi bi-geo-alt"></i>
-                                <span>Đà Nẵng</span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="bi bi-box"></i>
-                                <span>17 sản phẩm</span>
+                            <div class="col-md-8">
+                                <div class="row mb-3">
+                                    <div class="col-4 fw-bold">Tên nhà cung cấp:</div>
+                                    <div class="col-8">@_selectedSupplier.Name</div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-4 fw-bold">Số điện thoại:</div>
+                                    <div class="col-8">@_selectedSupplier.Phone</div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-4 fw-bold">Email:</div>
+                                    <div class="col-8">@_selectedSupplier.Email</div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-4 fw-bold">Địa chỉ:</div>
+                                    <div class="col-8">@_selectedSupplier.Address</div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-4 fw-bold">Trạng thái:</div>
+                                    <div class="col-8">
+                                        <span class="badge @GetStatusBadgeClass(_selectedSupplier.Status)">
+                                            @(_selectedSupplier.Status ? "Đang hợp tác" : "Ngừng hợp tác")
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        
-                        <div class="supplier-actions">
-                            <button class="btn btn-sm btn-outline-primary me-2">
-                                <i class="bi bi-eye"></i> Xem
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning me-2">
-                                <i class="bi bi-pencil"></i> Sửa
-                            </button>
-                            <button class="btn btn-sm btn-outline-info">
-                                <i class="bi bi-chat"></i> Liên hệ
-                            </button>
-                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseViewModal">Đóng</button>
+                        <button type="button" class="btn btn-primary" @onclick="() => { CloseViewModal(); ShowModal(_selectedSupplier); }">
+                            <i class="bi bi-pencil"></i> Chỉnh sửa
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    }
 </div>
+
+@code {
+    private List<SupplierDto> _suppliers = [];
+    private List<SupplierDto> _filteredSuppliers = [];
+    private PaginationInfo? _pagination;
+    private bool _loading = true;
+    private bool _isSaving = false;
+    private string _editingId = "";
+    private CreateSupplierRequest _request = new();
+    private bool _showModal = false;
+    private bool _showViewModal = false;
+    private SupplierDto? _selectedSupplier;
+    private string _searchTerm = "";
+    private string _statusFilter = "all";
+    private string _sortBy = "name";
+    private int _pageSize = 10;
+
+    private void OnSearchTermChanged(string value)
+    {
+        _searchTerm = value;
+        ApplyClientFilters();
+    }
+
+    private void OnStatusFilterChanged(string value)
+    {
+        _statusFilter = value;
+        ApplyClientFilters();
+    }
+
+    private void OnSortByChanged(string value)
+    {
+        _sortBy = value;
+        ApplyClientFilters();
+    }
+
+    private async Task HandleSearch()
+    {
+        await LoadSuppliers(1);
+    }
+
+    private async Task ResetFilters()
+    {
+        _searchTerm = "";
+        _statusFilter = "all";
+        _sortBy = "name";
+        await LoadSuppliers(1);
+    }
+
+    private async Task HandlePageSizeChange()
+    {
+        await LoadSuppliers(1);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSuppliers();
+    }
+
+    private async Task LoadSuppliers(int page = 1)
+    {
+        _loading = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            // Sử dụng server-side filtering thay vì client-side
+            string? statusParam = _statusFilter == "all" ? null : _statusFilter == "active" ? "true" : "false";
+            string? searchParam = string.IsNullOrWhiteSpace(_searchTerm) ? null : _searchTerm;
+            
+            var response = await SupplierService.GetAllAsync(
+                page: page, 
+                pageSize: _pageSize, 
+                q: searchParam);
+
+            if (response?.StatusCode == 200 && response.Data != null)
+            {
+                _suppliers = response.Data.Suppliers ?? new List<SupplierDto>();
+                _pagination = response.Data.Pagination;
+                
+                // Apply client-side filtering for status (if needed)
+                ApplyClientFilters();
+            }
+            else
+            {
+                _suppliers = new List<SupplierDto>();
+                Toast.ShowError(response?.Message ?? "Không thể tải danh sách nhà cung cấp");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            Toast.ShowError($"Lỗi: {ex.Message}");
+            _suppliers = new List<SupplierDto>();
+        }
+        finally
+        {
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void ApplyClientFilters()
+    {
+        _filteredSuppliers = _suppliers;
+
+        // Apply status filter (client-side since we might need to filter server results)
+        if (_statusFilter != "all")
+        {
+            var status = _statusFilter == "active";
+            _filteredSuppliers = _filteredSuppliers.Where(s => s.Status == status).ToList();
+        }
+
+        // Apply sorting
+        _filteredSuppliers = _sortBy switch
+        {
+            "name" => _filteredSuppliers.OrderBy(s => s.Name).ToList(),
+            "name_desc" => _filteredSuppliers.OrderByDescending(s => s.Name).ToList(),
+            "status" => _filteredSuppliers.OrderByDescending(s => s.Status).ThenBy(s => s.Name).ToList(),
+            _ => _filteredSuppliers
+        };
+    }
+
+    private async Task HandleSubmit(EditContext editContext)
+    {
+        if (!editContext.Validate())
+        {
+            Toast.ShowWarning("Vui lòng kiểm tra lại thông tin đã nhập!");
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            ApiResponse<SupplierDetailData> response;
+            if (string.IsNullOrEmpty(_editingId))
+            {
+                response = await SupplierService.CreateAsync(_request);
+            }
+            else
+            {
+                var updateRequest = new UpdateSupplierRequest
+                {
+                    Name = _request.Name,
+                    Phone = _request.Phone,
+                    Email = _request.Email,
+                    Address = _request.Address,
+                    Status = _request.Status
+                };
+                response = await SupplierService.UpdateAsync(_editingId, updateRequest);
+            }
+
+            if (response.StatusCode is 200 or 201)
+            {
+                string message = string.IsNullOrEmpty(_editingId) 
+                    ? "Thêm nhà cung cấp thành công!" 
+                    : "Cập nhật nhà cung cấp thành công!";
+                Toast.ShowSuccess(message);
+                
+                CloseModal();
+                await LoadSuppliers(_pagination?.CurrentPage ?? 1);
+            }
+            else
+            {
+                Toast.ShowError(response.Message ?? "Thao tác thất bại");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Lỗi: {ex.Message}");
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void ShowModal(SupplierDto? supplier)
+    {
+        if (supplier != null)
+        {
+            _editingId = supplier.Id;
+            _request = new CreateSupplierRequest
+            {
+                Name = supplier.Name,
+                Phone = supplier.Phone ?? "",
+                Email = supplier.Email ?? "",
+                Address = supplier.Address,
+                Status = supplier.Status
+            };
+        }
+        else
+        {
+            _editingId = "";
+            _request = new CreateSupplierRequest 
+            { 
+                Name = "",
+                Phone = "",
+                Email = "",
+                Address = "",
+                Status = true 
+            };
+        }
+        _showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        _showModal = false;
+        _editingId = "";
+        _request = new CreateSupplierRequest();
+    }
+
+    private void ShowViewModal(SupplierDto supplier)
+    {
+        _selectedSupplier = supplier;
+        _showViewModal = true;
+    }
+
+    private void CloseViewModal()
+    {
+        _showViewModal = false;
+        _selectedSupplier = null;
+    }
+
+    private async Task ConfirmToggleStatus(SupplierDto supplier)
+    {
+        var parameters = new ModalParameters()
+            .Add(nameof(ConfirmDialog.Title), supplier.Status ? "Xác nhận ngừng hợp tác" : "Xác nhận kích hoạt")
+            .Add(nameof(ConfirmDialog.Message), supplier.Status 
+                ? $"Bạn có chắc chắn muốn ngừng hợp tác với nhà cung cấp '{supplier.Name}'? Nhà cung cấp sẽ không thể sử dụng trong hệ thống."
+                : $"Bạn có chắc chắn muốn kích hoạt lại nhà cung cấp '{supplier.Name}'?")
+            .Add(nameof(ConfirmDialog.ConfirmText), supplier.Status ? "Ngừng hợp tác" : "Kích hoạt")
+            .Add(nameof(ConfirmDialog.CancelText), "Hủy")
+            .Add(nameof(ConfirmDialog.Type), supplier.Status ? "warning" : "success");
+
+        var options = new ModalOptions
+        {
+            HideCloseButton = false,
+            DisableBackgroundCancel = false
+        };
+
+        var modal = Modal.Show<ConfirmDialog>("", parameters, options);
+        var result = await modal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        await ToggleStatus(supplier);
+    }
+
+    private async Task ToggleStatus(SupplierDto supplier)
+    {
+        try
+        {
+            var response = await SupplierService.ToggleStatusAsync(supplier.Id);
+            if (response.StatusCode == 200)
+            {
+                string message = supplier.Status 
+                    ? "Đã ngừng hợp tác với nhà cung cấp!" 
+                    : "Đã kích hoạt lại nhà cung cấp!";
+                Toast.ShowSuccess(message);
+                await LoadSuppliers(_pagination?.CurrentPage ?? 1);
+            }
+            else
+            {
+                Toast.ShowError(response.Message ?? "Không thể cập nhật trạng thái");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Lỗi: {ex.Message}");
+        }
+    }
+
+    private string GetStatusBadgeClass(bool status) => status ? "bg-success" : "bg-secondary";
+}
 
 <style>
     .admin-page {
-        max-width: 1200px;
-        margin-left: auto;
-        margin-right: auto;
+        padding: 2rem;
     }
     
     .page-header {
@@ -272,5 +656,35 @@
     
     .supplier-actions .btn {
         font-size: 0.8rem;
+    }
+    
+    .supplier-logo-large {
+        width: 120px;
+        height: 120px;
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        margin: 0 auto;
+    }
+    
+    .badge.bg-secondary {
+        background-color: #6c757d !important;
+    }
+
+    .page-link {
+        cursor: pointer;
+    }
+
+    .pagination .page-item.disabled .page-link {
+        cursor: not-allowed;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
     }
 </style>

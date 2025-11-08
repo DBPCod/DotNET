@@ -1,6 +1,6 @@
 # Blazor WebAssembly build artifacts
 # wwwroot/css/
-wwwroot/js/
+# wwwroot/js/
 wwwroot/*.map
 wwwroot/*.gz
 wwwroot/*.br

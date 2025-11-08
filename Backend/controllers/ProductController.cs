@@ -11,9 +11,15 @@ public class ProductController(ProductService productService) : ControllerBase
     private readonly ProductService _productService = productService;
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public async Task<IActionResult> GetAll(
+        [FromQuery] int page = 1, 
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? q = null,
+        [FromQuery] string? categoryId = null,
+        [FromQuery] string? supplierId = null,
+        [FromQuery] bool? status = null)
     {
-        var response = await _productService.GetAllAsync(page, pageSize);
+        var response = await _productService.GetAllAsync(page, pageSize, q, categoryId, supplierId, status);
         return StatusCode(response.StatusCode, response);
     }
 

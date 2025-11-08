@@ -1,5 +1,6 @@
 @page "/admin/customers"
 @layout AdminLayout
+@using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Components.Forms
 @using Frontend.Models.Customer
 @using Frontend.Models.Customer.Requests
@@ -202,21 +203,22 @@
                             <ValidationMessage For="@(() => formData.Name)" class="text-danger" />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Số điện thoại</label>
-                            <InputText @bind-Value="formData.Phone" class="form-control" placeholder="Nhập số điện thoại" />
+                            <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
+                            <InputText @bind-Value="formData.Phone" class="form-control" placeholder="VD: 0909000001" />
                             <ValidationMessage For="@(() => formData.Phone)" class="text-danger" />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <InputText @bind-Value="formData.Email" type="email" class="form-control" placeholder="Nhập email" />
+                            <label class="form-label">Email <span class="text-danger">*</span></label>
+                            <InputText @bind-Value="formData.Email" type="email" class="form-control" placeholder="VD: example@mail.com" />
                             <ValidationMessage For="@(() => formData.Email)" class="text-danger" />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Địa chỉ</label>
-                            <InputTextArea @bind-Value="formData.Address" class="form-control" rows="3" placeholder="Nhập địa chỉ" />
+                            <label class="form-label">Địa chỉ <span class="text-danger">*</span></label>
+                            <InputTextArea @bind-Value="formData.Address" class="form-control" rows="3" placeholder="Nhập địa chỉ đầy đủ (tối thiểu 10 ký tự)" />
+                            <ValidationMessage For="@(() => formData.Address)" class="text-danger" />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Trạng thái</label>
+                            <label class="form-label">Trạng thái <span class="text-danger">*</span></label>
                             <InputSelect @bind-Value="formData.Status" class="form-select">
                                 <option value="ACTIVE">Hoạt động</option>
                                 <option value="PENDING">Khóa</option>
@@ -667,10 +669,24 @@
 
     public class CustomerFormData
     {
+        [Required(ErrorMessage = "Tên khách hàng là bắt buộc")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Tên phải từ 2-100 ký tự")]
         public string Name { get; set; } = "";
+        
+        [Required(ErrorMessage = "Số điện thoại là bắt buộc")]
+        [RegularExpression(@"^(0|\+84)(3|5|7|8|9)\d{8}$", ErrorMessage = "Số điện thoại không hợp lệ (VD: 0909000001 hoặc +84909000001)")]
         public string? Phone { get; set; }
+        
+        [Required(ErrorMessage = "Email là bắt buộc")]
+        [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
+        [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", ErrorMessage = "Email phải có dạng: example@domain.com")]
         public string? Email { get; set; }
+        
+        [Required(ErrorMessage = "Địa chỉ là bắt buộc")]
+        [StringLength(500, MinimumLength = 10, ErrorMessage = "Địa chỉ phải từ 10-500 ký tự")]
         public string? Address { get; set; }
+        
+        [Required(ErrorMessage = "Trạng thái là bắt buộc")]
         public string Status { get; set; } = "ACTIVE";
     }
 }
