@@ -21,14 +21,14 @@ public class Promotion
     [Required]
     [MaxLength(20)]
     [Column("discount_type")]
-    public string DiscountType { get; set; } = ""; // 'percent', 'fixed', or 'free_shipping'
+    public DiscountType DiscountType { get; set; } = DiscountType.Percent; // percent|fixed|free_shipping
 
     [Column("discount_value", TypeName = "decimal(10,2)")]
     public decimal DiscountValue { get; set; } = 0;
 
     [MaxLength(20)]
     [Column("promotion_type")]
-    public string PromotionType { get; set; } = "promotion"; // 'promotion' or 'discount_code'
+    public PromotionType PromotionType { get; set; } = PromotionType.Promotion; // promotion|discount_code
 
     [Column("start_date", TypeName = "date")]
     public DateTime StartDate { get; set; } = DateTime.Today;
@@ -47,5 +47,5 @@ public class Promotion
 
     [MaxLength(20)]
     [Column("status")]
-    public string Status { get; set; } = "active"; // 'active' or 'inactive'
+    public PromotionStatus Status { get; set; } = PromotionStatus.Active; // active|inactive
 }

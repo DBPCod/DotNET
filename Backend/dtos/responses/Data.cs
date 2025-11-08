@@ -1,7 +1,10 @@
 namespace Backend.Dtos.Responses;
 
-public class Data
+public class ResponseData
 {
+    // Error message
+    public string? Error { get; set; }
+    
     // User
     public UserDto? User { get; set; }
     public ICollection<UserDto>? Users { get; set; }

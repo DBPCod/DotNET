@@ -36,6 +36,30 @@ public class CustomerRepository(AppDbContext context)
             .ToListAsync();
     }
 
+    public async Task<int> GetTotalCountAsync(string? search = null, string? status = null)
+    {
+        var query = _context.Customer.AsQueryable();
+
+        // Tìm kiếm theo tên, email, phone, customerId
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(c => 
+                c.Name.Contains(search) || 
+                (c.Email != null && c.Email.Contains(search)) ||
+                (c.Phone != null && c.Phone.Contains(search)) ||
+                (c.CustomerId != null && c.CustomerId.Contains(search))
+            );
+        }
+
+        // Lọc theo status
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(c => c.Status == status);
+        }
+
+        return await query.CountAsync();
+    }
+
     public async Task<Customer?> GetByIdAsync(Guid id)
     {
         return await _context.Customer.FirstOrDefaultAsync(c => c.Id == id);

@@ -9,7 +9,11 @@ public class ProductDto
     public string? Barcode { get; set; }
     public decimal Price { get; set; }
     public string? Unit { get; set; }
-    public string? ImagePath { get; set; } // Đường dẫn ảnh
-    public bool Status { get; set; } // true = Active, false = Deleted
+    public string? ImagePath { get; set; }
+    public bool Status { get; set; }
     public DateTime CreatedAt { get; set; }
+    
+    // Navigation properties
+    public string? CategoryName { get; set; }
+    public string? SupplierName { get; set; }
 }

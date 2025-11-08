@@ -13,6 +13,7 @@ public static class SupplierMapper
             Phone = entity.Phone,
             Email = entity.Email,
             Address = entity.Address,
+            Status = entity.Status
         };
     }
 
@@ -34,6 +35,7 @@ public static class SupplierMapper
             Phone = dto.Phone,
             Email = dto.Email,
             Address = dto.Address,
+            Status = dto.Status
         };
     }
 
