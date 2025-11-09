@@ -114,10 +114,11 @@
                                 @foreach (var order in orders)
                                 {
                                     var customer = customerMap.GetValueOrDefault(order.CustomerId);
+                                    var orderIdDisplay = !string.IsNullOrEmpty(order.Id) && order.Id.Length >= 8 ? order.Id.Substring(order.Id.Length - 8).ToUpper() : order.Id ?? "N/A";
                                     <tr>
                                         <td><input type="checkbox" class="form-check-input" /></td>
                                         <td>
-                                            <div class="fw-bold text-primary">#@order.Id.Substring(order.Id.Length - 8).ToUpper()</div>
+                                            <div class="fw-bold text-primary">#@orderIdDisplay</div>
                                         </td>
                                         <td>
                                             <div class="fw-bold">@(customer?.Customer.Name ?? order.CustomerId)</div>
@@ -130,13 +131,13 @@
                                         <td>@order.OrderDate.ToString("yyyy-MM-dd")</td>
                                         <td>
                                             <div class="btn-group" role="group">
-                                                <button class="btn btn-sm btn-outline-primary" @onclick="@(async () => await ViewOrder(Guid.Parse(order.Id)))">
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="@(async () => await ViewOrder(order.Id))">
                                                     <i class="bi bi-eye"></i>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-warning" @onclick="() => EditOrder(Guid.Parse(order.Id))">
+                                                <button class="btn btn-sm btn-outline-warning" @onclick="() => EditOrder(order.Id)">
                                                     <i class="bi bi-pencil"></i>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-info" @onclick="() => PrintOrder(Guid.Parse(order.Id))">
+                                                <button class="btn btn-sm btn-outline-info" @onclick="() => PrintOrder(order.Id)">
                                                     <i class="bi bi-printer"></i>
                                                 </button>
                                             </div>
@@ -178,7 +179,7 @@
             <div class="modal-dialog modal-lg" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Chi tiết đơn hàng #@selectedOrderId.ToString().Substring(selectedOrderId.ToString().Length - 8).ToUpper()</h5>
+                        <h5 class="modal-title">Chi tiết đơn hàng #@GetOrderIdDisplay(selectedOrderId)</h5>
                         <button type="button" class="btn-close" @onclick="CloseModal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
@@ -836,12 +837,12 @@
         }
     }
 
-    private void EditOrder(Guid id)
+    private void EditOrder(string id)
     {
         Console.WriteLine($"Editing order: {id}");
     }
 
-    private void PrintOrder(Guid id)
+    private void PrintOrder(string id)
     {
         Console.WriteLine($"Printing order: {id}");
     }
@@ -905,6 +906,12 @@
         return amount.ToString("N0");
     }
 
+    private string GetOrderIdDisplay(Guid id)
+    {
+        var idStr = id.ToString();
+        return idStr.Length >= 8 ? idStr.Substring(idStr.Length - 8).ToUpper() : idStr;
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (cts != null)
@@ -917,9 +924,15 @@
         _productDebounceTimer?.Dispose();
     }
 
-    private async Task ViewOrder(Guid id)
+    private async Task ViewOrder(string idStr)
     {
-        selectedOrderId = id;
+        if (string.IsNullOrEmpty(idStr) || !Guid.TryParse(idStr, out selectedOrderId))
+        {
+            Console.WriteLine($"Invalid order ID: {idStr}");
+            Toast.ShowWarning("Mã đơn hàng không hợp lệ.");
+            return;
+        }
+
         orderItemCurrentPage = 1;
         showModal = true;
         isLoadingOrderItems = true;
@@ -927,28 +940,30 @@
 
         try
         {
-            Console.WriteLine($"Calling API to fetch order items for OrderId: {id}");
+            Console.WriteLine($"Calling API to fetch order items for OrderId: {selectedOrderId}");
 
-            var response = await OrderItemService.GetOrderItemsByOrderIdAsync(id, page: 1, pageSize: 10);
+            var response = await OrderItemService.GetOrderItemsByOrderIdAsync(selectedOrderId, page: 1, pageSize: 10);
 
             if (response?.StatusCode == 200 && response.Data != null)
             {
                 orderItems = response.Data.orderItems ?? new();
                 orderPagination = response.Data.Pagination;
-                Console.WriteLine($"Success! Fetched {orderItems.Count} order items for {id}.");
+                Console.WriteLine($"Success! Fetched {orderItems.Count} order items for {selectedOrderId}.");
             }
             else
             {
                 orderItems = new();
                 orderPagination = null;
                 Console.WriteLine($"API returned non-200 status: {response?.StatusCode}. Message: {response?.Message}");
+                Toast.ShowWarning("Không thể tải chi tiết đơn hàng.");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error fetching order items for {id}: {ex.Message}");
+            Console.WriteLine($"Error fetching order items for {selectedOrderId}: {ex.Message}");
             orderItems = new();
             orderPagination = null;
+            Toast.ShowError($"Lỗi khi tải chi tiết đơn hàng: {ex.Message}");
         }
         finally
         {
@@ -1276,7 +1291,13 @@
                 return;
             }
 
-            var newOrderId = orderResponse.Data.order.Id; // Giả sử OrderDetailResponse có property Id là Guid
+            var newOrderIdStr = orderResponse.Data.order.Id; // Giả sử OrderDetailResponse có property Id là string
+            if (!Guid.TryParse(newOrderIdStr, out var newOrderId))
+            {
+                createErrorMessage = "Lỗi: Mã đơn hàng mới không hợp lệ.";
+                Toast.ShowError(createErrorMessage);
+                return;
+            }
 
             // Bước 2: Tạo Order Items
             var items = cartItems.Select(item => new OrderItemInput
@@ -1287,14 +1308,14 @@
         
             var itemsRequest = new CreateOrderItemsRequest
             {
-                OrderId = Guid.Parse(newOrderId),
+                OrderId = newOrderId,
                 Items = items
             };
 
             var itemsResponse = await OrderItemService.CreateOrderItemsAsync(itemsRequest);
 
             // THÊM MỚI: Hiển thị toast thành công giống như bên user management (sử dụng Toast.ShowSuccess với message đơn giản và chi tiết)
-            var successMessage = $"Tạo đơn hàng mới thành công! Mã đơn: #{newOrderId.ToString().Substring(newOrderId.ToString().Length - 8).ToUpper()}";
+            var successMessage = $"Tạo đơn hàng mới thành công! Mã đơn: #{GetOrderIdDisplay(newOrderId)}";
             Toast.ShowSuccess(successMessage);
             CloseCreateOrderModal();
             await LoadOrders();  // Reload list

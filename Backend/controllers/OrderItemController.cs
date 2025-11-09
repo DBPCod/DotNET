@@ -40,7 +40,7 @@ public class OrderItemController : ControllerBase
 
             response.Message = "Order items retrieved successfully";
             response.StatusCode = 200;
-            response.Data.OrderItemList = orderItemDtos;
+            response.Data.OrderItems = orderItemDtos;
             response.Data.Pagination = new PaginationInfo
             {
                 CurrentPage = request.Page,
@@ -79,7 +79,7 @@ public class OrderItemController : ControllerBase
 
             response.Message = "Order items retrieved successfully";
             response.StatusCode = 200;
-            response.Data.OrderItemList = orderItemDtos;
+            response.Data.OrderItems = orderItemDtos;
             response.Data.Pagination = new PaginationInfo
             {
                 CurrentPage = page,
@@ -123,7 +123,7 @@ public class OrderItemController : ControllerBase
             var orderItemsDto = OrderItemMapper.MapListEntityToListDto(addedItems); // Sửa: Dùng đúng mapper cho list OrderItem
             response.Message = "Order items added successfully";
             response.StatusCode = 201;
-            response.Data.OrderItemList = orderItemsDto; // Sửa: Gán DTOs thay vì entities
+            response.Data.OrderItems = orderItemsDto; // Sửa: Gán DTOs thay vì entities
             return StatusCode(response.StatusCode, response); // Sửa: Trả về Response object thay vì anonymous object
         }
         catch (ExceptionCustom ex)
