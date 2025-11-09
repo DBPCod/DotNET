@@ -7,15 +7,15 @@
 @using Frontend.Models.Common
 @using Frontend.Models
 @using Frontend.Models.Customer.Responses
-@using Frontend.Models.OrderItem.Responses 
+@using Frontend.Models.OrderItem.Responses
 @using Frontend.Models.Order
 @using Frontend.Models.OrderItem
-@using Frontend.Models.Product.Responses  // Giả sử có ProductDto
+@using Frontend.Models.Product.Responses // Giả sử có ProductDto
 @using Frontend.Models.Promotions.Responses
 @* @using Microsoft.AspNetCore.Components.Authorization *@
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Components.Forms
-@using System.Threading  
+@using System.Threading
 @using System.Text.Json
 @using System.Collections.Generic
 @using Backend.Dtos.Requests.Payment
@@ -26,10 +26,9 @@
 @inject PromotionService PromotionService
 @inject PaymentService PaymentService
 @inject IJSRuntime JSRuntime
-@inject Blazored.Toast.Services.IToastService Toast  // Giả sử dùng Blazored.Toast cho notification
+@inject Blazored.Toast.Services.IToastService Toast // Giả sử dùng Blazored.Toast cho notification
 @layout AdminLayout
 @implements IAsyncDisposable
-
 <div class="admin-page">
     <div class="page-header">
         <div class="d-flex justify-content-between align-items-center">
@@ -47,7 +46,7 @@
             </div>
         </div>
     </div>
-    
+   
     <div class="page-filters">
         <div class="row">
             <div class="col-md-3">
@@ -75,7 +74,7 @@
             </div>
         </div>
     </div>
-    
+   
     <div class="page-content">
         <div class="card">
             <div class="card-body">
@@ -150,7 +149,7 @@
                         </table>
                     </div>
                 }
-                
+               
                 @if (pagination != null && orders.Any())
                 {
                     <nav aria-label="Page navigation">
@@ -173,7 +172,6 @@
             </div>
         </div>
     </div>
-
     <!-- Modal hiển thị chi tiết Order Items -->
     @if (showModal)
     {
@@ -214,7 +212,6 @@
                                     <span class="badge @(selectedOrderStatus == "pending" ? "bg-warning" : "bg-success")">@GetPaymentMethodDisplay()</span>
                                 </div>
                             </div>
-
                             <div class="table-responsive">
                                 <table class="table table-hover">
                                     <thead>
@@ -275,7 +272,6 @@
         </div>
         <div class="modal-backdrop fade show"></div>
     }
-
     <!-- Modal Cập nhật trạng thái đơn hàng -->
     @if (showUpdateModal)
     {
@@ -330,7 +326,6 @@
         </div>
         <div class="modal-backdrop fade show"></div>
     }
-
     <!-- Modal Tạo đơn hàng mới (UI demo - mock data) -->
     @if (showCreateOrderModal)
     {
@@ -417,7 +412,6 @@
                                     </div>
                                 </div>
                             </div>
-
                             <!-- Phần chọn sản phẩm (UI demo - mock data) -->
                             <div class="row mt-4">
                                 <div class="col-12">
@@ -484,7 +478,6 @@
                                     }
                                 </div>
                             </div>
-
                             <!-- Giỏ hàng (Cart) -->
                             <h6>Giỏ hàng (@cartItems.Count sản phẩm)</h6>
                             @if (cartItems.Any())
@@ -531,7 +524,6 @@
                             {
                                 <p class="text-muted">Giỏ hàng trống. Hãy thêm sản phẩm từ danh sách trên.</p>
                             }
-
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" @onclick="CloseCreateOrderModal" disabled="@isCreatingOrder">Hủy</button>
                                 <button type="submit" class="btn btn-primary" disabled="@(!cartItems.Any() || isCreatingOrder)">
@@ -550,23 +542,22 @@
         <div class="modal-backdrop fade show"></div>
     }
 </div>
-
 <style>
     .admin-page {
         max-width: 1200px;
         margin-left: auto;
         margin-right: auto;
     }
-    
+   
     .page-header {
         margin-bottom: 2rem;
     }
-    
+   
     .page-header h2 {
         margin-bottom: 0.5rem;
         color: #2c3e50;
     }
-    
+   
     .page-filters {
         background: white;
         padding: 1.5rem;
@@ -574,23 +565,22 @@
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         margin-bottom: 2rem;
     }
-    
+   
     .page-content .card {
         border: none;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    
+   
     .table th {
         background-color: #f8f9fa;
         border-top: none;
         font-weight: 600;
         color: #495057;
     }
-    
+   
     .btn-group .btn {
         margin: 0 2px;
     }
-
     /* Modal backdrop fix */
     .modal-backdrop {
         position: fixed;
@@ -601,79 +591,63 @@
         height: 100vh;
         background-color: #000;
     }
-
     .modal-backdrop.fade {
         opacity: 0.5;
     }
-
     /* Custom styles for create modal */
     .list-group {
         border: 1px solid #dee2e6;
         border-radius: 0.375rem;
         z-index: 1051;
     }
-
     .list-group-item-action:hover {
         background-color: #f8f9fa;
     }
-
     /* Scroll fix cho product list */
     .product-scroll-container {
         background: white;
         border-radius: 0.375rem;
     }
-
     .product-scroll-container table {
         margin-bottom: 0;
     }
-
     .product-scroll-container::-webkit-scrollbar {
         width: 6px;
     }
-
     .product-scroll-container::-webkit-scrollbar-track {
         background: #f1f1f1;
         border-radius: 3px;
     }
-
     .product-scroll-container::-webkit-scrollbar-thumb {
         background: #c1c1c1;
         border-radius: 3px;
     }
-
     .product-scroll-container::-webkit-scrollbar-thumb:hover {
         background: #a8a8a8;
     }
-
     /* Scroll fix cho cart list */
     .cart-scroll-container {
         background: white;
         border-radius: 0.375rem;
     }
-
     .cart-scroll-container table {
         margin-bottom: 0;
     }
-
     .cart-scroll-container::-webkit-scrollbar {
         width: 6px;
     }
-
     .cart-scroll-container::-webkit-scrollbar-track {
         background: #f1f1f1;
         border-radius: 3px;
     }
-
     .cart-scroll-container::-webkit-scrollbar-thumb {
         background: #c1c1c1;
         border-radius: 3px;
     }
-
     .cart-scroll-container::-webkit-scrollbar-thumb:hover {
         background: #a8a8a8;
     }
 </style>
-
 @code {
     // Existing code for orders list...
     private List<OrderDto> orders = new();
@@ -685,12 +659,10 @@
     private bool allCheckboxesSelected = false;
     private CancellationTokenSource? cts;
     private System.Threading.Timer? _debounceTimer;
-
     // Backing fields for filters
     private string? _statusFilter;
     private DateTime? _fromDate;
     private DateTime? _toDate;
-
     // Modal and Order Items state
     private bool showModal = false;
     private List<OrderItemDto> orderItems = new();
@@ -698,9 +670,8 @@
     private Guid selectedOrderId;
     private int orderItemCurrentPage = 1;
     private bool isLoadingOrderItems = false;
-    private string selectedOrderStatus = string.Empty;  // Thêm mới: Lưu trạng thái order
-    private PaymentDto? selectedPayment;  // Thêm mới: Lưu payment info
-
+    private string selectedOrderStatus = string.Empty; // Thêm mới: Lưu trạng thái order
+    private PaymentDto? selectedPayment; // Thêm mới: Lưu payment info
     // New state for update status modal
     private bool showUpdateModal = false;
     private string? selectedOrderForUpdate;
@@ -709,33 +680,29 @@
     private bool isUpdatingStatus = false;
     private string updateErrorMessage = string.Empty;
     private UpdateStatusOrderRequest updateStatusForm = new();
-
     // New state for create order modal (UI demo)
     private bool showCreateOrderModal = false;
     private bool isCreatingOrder = false;
     private string createErrorMessage = string.Empty;
     private string customerSearchTerm = string.Empty;
-    private List<CustomerDto> filteredCustomers = new();  // Thay đổi từ CustomerDetailResponse sang CustomerDto để phù hợp với API
+    private List<CustomerDto> filteredCustomers = new(); // Thay đổi từ CustomerDetailResponse sang CustomerDto để phù hợp với API
     private CustomerDto? selectedCustomerForCreate;
-    private Guid currentUserId = Guid.NewGuid();  // Mock UserId, sẽ parse từ localStorage
-    private string userName = "";  // Thêm mới: Tên người dùng để hiển thị
+    private Guid currentUserId = Guid.NewGuid(); // Mock UserId, sẽ parse từ localStorage
+    private string userName = ""; // Thêm mới: Tên người dùng để hiển thị
     private string productSearchTerm = string.Empty;
-    private List<ProductDto> availableProducts = new();  // Mock data
+    private List<ProductDto> availableProducts = new(); // Mock data
     private bool isLoadingProducts = false;
-    private List<CartItem> cartItems = new();  // Local cart for order items
+    private List<CartItem> cartItems = new(); // Local cart for order items
     private decimal subTotal = 0;
     private decimal totalAmount = 0;
-    private bool isLoadingCustomers = false;  // Thêm mới: Loading state cho search khách hàng
+    private bool isLoadingCustomers = false; // Thêm mới: Loading state cho search khách hàng
     private System.Threading.Timer? _customerDebounceTimer;
     private System.Threading.Timer? _productDebounceTimer;
     private List<PromotionDto> promotions = new();
-
     // Backing field cho SelectedPromotionId
     private string _selectedPromotionId = string.Empty;
-
     // Form model for create order
     private CreateOrderForm createOrderForm = new();
-
     // Property cho SelectedPromotionId với logic trong setter
     public string SelectedPromotionId
     {
@@ -745,19 +712,16 @@
             if (_selectedPromotionId != value)
             {
                 _selectedPromotionId = value;
-                Console.WriteLine($"Promotion changed to: {value}");  // Log để debug
-
-                var promo = promotions.FirstOrDefault(p => p.Id.ToString() == value);  // An toàn với Guid/String
+                Console.WriteLine($"Promotion changed to: {value}"); // Log để debug
+                var promo = promotions.FirstOrDefault(p => p.Id.ToString() == value); // An toàn với Guid/String
                 var discount = promo?.DiscountValue ?? 0;
                 createOrderForm.DiscountAmount = discount;
-                Console.WriteLine($"Discount updated to: {discount}");  // Log giá trị giảm
-
+                Console.WriteLine($"Discount updated to: {discount}"); // Log giá trị giảm
                 UpdateTotals();
-                StateHasChanged();  // Đảm bảo re-render
+                StateHasChanged(); // Đảm bảo re-render
             }
         }
     }
-
     // Properties for filters...
     public string? StatusFilter
     {
@@ -775,7 +739,6 @@
             }
         }
     }
-
     public DateTime? FromDate
     {
         get => _fromDate;
@@ -792,7 +755,6 @@
             }
         }
     }
-
     public DateTime? ToDate
     {
         get => _toDate;
@@ -809,7 +771,6 @@
             }
         }
     }
-
     protected override async Task OnInitializedAsync()
     {
         cts = new CancellationTokenSource();
@@ -827,14 +788,12 @@
         StateHasChanged();
         await LoadOrders();
     }
-
     // Existing methods: LoadOrders, etc. (giữ nguyên từ code trước)
     private async Task LoadOrders()
     {
         isLoading = true;
         customerMap.Clear();
         StateHasChanged();
-
         try
         {
             var apiResponse = await OrderService.GetOrdersAsync(
@@ -845,20 +804,16 @@
                 fromDate: FromDate,
                 toDate: ToDate
             );
-
             Console.WriteLine($"API Response: {System.Text.Json.JsonSerializer.Serialize(apiResponse)}");
-
             if (apiResponse?.StatusCode == 200 && apiResponse.Data != null)
             {
                 orders = apiResponse.Data.Orders ?? new();
                 pagination = apiResponse.Data.Pagination;
                 currentPage = pagination.CurrentPage;
-
                 foreach (var order in orders)
                 {
                     Console.WriteLine($"OrderId: {order.Id}, Status: {order.Status}, Total: {order.TotalAmount}");
                 }
-
                 // Fetch customer details for unique customer IDs in parallel
                 var uniqueCustomerIds = orders.Select(o => o.CustomerId).Distinct().ToList();
                 if (uniqueCustomerIds.Any())
@@ -893,7 +848,6 @@
             StateHasChanged();
         }
     }
-
     private async Task<CustomerDetailResponse?> FetchCustomerAsync(string customerId)
     {
         try
@@ -907,7 +861,6 @@
             return null;
         }
     }
-
     private async Task NavigatePage(int page)
     {
         if (page >= 1 && page <= (pagination?.TotalPages ?? 1))
@@ -916,25 +869,20 @@
             await LoadOrders();
         }
     }
-
     private void PrintOrder(string id)
     {
         Console.WriteLine($"Printing order: {id}");
     }
-
     private void ToggleAllCheckboxes(ChangeEventArgs e)
     {
         allCheckboxesSelected = (bool)e.Value;
         StateHasChanged();
     }
-
     private async Task OnSearchChanged(ChangeEventArgs e)
     {
         searchTerm = e.Value?.ToString();
         currentPage = 1;
-
         _debounceTimer?.Dispose();
-
         _debounceTimer = new System.Threading.Timer(async _ =>
         {
             await InvokeAsync(async () =>
@@ -943,17 +891,14 @@
             });
         }, null, TimeSpan.FromMilliseconds(500), Timeout.InfiniteTimeSpan);
     }
-
     private void ToggleAdvancedFilters()
     {
         Console.WriteLine("Advanced filters toggled");
     }
-
     private void ExportReport()
     {
         Console.WriteLine("Exporting report");
     }
-
     private string GetStatusBadgeClass(string status)
     {
         return status.ToLower() switch
@@ -964,7 +909,6 @@
             _ => "bg-secondary"
         };
     }
-
     private string GetStatusDisplay(string status)
     {
         return status.ToLower() switch
@@ -975,18 +919,15 @@
             _ => status
         };
     }
-
     private string FormatCurrency(decimal amount)
     {
         return amount.ToString("N0");
     }
-
     private string GetOrderIdDisplay(Guid id)
     {
         var idStr = id.ToString();
         return idStr.Length >= 8 ? idStr.Substring(idStr.Length - 8).ToUpper() : idStr;
     }
-
     // Thêm mới: Method hiển thị phương thức thanh toán
     private string GetPaymentMethodDisplay()
     {
@@ -1005,7 +946,6 @@
         }
         return "Không xác định";
     }
-
     public async ValueTask DisposeAsync()
     {
         if (cts != null)
@@ -1017,7 +957,6 @@
         _customerDebounceTimer?.Dispose();
         _productDebounceTimer?.Dispose();
     }
-
     // Sửa đổi: ViewOrder nhận thêm status parameter
     private async Task ViewOrder(string idStr, string orderStatus)
     {
@@ -1027,20 +966,16 @@
             Toast.ShowWarning("Mã đơn hàng không hợp lệ.");
             return;
         }
-
-        selectedOrderStatus = orderStatus;  // Lưu status
+        selectedOrderStatus = orderStatus; // Lưu status
         orderItemCurrentPage = 1;
         showModal = true;
         isLoadingOrderItems = true;
-        selectedPayment = null;  // Reset payment
+        selectedPayment = null; // Reset payment
         StateHasChanged();
-
         try
         {
             Console.WriteLine($"Calling API to fetch order items for OrderId: {selectedOrderId}");
-
             var response = await OrderItemService.GetOrderItemsByOrderIdAsync(selectedOrderId, page: 1, pageSize: 10);
-
             if (response?.StatusCode == 200 && response.Data != null)
             {
                 orderItems = response.Data.orderItems ?? new();
@@ -1054,12 +989,11 @@
                 Console.WriteLine($"API returned non-200 status: {response?.StatusCode}. Message: {response?.Message}");
                 Toast.ShowWarning("Không thể tải chi tiết đơn hàng.");
             }
-    
+   
             // Thêm mới: Nếu status là "paid", tải payment
             if (selectedOrderStatus.ToLower() == "paid")
             {
                 var paymentResponse = await PaymentService.GetPaymentsByOrderIdAsync(selectedOrderId);
-
                 if (paymentResponse?.StatusCode == 200 && paymentResponse.Data?.PaymentDtos.Any() == true)
                 {
                     selectedPayment = paymentResponse.Data.PaymentDtos.First();
@@ -1070,7 +1004,6 @@
                     Toast.ShowWarning("Không tìm thấy thông tin thanh toán.");
                 }
             }
-
         }
         catch (Exception ex)
         {
@@ -1085,7 +1018,6 @@
             StateHasChanged();
         }
     }
-
     private async Task NavigateOrderItemsPage(int page)
     {
         if (page >= 1 && page <= (orderPagination?.TotalPages ?? 1))
@@ -1094,16 +1026,13 @@
             await LoadOrderItems(selectedOrderId, page);
         }
     }
-
     private async Task LoadOrderItems(Guid orderId, int page = 1)
     {
         isLoadingOrderItems = true;
         StateHasChanged();
-
         try
         {
             var response = await OrderItemService.GetOrderItemsByOrderIdAsync(orderId, page: page, pageSize: 10);
-
             if (response?.StatusCode == 200 && response.Data != null)
             {
                 orderItems = response.Data.orderItems ?? new();
@@ -1129,18 +1058,16 @@
             StateHasChanged();
         }
     }
-
     private void CloseModal()
     {
         showModal = false;
         orderItems.Clear();
         orderPagination = null;
         isLoadingOrderItems = false;
-        selectedOrderStatus = string.Empty;  // Reset
-        selectedPayment = null;  // Reset
+        selectedOrderStatus = string.Empty; // Reset
+        selectedPayment = null; // Reset
         StateHasChanged();
     }
-
     // New methods for update status modal
     private void UpdateStatusOrder(string orderId, string currentOrderStatus)
     {
@@ -1152,7 +1079,6 @@
         showUpdateModal = true;
         StateHasChanged();
     }
-
     private void CloseUpdateModal()
     {
         showUpdateModal = false;
@@ -1162,7 +1088,6 @@
         updateErrorMessage = string.Empty;
         updateStatusForm = new();
     }
-
     private async Task HandleUpdateStatusSubmit()
     {
         if (string.IsNullOrEmpty(selectedOrderForUpdate) || !Guid.TryParse(selectedOrderForUpdate, out var orderId))
@@ -1172,24 +1097,20 @@
             StateHasChanged();
             return;
         }
-
         updateStatusForm.status = currentStatus;
         isUpdatingStatus = true;
         updateErrorMessage = string.Empty;
         StateHasChanged();
-
         try
         {
             // Bước 1: Cập nhật trạng thái đơn hàng
             var statusResponse = await OrderService.UpdateOrderStatusAsync(orderId, updateStatusForm);
-
             if (statusResponse?.StatusCode != 200)
             {
                 updateErrorMessage = $"Lỗi cập nhật trạng thái: {statusResponse?.Message ?? "Unknown error"}";
                 Toast.ShowError(updateErrorMessage);
                 return;
             }
-
             // Bước 2: Nếu trạng thái mới là "paid", tạo payment
             if (currentStatus == "paid")
             {
@@ -1201,16 +1122,13 @@
                     Toast.ShowError(updateErrorMessage);
                     return;
                 }
-
                 var paymentRequest = new CreatePaymentRequest
                 {
                     OrderId = orderId,
-                    Amount = currentOrder.TotalAmount.Value,
+                    Amount = currentOrder.TotalAmount.Value - currentOrder.DiscountAmount,
                     PaymentMethod = selectedPaymentMethod
                 };
-
                 var paymentResponse = await PaymentService.CreatePaymentAsync(paymentRequest);
-
                 if (paymentResponse?.StatusCode != 200 && paymentResponse?.StatusCode != 201)
                 {
                     updateErrorMessage = $"Cập nhật trạng thái thành công nhưng lỗi tạo thanh toán: {paymentResponse?.Message ?? "Unknown error"}";
@@ -1228,7 +1146,6 @@
                 var successMessage = $"Cập nhật trạng thái thành công: {statusDisplay}";
                 Toast.ShowSuccess(successMessage);
             }
-
             CloseUpdateModal();
             await LoadOrders(); // Reload danh sách để cập nhật UI
         }
@@ -1244,7 +1161,6 @@
             StateHasChanged();
         }
     }
-
     // New methods for create order (UI demo - mock)
     private async Task ShowCreateOrderModal()
     {
@@ -1254,13 +1170,13 @@
         createErrorMessage = string.Empty;
         customerSearchTerm = string.Empty;
         productSearchTerm = string.Empty;
-        SelectedPromotionId = string.Empty;  // Reset property
+        SelectedPromotionId = string.Empty; // Reset property
         filteredCustomers.Clear();
         availableProducts.Clear();
         cartItems.Clear();
         createOrderForm = new CreateOrderForm();
         createOrderForm.UserId = currentUserId;
-        createOrderForm.DiscountAmount = 0;  // Reset discount
+        createOrderForm.DiscountAmount = 0; // Reset discount
         subTotal = 0;
         totalAmount = 0;
         isLoadingCustomers = false;
@@ -1269,18 +1185,17 @@
         await LoadPromotions();
         StateHasChanged();
     }
-
     private async Task LoadPromotions()
     {
         try
         {
             var (promos, _) = await PromotionService.GetPromotionsAsync(pageSize: 50); // Lấy tối đa 50 phiếu khuyến mãi
             promotions = promos ?? new List<PromotionDto>();
-            Console.WriteLine($"Loaded {promotions.Count} promotions.");  // Log để debug
+            Console.WriteLine($"Loaded {promotions.Count} promotions."); // Log để debug
             if (promotions.Any())
             {
                 var firstPromo = promotions.First();
-                Console.WriteLine($"Sample promo: ID={firstPromo.Id}, Discount={firstPromo.DiscountValue}");  // Log mẫu
+                Console.WriteLine($"Sample promo: ID={firstPromo.Id}, Discount={firstPromo.DiscountValue}"); // Log mẫu
             }
         }
         catch (Exception ex)
@@ -1290,14 +1205,12 @@
             Toast.ShowError("Lỗi khi tải danh sách khuyến mãi.");
         }
     }
-
     private void CloseCreateOrderModal()
     {
         _customerDebounceTimer?.Dispose();
         _productDebounceTimer?.Dispose();
         showCreateOrderModal = false;
     }
-
     private async Task OnCustomerSearchChanged(ChangeEventArgs e)
     {
         customerSearchTerm = e.Value?.ToString() ?? string.Empty;
@@ -1309,7 +1222,6 @@
             StateHasChanged();
             return;
         }
-
         _customerDebounceTimer?.Dispose();
         _customerDebounceTimer = new System.Threading.Timer(async _ =>
         {
@@ -1319,21 +1231,18 @@
             });
         }, null, TimeSpan.FromMilliseconds(300), Timeout.InfiniteTimeSpan);
     }
-
     private async Task LoadFilteredCustomers()
     {
         isLoadingCustomers = true;
         StateHasChanged();
-
         try
         {
             // Gọi API để lấy danh sách khách hàng với tìm kiếm
             var response = await CustomerService.GetCustomersAsync(
                 page: 1,
-                pageSize: 20,  // Giới hạn số lượng để phù hợp với dropdown
+                pageSize: 20, // Giới hạn số lượng để phù hợp với dropdown
                 q: customerSearchTerm
             );
-
             if (response?.StatusCode == 200 && response.Data?.Customers != null)
             {
                 filteredCustomers = response.Data.Customers;
@@ -1356,7 +1265,6 @@
             StateHasChanged();
         }
     }
-
     private void SelectCustomer(CustomerDto customer)
     {
         selectedCustomerForCreate = customer;
@@ -1365,11 +1273,9 @@
         filteredCustomers.Clear();
         StateHasChanged();
     }
-
     private async Task OnProductSearchChanged(ChangeEventArgs e)
     {
         productSearchTerm = e.Value?.ToString() ?? string.Empty;
-
         _productDebounceTimer?.Dispose();
         _productDebounceTimer = new System.Threading.Timer(async _ =>
         {
@@ -1379,22 +1285,19 @@
             });
         }, null, TimeSpan.FromMilliseconds(300), Timeout.InfiniteTimeSpan);
     }
-
     private async Task LoadProducts()
     {
         isLoadingProducts = true;
-        availableProducts.Clear();  // Clear ngay để tránh hiển thị dữ liệu cũ trong khi loading
+        availableProducts.Clear(); // Clear ngay để tránh hiển thị dữ liệu cũ trong khi loading
         StateHasChanged();
-
         try
         {
             // Gọi API để lấy danh sách sản phẩm với tìm kiếm
             var response = await ProductService.GetProductsAsync(
                 page: 1,
-                pageSize: 20,  // Giới hạn số lượng để phù hợp với dropdown
+                pageSize: 20, // Giới hạn số lượng để phù hợp với dropdown
                 searchQuery: productSearchTerm
             );
-
             if (response?.StatusCode == 200 && response.Data?.Products != null)
             {
                 availableProducts = response.Data.Products;
@@ -1417,7 +1320,6 @@
             StateHasChanged();
         }
     }
-
     private void AddToCart(ProductDto product)
     {
         var existingItem = cartItems.FirstOrDefault(x => x.ProductId == Guid.Parse(product.Id));
@@ -1437,11 +1339,10 @@
         }
         UpdateTotals();
     }
-
     private void UpdateQuantity(CartItem item, int delta)
     {
         var newQuantity = item.Quantity + delta;
-        if (newQuantity >= 1)  // Strict >=1, không cho phép =0
+        if (newQuantity >= 1) // Strict >=1, không cho phép =0
         {
             item.Quantity = newQuantity;
             UpdateTotals();
@@ -1449,24 +1350,21 @@
         // Thêm: Disable +/- nếu cần, nhưng UI sẽ handle qua min=1 trên input
         StateHasChanged();
     }
-
     private void RemoveFromCart(CartItem item)
     {
         cartItems.Remove(item);
         UpdateTotals();
         StateHasChanged();
     }
-
     private void UpdateTotals()
     {
         subTotal = cartItems.Sum(x => x.Price * x.Quantity);
         var discount = createOrderForm.DiscountAmount ?? 0;
         totalAmount = subTotal - discount;
         createOrderForm.TotalAmount = totalAmount;
-        Console.WriteLine($"Totals updated: Sub={subTotal}, Discount={discount}, Total={totalAmount}");  // Log để debug
+        Console.WriteLine($"Totals updated: Sub={subTotal}, Discount={discount}, Total={totalAmount}"); // Log để debug
         StateHasChanged();
     }
-
     private async Task HandleCreateOrderSubmit()
     {
         if (selectedCustomerForCreate == null || !cartItems.Any())
@@ -1475,7 +1373,6 @@
             StateHasChanged();
             return;
         }
-
         // THÊM MỚI: Validation quantity cho tất cả items
         var invalidItems = cartItems.Where(i => i.Quantity <= 0).ToList();
         if (invalidItems.Any())
@@ -1485,11 +1382,9 @@
             StateHasChanged();
             return;
         }
-
         isCreatingOrder = true;
         createErrorMessage = string.Empty;
         StateHasChanged();
-
         try
         {
             // Bước 1: Tạo Order
@@ -1498,19 +1393,16 @@
                 CustomerId = createOrderForm.CustomerId,
                 UserId = createOrderForm.UserId,
                 PromoId = string.IsNullOrEmpty(SelectedPromotionId) ? null : Guid.Parse(SelectedPromotionId),
-                TotalAmount = totalAmount,
+                TotalAmount = totalAmount, // Tổng sau khi trừ giảm giá
                 DiscountAmount = createOrderForm.DiscountAmount ?? 0
             };
-
             var orderResponse = await OrderService.CreateOrderAsync(orderRequest);
-
             if ((orderResponse?.StatusCode != 200 && orderResponse.StatusCode != 201) || orderResponse.Data == null)
             {
                 createErrorMessage = $"Lỗi tạo đơn hàng: {orderResponse?.Message ?? "Unknown error"}";
                 Toast.ShowError(createErrorMessage);
                 return;
             }
-
             var newOrderIdStr = orderResponse.Data.order.Id; // Giả sử OrderDetailResponse có property Id là string
             if (!Guid.TryParse(newOrderIdStr, out var newOrderId))
             {
@@ -1518,33 +1410,30 @@
                 Toast.ShowError(createErrorMessage);
                 return;
             }
-
             // Bước 2: Tạo Order Items
             var items = cartItems.Select(item => new OrderItemInput
             {
                 ProductId = item.ProductId,
-                Quantity = item.Quantity  // Đảm bảo >0 từ validation
+                Quantity = item.Quantity // Đảm bảo >0 từ validation
             }).ToList();
-        
+       
             var itemsRequest = new CreateOrderItemsRequest
             {
                 OrderId = newOrderId,
                 Items = items
             };
-
             var itemsResponse = await OrderItemService.CreateOrderItemsAsync(itemsRequest);
-
             // THÊM MỚI: Hiển thị toast thành công giống như bên user management (sử dụng Toast.ShowSuccess với message đơn giản và chi tiết)
             var successMessage = $"Tạo đơn hàng mới thành công! Mã đơn: #{GetOrderIdDisplay(newOrderId)}";
             Toast.ShowSuccess(successMessage);
             CloseCreateOrderModal();
-            await LoadOrders();  // Reload list
+            await LoadOrders(); // Reload list
         }
         catch (Exception ex)
         {
             createErrorMessage = $"Lỗi: {ex.Message}";
             Toast.ShowError(createErrorMessage);
-            Console.WriteLine($"Full exception: {ex}");  // Log stack trace
+            Console.WriteLine($"Full exception: {ex}"); // Log stack trace
         }
         finally
         {
@@ -1552,22 +1441,17 @@
             StateHasChanged();
         }
     }
-
     // Helper classes
     public class CreateOrderForm
     {
         [Required(ErrorMessage = "Khách hàng là bắt buộc")]
         public Guid CustomerId { get; set; }
-
         [Required(ErrorMessage = "UserId là bắt buộc")]
         public Guid UserId { get; set; }
-
         public decimal? DiscountAmount { get; set; }
-
         [Required]
         public decimal TotalAmount { get; set; }
     }
-
     public class CartItem
     {
         public Guid ProductId { get; set; }
@@ -1576,7 +1460,6 @@
         public int Quantity { get; set; } = 1;
         public decimal Subtotal => Price * Quantity;
     }
-
     //Lấy list của payment
     public class PaymentListData
     {
