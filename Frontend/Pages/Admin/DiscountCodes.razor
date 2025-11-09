@@ -24,7 +24,7 @@
     
     <div class="page-filters">
         <div class="row">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <input type="text" class="form-control" placeholder="Tìm kiếm mã giảm giá..." 
                        @bind="searchTerm" @onkeypress="HandleSearchKeyPress" />
             </div>
@@ -44,7 +44,7 @@
                     <option value="free_shipping">Miễn phí vận chuyển</option>
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <input type="date" class="form-control" value="@selectedEndDate" 
                        @onchange="HandleEndDateChange" placeholder="Ngày hết hạn" />
             </div>
@@ -56,8 +56,13 @@
                     <option value="48">48</option>
                 </select>
             </div>
-            <div class="col-md-1">
-                <button class="btn btn-outline-secondary w-100" @onclick="() => LoadDiscountCodes(1)">Lọc</button>
+            <div class="col-md-3">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary flex-fill" @onclick="() => LoadDiscountCodes(1)">Tìm kiếm</button>
+                    <button class="btn btn-outline-primary" @onclick="ResetFilters" title="Làm mới">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -725,6 +730,16 @@
 
     private async Task HandlePageSizeChange()
     {
+        await LoadDiscountCodes(1);
+    }
+
+    private async Task ResetFilters()
+    {
+        searchTerm = "";
+        selectedStatus = "";
+        selectedDiscountType = "";
+        selectedEndDate = null;
+        currentPage = 1;
         await LoadDiscountCodes(1);
     }
 

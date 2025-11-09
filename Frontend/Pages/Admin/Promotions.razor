@@ -24,11 +24,11 @@
     
     <div class="page-filters">  
         <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-2">
                 <input type="text" class="form-control" placeholder="Tìm kiếm khuyến mãi..." 
                        @bind="searchTerm" @onkeypress="HandleSearchKeyPress" />
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <select class="form-select" value="@selectedStatus" @onchange="HandleStatusChange">
                     <option value="">Tất cả trạng thái</option>
                     <option value="active">Đang hoạt động</option>
@@ -36,7 +36,7 @@
                     <option value="expired">Đã kết thúc</option>
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <select class="form-select" value="@selectedDiscountType" @onchange="HandleDiscountTypeFilterChange">
                     <option value="">Tất cả loại</option>
                     <option value="percent">Giảm giá %</option>
@@ -52,8 +52,13 @@
                     <option value="48">48</option>
                 </select>
             </div>
-            <div class="col-md-1">
-                <button class="btn btn-outline-secondary w-100" @onclick="() => LoadPromotions(1)">Lọc</button>
+            <div class="col-md-3">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary flex-fill" @onclick="() => LoadPromotions(1)">Tìm kiếm</button>
+                    <button class="btn btn-outline-primary" @onclick="ResetFilters" title="Làm mới">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -649,6 +654,15 @@
 
     private async Task HandlePageSizeChange()
     {
+        await LoadPromotions(1);
+    }
+
+    private async Task ResetFilters()
+    {
+        searchTerm = "";
+        selectedStatus = "";
+        selectedDiscountType = "";
+        currentPage = 1;
         await LoadPromotions(1);
     }
 
