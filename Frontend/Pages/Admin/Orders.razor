@@ -46,7 +46,7 @@
             </div>
         </div>
     </div>
-   
+  
     <div class="page-filters">
         <div class="row">
             <div class="col-md-3">
@@ -74,7 +74,7 @@
             </div>
         </div>
     </div>
-   
+  
     <div class="page-content">
         <div class="card">
             <div class="card-body">
@@ -149,7 +149,7 @@
                         </table>
                     </div>
                 }
-               
+              
                 @if (pagination != null && orders.Any())
                 {
                     <nav aria-label="Page navigation">
@@ -212,6 +212,16 @@
                                     <span class="badge @(selectedOrderStatus == "pending" ? "bg-warning" : "bg-success")">@GetPaymentMethodDisplay()</span>
                                 </div>
                             </div>
+                            @if (selectedOrderStatus.ToLower() == "paid" && selectedPayment != null)
+                            {
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label class="form-label fw-bold">Số tiền thanh toán:</label>
+                                        <div class="fw-bold text-success">@FormatCurrency(selectedPayment.Amount) VND</div>
+                                        <small class="text-muted">Ngày thanh toán: @selectedPayment.PaymentDate.ToString("yyyy-MM-dd HH:mm")</small>
+                                    </div>
+                                </div>
+                            }
                             <div class="table-responsive">
                                 <table class="table table-hover">
                                     <thead>
@@ -548,16 +558,16 @@
         margin-left: auto;
         margin-right: auto;
     }
-   
+  
     .page-header {
         margin-bottom: 2rem;
     }
-   
+  
     .page-header h2 {
         margin-bottom: 0.5rem;
         color: #2c3e50;
     }
-   
+  
     .page-filters {
         background: white;
         padding: 1.5rem;
@@ -565,19 +575,19 @@
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         margin-bottom: 2rem;
     }
-   
+  
     .page-content .card {
         border: none;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-   
+  
     .table th {
         background-color: #f8f9fa;
         border-top: none;
         font-weight: 600;
         color: #495057;
     }
-   
+  
     .btn-group .btn {
         margin: 0 2px;
     }
@@ -989,7 +999,7 @@
                 Console.WriteLine($"API returned non-200 status: {response?.StatusCode}. Message: {response?.Message}");
                 Toast.ShowWarning("Không thể tải chi tiết đơn hàng.");
             }
-   
+  
             // Thêm mới: Nếu status là "paid", tải payment
             if (selectedOrderStatus.ToLower() == "paid")
             {
@@ -1416,7 +1426,7 @@
                 ProductId = item.ProductId,
                 Quantity = item.Quantity // Đảm bảo >0 từ validation
             }).ToList();
-       
+      
             var itemsRequest = new CreateOrderItemsRequest
             {
                 OrderId = newOrderId,
