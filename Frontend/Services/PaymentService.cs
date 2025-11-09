@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using Backend.Dtos.Requests.Payment;
 using Frontend.Models;
 using Frontend.Models.Common;
+using static Frontend.Pages.Admin.Orders;
 
 namespace Frontend.Services;
 
@@ -91,13 +92,16 @@ public class PaymentService
     }
 
     // GET - Lấy payments theo OrderId
-    public async Task<ApiResponse<List<PaymentDto>>?> GetPaymentsByOrderIdAsync(Guid orderId)
+    public async Task<ApiResponse<PaymentListData>?> GetPaymentsByOrderIdAsync(Guid orderId)
     {
         try
         {
             Console.WriteLine($"Fetching payments for order {orderId} from backend...");
             var query = $"{BaseUrl}/order/{orderId}";
-            var response = await _httpClient.GetFromJsonAsync<ApiResponse<List<PaymentDto>>>(query);
+
+            // Deserialize đúng kiểu
+            var response = await _httpClient.GetFromJsonAsync<ApiResponse<PaymentListData>>(query);
+
             Console.WriteLine("Fetched payments by order successfully.");
             return response;
         }
@@ -105,11 +109,13 @@ public class PaymentService
         {
             Console.WriteLine($"Error getting payments by order: {ex.Message}");
             Console.WriteLine($"Error getting payments by order: {ex}");
-            return new ApiResponse<List<PaymentDto>> 
-            { 
-                Message = ex.Message, 
-                StatusCode = 500 
+            return new ApiResponse<PaymentListData>
+            {
+                Message = ex.Message,
+                StatusCode = 500,
+                Data = new PaymentListData()
             };
         }
     }
+
 }

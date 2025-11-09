@@ -133,7 +133,7 @@
                                         <td>@order.OrderDate.ToString("yyyy-MM-dd")</td>
                                         <td>
                                             <div class="btn-group" role="group">
-                                                <button class="btn btn-sm btn-outline-primary" @onclick="@(async () => await ViewOrder(order.Id))">
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="@(async () => await ViewOrder(order.Id, order.Status))">
                                                     <i class="bi bi-eye"></i>
                                                 </button>
                                                 <button class="btn btn-sm btn-outline-warning" @onclick="@(() => UpdateStatusOrder(order.Id, order.Status))">
@@ -203,6 +203,18 @@
                         }
                         else
                         {
+                            <!-- Thêm phần hiển thị phương thức thanh toán -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Trạng thái đơn hàng:</label>
+                                    <span class="badge @GetStatusBadgeClass(selectedOrderStatus)">@GetStatusDisplay(selectedOrderStatus)</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Phương thức thanh toán:</label>
+                                    <span class="badge @(selectedOrderStatus == "pending" ? "bg-warning" : "bg-success")">@GetPaymentMethodDisplay()</span>
+                                </div>
+                            </div>
+
                             <div class="table-responsive">
                                 <table class="table table-hover">
                                     <thead>
@@ -686,6 +698,8 @@
     private Guid selectedOrderId;
     private int orderItemCurrentPage = 1;
     private bool isLoadingOrderItems = false;
+    private string selectedOrderStatus = string.Empty;  // Thêm mới: Lưu trạng thái order
+    private PaymentDto? selectedPayment;  // Thêm mới: Lưu payment info
 
     // New state for update status modal
     private bool showUpdateModal = false;
@@ -973,6 +987,25 @@
         return idStr.Length >= 8 ? idStr.Substring(idStr.Length - 8).ToUpper() : idStr;
     }
 
+    // Thêm mới: Method hiển thị phương thức thanh toán
+    private string GetPaymentMethodDisplay()
+    {
+        if (selectedOrderStatus.ToLower() == "pending")
+        {
+            return "Chờ xử lý";
+        }
+        else if (selectedPayment != null)
+        {
+            return selectedPayment.PaymentMethod.ToLower() switch
+            {
+                "cash" => "Tiền mặt",
+                "card" => "Thẻ",
+                _ => selectedPayment.PaymentMethod
+            };
+        }
+        return "Không xác định";
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (cts != null)
@@ -985,7 +1018,8 @@
         _productDebounceTimer?.Dispose();
     }
 
-    private async Task ViewOrder(string idStr)
+    // Sửa đổi: ViewOrder nhận thêm status parameter
+    private async Task ViewOrder(string idStr, string orderStatus)
     {
         if (string.IsNullOrEmpty(idStr) || !Guid.TryParse(idStr, out selectedOrderId))
         {
@@ -994,9 +1028,11 @@
             return;
         }
 
+        selectedOrderStatus = orderStatus;  // Lưu status
         orderItemCurrentPage = 1;
         showModal = true;
         isLoadingOrderItems = true;
+        selectedPayment = null;  // Reset payment
         StateHasChanged();
 
         try
@@ -1018,6 +1054,23 @@
                 Console.WriteLine($"API returned non-200 status: {response?.StatusCode}. Message: {response?.Message}");
                 Toast.ShowWarning("Không thể tải chi tiết đơn hàng.");
             }
+    
+            // Thêm mới: Nếu status là "paid", tải payment
+            if (selectedOrderStatus.ToLower() == "paid")
+            {
+                var paymentResponse = await PaymentService.GetPaymentsByOrderIdAsync(selectedOrderId);
+
+                if (paymentResponse?.StatusCode == 200 && paymentResponse.Data?.PaymentDtos.Any() == true)
+                {
+                    selectedPayment = paymentResponse.Data.PaymentDtos.First();
+                    Console.WriteLine($"Loaded payment for order {selectedOrderId}: {selectedPayment.PaymentMethod}");
+                }
+                else
+                {
+                    Toast.ShowWarning("Không tìm thấy thông tin thanh toán.");
+                }
+            }
+
         }
         catch (Exception ex)
         {
@@ -1083,6 +1136,8 @@
         orderItems.Clear();
         orderPagination = null;
         isLoadingOrderItems = false;
+        selectedOrderStatus = string.Empty;  // Reset
+        selectedPayment = null;  // Reset
         StateHasChanged();
     }
 
@@ -1520,5 +1575,11 @@
         public decimal Price { get; set; }
         public int Quantity { get; set; } = 1;
         public decimal Subtotal => Price * Quantity;
+    }
+
+    //Lấy list của payment
+    public class PaymentListData
+    {
+        public List<PaymentDto> PaymentDtos { get; set; } = new();
     }
 }

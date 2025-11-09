@@ -39,11 +39,36 @@ public class PaymentController(PaymentService paymentService) : ControllerBase
     [HttpGet("order/{orderId:guid}")]
     public async Task<IActionResult> GetPaymentsByOrderId(Guid orderId)
     {
-        var payments = await _paymentService.GetPaymentsByOrderIdAsync(orderId);
+        var response = new Response();
 
-        if (!payments.Any())
-            return NotFound(new { message = "No payments found for this order" });
+        try
+        {
+            var payments = await _paymentService.GetPaymentsByOrderIdAsync(orderId);
 
-        return Ok(payments);
+            if (!payments.Any())
+            {
+                response.Message = "No payments found for this order";
+                response.StatusCode = 404;
+                return StatusCode(response.StatusCode, response);
+            }
+
+            var paymentDtos = PaymentMapper.MapListEntityToListDto(payments);  // Giả sử có PaymentMapper tương tự OrderMapper
+
+            response.Message = "Payments retrieved successfully";
+            response.StatusCode = 200;
+            response.Data.PaymentDtos = paymentDtos;  // Giả sử Data có property Payments (List<PaymentDto>)
+        }
+        catch (ExceptionCustom ex)
+        {
+            response.Message = ex.Message;
+            response.StatusCode = ex.StatusCode;
+        }
+        catch (Exception ex)
+        {
+            response.Message = ex.Message;
+            response.StatusCode = 500;
+        }
+
+        return StatusCode(response.StatusCode, response);
     }
 }

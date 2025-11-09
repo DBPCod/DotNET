@@ -4,7 +4,7 @@ public class ResponseData
 {
     // Error message
     public string? Error { get; set; }
-    
+
     // User
     public UserDto? User { get; set; }
     public ICollection<UserDto>? Users { get; set; }
@@ -45,9 +45,12 @@ public class ResponseData
     public ICollection<UpdateOrderStatusDto> UpdateOrderStatuses { get; set; }
 
     //OrderItem
-    public OrderItemDto? OrderItem  { set; get; }
+    public OrderItemDto? OrderItem { set; get; }
     public ICollection<OrderItemDto> OrderItems { get; set; }
 
+    //Payment
+    public PaymentDto? PaymentDto { set; get; }
+    public ICollection<PaymentDto> PaymentDtos { get; set; }
 }
 
 
