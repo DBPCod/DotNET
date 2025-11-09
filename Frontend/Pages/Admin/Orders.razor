@@ -153,16 +153,16 @@
                     <nav aria-label="Page navigation">
                         <ul class="pagination justify-content-center">
                             <li class="page-item @(pagination.HasPreviousPage ? "" : "disabled")">
-                                <a class="page-link" href="#" @onclick="() => NavigatePage(currentPage - 1)" @onclick:preventDefault="@(!pagination.HasPreviousPage)">Trước</a>
+                                <a class="page-link" href="#" @onclick="@(async () => await NavigatePage(currentPage - 1))" @onclick:preventDefault="true">Trước</a>
                             </li>
                             @for (int i = 1; i <= pagination.TotalPages; i++)
                             {
                                 <li class="page-item @(i == currentPage ? "active" : "")">
-                                    <a class="page-link" href="#" @onclick="() => NavigatePage(i)">@i</a>
+                                    <a class="page-link" href="#" @onclick="@(async () => await NavigatePage(i))" @onclick:preventDefault="true">@i</a>
                                 </li>
                             }
                             <li class="page-item @(pagination.HasNextPage ? "" : "disabled")">
-                                <a class="page-link" href="#" @onclick="() => NavigatePage(currentPage + 1)" @onclick:preventDefault="@(!pagination.HasNextPage)">Tiếp</a>
+                                <a class="page-link" href="#" @onclick="@(async () => await NavigatePage(currentPage + 1))" @onclick:preventDefault="true">Tiếp</a>
                             </li>
                         </ul>
                     </nav>
@@ -233,16 +233,16 @@
                             <nav aria-label="Order items pagination">
                                 <ul class="pagination mb-0">
                                     <li class="page-item @(orderPagination.HasPreviousPage ? "" : "disabled")">
-                                        <a class="page-link" href="#" @onclick="() => NavigateOrderItemsPage(orderPagination.CurrentPage - 1)" @onclick:preventDefault="@(!orderPagination.HasPreviousPage)">Trước</a>
+                                        <a class="page-link" href="#" @onclick="@(async () => await NavigateOrderItemsPage(orderPagination.CurrentPage - 1))" @onclick:preventDefault="true">Trước</a>
                                     </li>
                                     @for (int i = 1; i <= orderPagination.TotalPages; i++)
                                     {
                                         <li class="page-item @(i == orderItemCurrentPage ? "active" : "")">
-                                            <a class="page-link" href="#" @onclick="() => NavigateOrderItemsPage(i)">@i</a>
+                                            <a class="page-link" href="#" @onclick="@(async () => await NavigateOrderItemsPage(i))" @onclick:preventDefault="true">@i</a>
                                         </li>
                                     }
                                     <li class="page-item @(orderPagination.HasNextPage ? "" : "disabled")">
-                                        <a class="page-link" href="#" @onclick="() => NavigateOrderItemsPage(orderPagination.CurrentPage + 1)" @onclick:preventDefault="@(!orderPagination.HasNextPage)">Tiếp</a>
+                                        <a class="page-link" href="#" @onclick="@(async () => await NavigateOrderItemsPage(orderPagination.CurrentPage + 1))" @onclick:preventDefault="true">Tiếp</a>
                                     </li>
                                 </ul>
                             </nav>
@@ -1269,7 +1269,7 @@
 
             var orderResponse = await OrderService.CreateOrderAsync(orderRequest);
 
-            if (orderResponse?.StatusCode != 200 && orderResponse.StatusCode != 201 || orderResponse.Data == null)
+            if ((orderResponse?.StatusCode != 200 && orderResponse.StatusCode != 201) || orderResponse.Data == null)
             {
                 createErrorMessage = $"Lỗi tạo đơn hàng: {orderResponse?.Message ?? "Unknown error"}";
                 Toast.ShowError(createErrorMessage);
@@ -1293,18 +1293,9 @@
 
             var itemsResponse = await OrderItemService.CreateOrderItemsAsync(itemsRequest);
 
-            Console.WriteLine(itemsResponse);
-            if (itemsResponse?.StatusCode != 200 && itemsResponse.StatusCode != 201 || itemsResponse.Data == null)
-            {
-                // THÊM MỚI: Log chi tiết để debug
-                Console.WriteLine($"OrderItems fail: Status={itemsResponse?.StatusCode}, Message={itemsResponse?.Message}");
-                createErrorMessage = $"Lỗi tạo chi tiết đơn hàng: {itemsResponse?.Message ?? "Unknown error"}";
-                Toast.ShowError(createErrorMessage);
-                // Optional: Rollback order nếu cần (gọi API delete order)
-                return;
-            }
-
-            Toast.ShowSuccess($"Tạo đơn hàng thành công! Mã đơn: #{newOrderId.ToString().Substring(newOrderId.ToString().Length - 8).ToUpper()}");
+            // THÊM MỚI: Hiển thị toast thành công giống như bên user management (sử dụng Toast.ShowSuccess với message đơn giản và chi tiết)
+            var successMessage = $"Tạo đơn hàng mới thành công! Mã đơn: #{newOrderId.ToString().Substring(newOrderId.ToString().Length - 8).ToUpper()}";
+            Toast.ShowSuccess(successMessage);
             CloseCreateOrderModal();
             await LoadOrders();  // Reload list
         }

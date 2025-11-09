@@ -40,7 +40,7 @@ public class OrderItemController : ControllerBase
 
             response.Message = "Order items retrieved successfully";
             response.StatusCode = 200;
-            response.Data.orderItems = orderItemDtos;
+            response.Data.OrderItemList = orderItemDtos;
             response.Data.Pagination = new PaginationInfo
             {
                 CurrentPage = request.Page,
@@ -79,7 +79,7 @@ public class OrderItemController : ControllerBase
 
             response.Message = "Order items retrieved successfully";
             response.StatusCode = 200;
-            response.Data.orderItems = orderItemDtos;
+            response.Data.OrderItemList = orderItemDtos;
             response.Data.Pagination = new PaginationInfo
             {
                 CurrentPage = page,
@@ -106,19 +106,33 @@ public class OrderItemController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateOrderItems([FromBody] CreateOrderItemsRequest request)
     {
+        var response = new Response();
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
         try
         {
             var addedItems = await _orderItemService.CreateOrderItemsAsync(request);
-            return Ok(new
+            if (addedItems == null || !addedItems.Any())
             {
-                message = "Order items added successfully",
-                totalItems = addedItems.Count,
-                items = addedItems
-            });
+                response.Message = "Failed to create order items";
+                response.StatusCode = 500;
+                return StatusCode(response.StatusCode, response);
+            }
+
+            var orderItemsDto = OrderItemMapper.MapListEntityToListDto(addedItems); // Sửa: Dùng đúng mapper cho list OrderItem
+            response.Message = "Order items added successfully";
+            response.StatusCode = 201;
+            response.Data.OrderItemList = orderItemsDto; // Sửa: Gán DTOs thay vì entities
+            return StatusCode(response.StatusCode, response); // Sửa: Trả về Response object thay vì anonymous object
+        }
+        catch (ExceptionCustom ex)
+        {
+            return BadRequest(ex.Message); // Thêm: Catch ExceptionCustom trước
         }
         catch (Exception ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(ex.Message);
         }
     }
 }

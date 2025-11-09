@@ -45,8 +45,8 @@ public class ResponseData
     public ICollection<UpdateOrderStatusDto> UpdateOrderStatuses { get; set; }
 
     //OrderItem
-    public OrderItemDto? orderItem { set; get; }
-    public ICollection<OrderItemDto> orderItems{ get; set; }
+    public OrderItemDto? SingleOrderItem  { set; get; }
+    public ICollection<OrderItemDto> OrderItemList { get; set; }
 
 }
 
