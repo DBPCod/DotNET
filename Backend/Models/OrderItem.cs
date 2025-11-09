@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Backend.Models;
 
@@ -30,6 +31,8 @@ public class OrderItem
     public decimal Subtotal { get; set; }
 
     // Navigation properties
+    [JsonIgnore]
     public Order? Order { get; set; }
+    [JsonIgnore]
     public Product? Product { get; set; }
 }
