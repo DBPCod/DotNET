@@ -1,6 +1,34 @@
 @page "/admin/orders"
+@using Frontend.Models.Customer
+@using Frontend.Models.Product
+@using Frontend.Models.Promotions
+@using Frontend.Services
+@using Frontend.Models.Order.Responses
+@using Frontend.Models.Common
+@using Frontend.Models
+@using Frontend.Models.Customer.Responses
+@using Frontend.Models.OrderItem.Responses
+@using Frontend.Models.Order
+@using Frontend.Models.OrderItem
+@using Frontend.Models.Product.Responses // Giả sử có ProductDto
+@using Frontend.Models.Promotions.Responses
+@* @using Microsoft.AspNetCore.Components.Authorization *@
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Threading
+@using System.Text.Json
+@using System.Collections.Generic
+@using Backend.Dtos.Requests.Payment
+@inject OrderService OrderService
+@inject OrderItemService OrderItemService
+@inject CustomerService CustomerService
+@inject ProductService ProductService
+@inject PromotionService PromotionService
+@inject PaymentService PaymentService
+@inject IJSRuntime JSRuntime
+@inject Blazored.Toast.Services.IToastService Toast // Giả sử dùng Blazored.Toast cho notification
 @layout AdminLayout
-
+@implements IAsyncDisposable
 <div class="admin-page">
     <div class="page-header">
         <div class="d-flex justify-content-between align-items-center">
@@ -9,210 +37,537 @@
                 <p class="text-muted">Theo dõi và quản lý đơn hàng của khách hàng</p>
             </div>
             <div>
-                <button class="btn btn-outline-success me-2">
+                <button class="btn btn-outline-success me-2" @onclick="ExportReport">
                     <i class="bi bi-download"></i> Xuất báo cáo
                 </button>
-                <button class="btn btn-primary">
+                <button class="btn btn-primary" @onclick="@(async () => await ShowCreateOrderModal())">
                     <i class="bi bi-plus"></i> Tạo đơn hàng
                 </button>
             </div>
         </div>
     </div>
-    
+  
     <div class="page-filters">
         <div class="row">
             <div class="col-md-3">
-                <input type="text" class="form-control" placeholder="Tìm kiếm theo mã đơn hàng..." />
+                <input type="text" class="form-control" @bind="searchTerm" @oninput="OnSearchChanged" placeholder="Tìm kiếm theo mã đơn hàng..." />
             </div>
             <div class="col-md-2">
-                <select class="form-select">
-                    <option>Tất cả trạng thái</option>
-                    <option>Chờ xử lý</option>
-                    <option>Đang xử lý</option>
-                    <option>Đã giao</option>
-                    <option>Đã hủy</option>
+                <select class="form-select" @bind="StatusFilter">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="pending">Chờ xử lý</option>
+                    <option value="paid">Đã thanh toán</option>
+                    <option value="canceled">Đã hủy</option>
                 </select>
             </div>
             <div class="col-md-2">
-                <input type="date" class="form-control" placeholder="Từ ngày" />
+                <input type="date" class="form-control" @bind="FromDate" />
             </div>
             <div class="col-md-2">
-                <input type="date" class="form-control" placeholder="Đến ngày" />
+                <input type="date" class="form-control" @bind="ToDate" />
             </div>
             <div class="col-md-3">
-                <button class="btn btn-outline-secondary me-2">Lọc</button>
-                <button class="btn btn-outline-primary">
+                <button class="btn btn-outline-secondary me-2" @onclick="LoadOrders">Lọc</button>
+                <button class="btn btn-outline-primary" @onclick="ToggleAdvancedFilters">
                     <i class="bi bi-funnel"></i> Bộ lọc nâng cao
                 </button>
             </div>
         </div>
     </div>
-    
+  
     <div class="page-content">
         <div class="card">
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>
-                                    <input type="checkbox" class="form-check-input" />
-                                </th>
-                                <th>Mã đơn hàng</th>
-                                <th>Khách hàng</th>
-                                <th>Sản phẩm</th>
-                                <th>Tổng tiền</th>
-                                <th>Trạng thái</th>
-                                <th>Ngày tạo</th>
-                                <th>Hành động</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><input type="checkbox" class="form-check-input" /></td>
-                                <td>
-                                    <div class="fw-bold text-primary">#ORD001</div>
-                                </td>
-                                <td>
-                                    <div>
-                                        <div class="fw-bold">Nguyễn Văn A</div>
-                                        <small class="text-muted">nguyenvana@email.com</small>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div>
-                                        <div>iPhone 15 Pro x1</div>
-                                        <small class="text-muted">+ 2 sản phẩm khác</small>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-success">$1,199.00</div>
-                                </td>
-                                <td><span class="badge bg-success">Đã giao</span></td>
-                                <td>2024-01-15</td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <button class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-warning">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-info">
-                                            <i class="bi bi-printer"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><input type="checkbox" class="form-check-input" /></td>
-                                <td>
-                                    <div class="fw-bold text-primary">#ORD002</div>
-                                </td>
-                                <td>
-                                    <div>
-                                        <div class="fw-bold">Trần Thị B</div>
-                                        <small class="text-muted">tranthib@email.com</small>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div>
-                                        <div>Samsung Galaxy S24 x1</div>
-                                        <small class="text-muted">+ 1 sản phẩm khác</small>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-success">$899.00</div>
-                                </td>
-                                <td><span class="badge bg-warning">Đang xử lý</span></td>
-                                <td>2024-01-14</td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <button class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-warning">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-info">
-                                            <i class="bi bi-printer"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><input type="checkbox" class="form-check-input" /></td>
-                                <td>
-                                    <div class="fw-bold text-primary">#ORD003</div>
-                                </td>
-                                <td>
-                                    <div>
-                                        <div class="fw-bold">Lê Văn C</div>
-                                        <small class="text-muted">levanc@email.com</small>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div>
-                                        <div>MacBook Pro x1</div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-success">$2,499.00</div>
-                                </td>
-                                <td><span class="badge bg-info">Chờ xử lý</span></td>
-                                <td>2024-01-13</td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <button class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-warning">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-info">
-                                            <i class="bi bi-printer"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <nav aria-label="Page navigation">
-                    <ul class="pagination justify-content-center">
-                        <li class="page-item disabled">
-                            <a class="page-link" href="#" tabindex="-1">Trước</a>
-                        </li>
-                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                        <li class="page-item"><a class="page-link" href="#">2</a></li>
-                        <li class="page-item"><a class="page-link" href="#">3</a></li>
-                        <li class="page-item">
-                            <a class="page-link" href="#">Tiếp</a>
-                        </li>
-                    </ul>
-                </nav>
+                @if (isLoading)
+                {
+                    <div class="text-center py-4">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Đang tải...</span>
+                        </div>
+                        <p class="mt-2">Đang tải danh sách đơn hàng...</p>
+                    </div>
+                }
+                else if (!orders.Any())
+                {
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox display-1 text-muted"></i>
+                        <p class="text-muted">Không có đơn hàng nào.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <input type="checkbox" class="form-check-input" @onchange="ToggleAllCheckboxes" />
+                                    </th>
+                                    <th>Mã đơn hàng</th>
+                                    <th>Khách hàng</th>
+                                    <th>Tổng tiền</th>
+                                    <th>Trạng thái</th>
+                                    <th>Ngày tạo</th>
+                                    <th>Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var order in orders)
+                                {
+                                    var customer = customerMap.GetValueOrDefault(order.CustomerId);
+                                    var orderIdDisplay = !string.IsNullOrEmpty(order.Id) && order.Id.Length >= 8 ? order.Id.Substring(order.Id.Length - 8).ToUpper() : order.Id ?? "N/A";
+                                    <tr>
+                                        <td><input type="checkbox" class="form-check-input" /></td>
+                                        <td>
+                                            <div class="fw-bold text-primary">#@orderIdDisplay</div>
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold">@(customer?.Customer.Name ?? order.CustomerId)</div>
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold text-success">@FormatCurrency(order.TotalAmount??0) VND</div>
+                                            <small class="text-muted">Giảm giá: @FormatCurrency(order.DiscountAmount) VND</small>
+                                        </td>
+                                        <td><span class="badge @GetStatusBadgeClass(order.Status)">@GetStatusDisplay(order.Status)</span></td>
+                                        <td>@order.OrderDate.ToString("yyyy-MM-dd")</td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="@(async () => await ViewOrder(order.Id, order.Status))">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-warning" @onclick="@(() => UpdateStatusOrder(order.Id, order.Status))">
+                                                    <i class="bi bi-arrow-clockwise"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-info" @onclick="() => PrintOrder(order.Id)">
+                                                    <i class="bi bi-printer"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+              
+                @if (pagination != null && orders.Any())
+                {
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item @(pagination.HasPreviousPage ? "" : "disabled")">
+                                <a class="page-link" href="#" @onclick="@(async () => await NavigatePage(currentPage - 1))" @onclick:preventDefault="true">Trước</a>
+                            </li>
+                            @for (int i = 1; i <= pagination.TotalPages; i++)
+                            {
+                                <li class="page-item @(i == currentPage ? "active" : "")">
+                                    <a class="page-link" href="#" @onclick="@(async () => await NavigatePage(i))" @onclick:preventDefault="true">@i</a>
+                                </li>
+                            }
+                            <li class="page-item @(pagination.HasNextPage ? "" : "disabled")">
+                                <a class="page-link" href="#" @onclick="@(async () => await NavigatePage(currentPage + 1))" @onclick:preventDefault="true">Tiếp</a>
+                            </li>
+                        </ul>
+                    </nav>
+                }
             </div>
         </div>
     </div>
+    <!-- Modal hiển thị chi tiết Order Items -->
+    @if (showModal)
+    {
+        <div class="modal fade show" tabindex="-1" style="display: block;" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Chi tiết đơn hàng #@GetOrderIdDisplay(selectedOrderId)</h5>
+                        <button type="button" class="btn-close" @onclick="CloseModal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if (isLoadingOrderItems)
+                        {
+                            <div class="text-center py-4">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Đang tải...</span>
+                                </div>
+                                <p class="mt-2">Đang tải chi tiết đơn hàng...</p>
+                            </div>
+                        }
+                        else if (!orderItems.Any())
+                        {
+                            <div class="text-center py-4">
+                                <i class="bi bi-inbox display-4 text-muted"></i>
+                                <p class="text-muted">Không có sản phẩm nào trong đơn hàng này.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- Thêm phần hiển thị phương thức thanh toán -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Trạng thái đơn hàng:</label>
+                                    <span class="badge @GetStatusBadgeClass(selectedOrderStatus)">@GetStatusDisplay(selectedOrderStatus)</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Phương thức thanh toán:</label>
+                                    <span class="badge @(selectedOrderStatus == "pending" ? "bg-warning" : "bg-success")">@GetPaymentMethodDisplay()</span>
+                                </div>
+                            </div>
+                            @if (selectedOrderStatus.ToLower() == "paid" && selectedPayment != null)
+                            {
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label class="form-label fw-bold">Số tiền thanh toán:</label>
+                                        <div class="fw-bold text-success">@FormatCurrency(selectedPayment.Amount) VND</div>
+                                        <small class="text-muted">Ngày thanh toán: @selectedPayment.PaymentDate.ToString("yyyy-MM-dd HH:mm")</small>
+                                    </div>
+                                </div>
+                            }
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Sản phẩm (ID)</th>
+                                            <th>Số lượng</th>
+                                            <th>Đơn giá</th>
+                                            <th>Thành tiền</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in orderItems)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <div class="fw-bold">@item.ProductId</div> <!-- Tạm hiển thị ID, sau có thể fetch tên product -->
+                                                </td>
+                                                <td>@item.Quantity</td>
+                                                <td>@FormatCurrency(item.Price) VND</td>
+                                                <td>@FormatCurrency(item.Subtotal) VND</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                    @if (orderPagination != null && orderItems.Any())
+                    {
+                        <div class="modal-footer">
+                            <nav aria-label="Order items pagination">
+                                <ul class="pagination mb-0">
+                                    <li class="page-item @(orderPagination.HasPreviousPage ? "" : "disabled")">
+                                        <a class="page-link" href="#" @onclick="@(async () => await NavigateOrderItemsPage(orderPagination.CurrentPage - 1))" @onclick:preventDefault="true">Trước</a>
+                                    </li>
+                                    @for (int i = 1; i <= orderPagination.TotalPages; i++)
+                                    {
+                                        <li class="page-item @(i == orderItemCurrentPage ? "active" : "")">
+                                            <a class="page-link" href="#" @onclick="@(async () => await NavigateOrderItemsPage(i))" @onclick:preventDefault="true">@i</a>
+                                        </li>
+                                    }
+                                    <li class="page-item @(orderPagination.HasNextPage ? "" : "disabled")">
+                                        <a class="page-link" href="#" @onclick="@(async () => await NavigateOrderItemsPage(orderPagination.CurrentPage + 1))" @onclick:preventDefault="true">Tiếp</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Đóng</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Đóng</button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="modal-backdrop fade show"></div>
+    }
+    <!-- Modal Cập nhật trạng thái đơn hàng -->
+    @if (showUpdateModal)
+    {
+        <div class="modal fade show" tabindex="-1" style="display: block;" role="dialog">
+            <div class="modal-dialog modal-md" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Cập nhật trạng thái đơn hàng #@GetOrderIdDisplay(Guid.Parse(selectedOrderForUpdate ?? ""))</h5>
+                        <button type="button" class="btn-close" @onclick="CloseUpdateModal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <EditForm Model="updateStatusForm" OnValidSubmit="HandleUpdateStatusSubmit">
+                            <DataAnnotationsValidator />
+                            @if (!string.IsNullOrEmpty(updateErrorMessage))
+                            {
+                                <div class="alert alert-danger">@updateErrorMessage</div>
+                            }
+                            <div class="mb-3">
+                                <label class="form-label">Trạng thái mới <span class="text-danger">*</span></label>
+                                <InputSelect @bind-Value="currentStatus" class="form-select">
+                                    <option value="pending">Chờ xử lý</option>
+                                    <option value="paid">Đã thanh toán</option>
+                                    <option value="canceled">Đã hủy</option>
+                                </InputSelect>
+                                <ValidationMessage For="@(() => updateStatusForm.status)" class="text-danger" />
+                            </div>
+                            @if (currentStatus == "paid")
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label">Phương thức thanh toán <span class="text-danger">*</span></label>
+                                    <InputSelect @bind-Value="selectedPaymentMethod" class="form-select">
+                                        <option value="cash">Tiền mặt</option>
+                                        <option value="card">Thẻ</option>
+                                    </InputSelect>
+                                    <small class="text-muted">Mặc định: Tiền mặt</small>
+                                </div>
+                            }
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" @onclick="CloseUpdateModal" disabled="@isUpdatingStatus">Hủy</button>
+                                <button type="submit" class="btn btn-primary" disabled="@isUpdatingStatus">
+                                    @if (isUpdatingStatus)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    Cập nhật
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-backdrop fade show"></div>
+    }
+    <!-- Modal Tạo đơn hàng mới (UI demo - mock data) -->
+    @if (showCreateOrderModal)
+    {
+        <div class="modal fade show" tabindex="-1" style="display: block;" role="dialog">
+            <div class="modal-dialog modal-xl" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title">Tạo đơn hàng mới</h2>
+                        <button type="button" class="btn-close" @onclick="CloseCreateOrderModal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <EditForm Model="createOrderForm" OnValidSubmit="HandleCreateOrderSubmit">
+                            <DataAnnotationsValidator />
+                            @if (!string.IsNullOrEmpty(createErrorMessage))
+                            {
+                                <div class="alert alert-danger">@createErrorMessage</div>
+                            }
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Khách hàng <span class="text-danger">*</span></label>
+                                        <div class="position-relative">
+                                            <input type="text" class="form-control" @bind="customerSearchTerm" @oninput="OnCustomerSearchChanged" placeholder="Tìm kiếm theo tên khách hàng..." />
+                                            <i class="bi bi-search position-absolute top-50 end-0 translate-middle-y me-3 text-muted"></i>
+                                        </div>
+                                        @if (isLoadingCustomers)
+                                        {
+                                            <div class="text-center py-2">
+                                                <div class="spinner-border spinner-border-sm" role="status">
+                                                    <span class="visually-hidden">Đang tải...</span>
+                                                </div>
+                                            </div>
+                                        }
+                                        @if (filteredCustomers.Any())
+                                        {
+                                            <ul class="list-group position-absolute w-100 mt-1" style="z-index: 1050; max-height: 200px; overflow-y: auto;">
+                                                @foreach (var cust in filteredCustomers)
+                                                {
+                                                    <li class="list-group-item list-group-item-action" @onclick="() => SelectCustomer(cust)">
+                                                        <div class="d-flex w-100 justify-content-between">
+                                                            <h6 class="mb-1">@cust.Name</h6>
+                                                            <small class="text-muted">@cust.Id</small>
+                                                        </div>
+                                                        <p class="mb-1 text-muted small">@cust.Email</p>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        }
+                                        <ValidationMessage For="@(() => createOrderForm.CustomerId)" class="text-danger" />
+                                        @if (selectedCustomerForCreate != null)
+                                        {
+                                            <small class="text-success">Đã chọn: @selectedCustomerForCreate.Name</small>
+                                        }
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Nhân viên tạo (UserId)</label>
+                                        <input type="text" class="form-control" value="@userName" readonly />
+                                        <small class="text-muted">Tự động lấy theo người dùng đang đăng nhập</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Khuyến mãi <span class="text-danger">*</span></label>
+                                        <InputSelect @bind-Value="SelectedPromotionId" class="form-select">
+                                            <option value="">Không áp dụng</option>
+                                            @foreach (var promo in promotions)
+                                            {
+                                                <option value="@promo.Id.ToString()">@promo.PromoCode - Giảm @FormatCurrency(promo.DiscountValue) VND (@promo.Description)</option>
+                                            }
+                                        </InputSelect>
+                                        <small class="text-muted">Chọn phiếu khuyến mãi áp dụng (hiện có @promotions.Count phiếu)</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Tổng tiền (trước giảm)</label>
+                                        <input type="text" class="form-control" value="@FormatCurrency(subTotal) VND" readonly />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Giá tiền được giảm</label>
+                                        <input type="text" class="form-control" value="@FormatCurrency(createOrderForm.DiscountAmount ?? 0) VND" readonly />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Tổng giá tiền (sau giảm)</label>
+                                        <input type="text" class="form-control" value="@FormatCurrency(totalAmount) VND" readonly />
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Phần chọn sản phẩm (UI demo - mock data) -->
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h6>Chọn sản phẩm</h6>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <input type="text" class="form-control" @bind="productSearchTerm" @oninput="OnProductSearchChanged" placeholder="Tìm kiếm sản phẩm theo tên hoặc ID..." />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <button type="button" class="btn btn-outline-primary" @onclick="LoadProducts" disabled="@isLoadingProducts">
+                                                @if (isLoadingProducts)
+                                                {
+                                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                                }
+                                                Tải danh sách sản phẩm
+                                            </button>
+                                        </div>
+                                    </div>
+                                    @if (isLoadingProducts)
+                                    {
+                                        <div class="text-center py-3">
+                                            <div class="spinner-border" role="status">
+                                                <span class="visually-hidden">Đang tải...</span>
+                                            </div>
+                                            <p class="mt-2 text-muted">Đang tải danh sách sản phẩm...</p>
+                                        </div>
+                                    }
+                                    else if (availableProducts.Any())
+                                    {
+                                        <div class="table-responsive mb-3">
+                                            <div class="product-scroll-container" style="max-height: 140px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 8px;">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Sản phẩm</th>
+                                                            <th>Giá</th>
+                                                            <th>Thêm vào giỏ</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var product in availableProducts)
+                                                        {
+                                                            <tr>
+                                                                <td>@product.ProductName (ID: @product.Id)</td>
+                                                                <td>@FormatCurrency(product.Price) VND</td>
+                                                                <td>
+                                                                    <button type="button" class="btn btn-sm btn-success" @onclick="() => AddToCart(product)">
+                                                                        <i class="bi bi-plus-circle"></i> Thêm
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-center py-4">
+                                            <i class="bi bi-inbox display-4 text-muted"></i>
+                                            <p class="text-muted">Hiện tại chưa có sản phẩm.</p>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            <!-- Giỏ hàng (Cart) -->
+                            <h6>Giỏ hàng (@cartItems.Count sản phẩm)</h6>
+                            @if (cartItems.Any())
+                            {
+                                <div class="table-responsive mb-3">
+                                    <div class="cart-scroll-container" style="max-height: 140px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 8px;">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Sản phẩm</th>
+                                                    <th>Số lượng</th>
+                                                    <th>Đơn giá</th>
+                                                    <th>Thành tiền</th>
+                                                    <th>Hành động</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var item in cartItems)
+                                                {
+                                                    <tr>
+                                                        <td>@item.ProductName (ID: @item.ProductId)</td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm" style="width: 120px;">
+                                                                <button type="button" class="btn btn-outline-secondary" @onclick="() => UpdateQuantity(item, -1)">-</button>
+                                                                <input type="number" class="form-control text-center" @bind="item.Quantity" min="1" max="999" @oninput="() => { if (item.Quantity < 1) { item.Quantity = 1; } UpdateTotals(); }" />
+                                                                <button type="button" class="btn btn-outline-secondary" @onclick="() => UpdateQuantity(item, 1)">+</button>
+                                                            </div>
+                                                        </td>
+                                                        <td>@FormatCurrency(item.Price) VND</td>
+                                                        <td>@FormatCurrency(item.Subtotal) VND</td>
+                                                        <td>
+                                                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveFromCart(item)">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted">Giỏ hàng trống. Hãy thêm sản phẩm từ danh sách trên.</p>
+                            }
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" @onclick="CloseCreateOrderModal" disabled="@isCreatingOrder">Hủy</button>
+                                <button type="submit" class="btn btn-primary" disabled="@(!cartItems.Any() || isCreatingOrder)">
+                                    @if (isCreatingOrder)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    Tạo đơn hàng
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-backdrop fade show"></div>
+    }
 </div>
-
 <style>
     .admin-page {
         max-width: 1200px;
         margin-left: auto;
         margin-right: auto;
     }
-    
+  
     .page-header {
         margin-bottom: 2rem;
     }
-    
+  
     .page-header h2 {
         margin-bottom: 0.5rem;
         color: #2c3e50;
     }
-    
+  
     .page-filters {
         background: white;
         padding: 1.5rem;
@@ -220,20 +575,904 @@
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         margin-bottom: 2rem;
     }
-    
+  
     .page-content .card {
         border: none;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    
+  
     .table th {
         background-color: #f8f9fa;
         border-top: none;
         font-weight: 600;
         color: #495057;
     }
-    
+  
     .btn-group .btn {
         margin: 0 2px;
     }
+    /* Modal backdrop fix */
+    .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1040;
+        width: 100vw;
+        height: 100vh;
+        background-color: #000;
+    }
+    .modal-backdrop.fade {
+        opacity: 0.5;
+    }
+    /* Custom styles for create modal */
+    .list-group {
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        z-index: 1051;
+    }
+    .list-group-item-action:hover {
+        background-color: #f8f9fa;
+    }
+    /* Scroll fix cho product list */
+    .product-scroll-container {
+        background: white;
+        border-radius: 0.375rem;
+    }
+    .product-scroll-container table {
+        margin-bottom: 0;
+    }
+    .product-scroll-container::-webkit-scrollbar {
+        width: 6px;
+    }
+    .product-scroll-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+    .product-scroll-container::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+    }
+    .product-scroll-container::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+    /* Scroll fix cho cart list */
+    .cart-scroll-container {
+        background: white;
+        border-radius: 0.375rem;
+    }
+    .cart-scroll-container table {
+        margin-bottom: 0;
+    }
+    .cart-scroll-container::-webkit-scrollbar {
+        width: 6px;
+    }
+    .cart-scroll-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+    .cart-scroll-container::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+    }
+    .cart-scroll-container::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
 </style>
+@code {
+    // Existing code for orders list...
+    private List<OrderDto> orders = new();
+    private PaginationInfo? pagination;
+    private Dictionary<string, CustomerDetailResponse?> customerMap = new();
+    private int currentPage = 1;
+    private string? searchTerm;
+    private bool isLoading = true;
+    private bool allCheckboxesSelected = false;
+    private CancellationTokenSource? cts;
+    private System.Threading.Timer? _debounceTimer;
+    // Backing fields for filters
+    private string? _statusFilter;
+    private DateTime? _fromDate;
+    private DateTime? _toDate;
+    // Modal and Order Items state
+    private bool showModal = false;
+    private List<OrderItemDto> orderItems = new();
+    private PaginationInfo? orderPagination;
+    private Guid selectedOrderId;
+    private int orderItemCurrentPage = 1;
+    private bool isLoadingOrderItems = false;
+    private string selectedOrderStatus = string.Empty; // Thêm mới: Lưu trạng thái order
+    private PaymentDto? selectedPayment; // Thêm mới: Lưu payment info
+    // New state for update status modal
+    private bool showUpdateModal = false;
+    private string? selectedOrderForUpdate;
+    private string currentStatus = "pending";
+    private string selectedPaymentMethod = "cash";
+    private bool isUpdatingStatus = false;
+    private string updateErrorMessage = string.Empty;
+    private UpdateStatusOrderRequest updateStatusForm = new();
+    // New state for create order modal (UI demo)
+    private bool showCreateOrderModal = false;
+    private bool isCreatingOrder = false;
+    private string createErrorMessage = string.Empty;
+    private string customerSearchTerm = string.Empty;
+    private List<CustomerDto> filteredCustomers = new(); // Thay đổi từ CustomerDetailResponse sang CustomerDto để phù hợp với API
+    private CustomerDto? selectedCustomerForCreate;
+    private Guid currentUserId = Guid.NewGuid(); // Mock UserId, sẽ parse từ localStorage
+    private string userName = ""; // Thêm mới: Tên người dùng để hiển thị
+    private string productSearchTerm = string.Empty;
+    private List<ProductDto> availableProducts = new(); // Mock data
+    private bool isLoadingProducts = false;
+    private List<CartItem> cartItems = new(); // Local cart for order items
+    private decimal subTotal = 0;
+    private decimal totalAmount = 0;
+    private bool isLoadingCustomers = false; // Thêm mới: Loading state cho search khách hàng
+    private System.Threading.Timer? _customerDebounceTimer;
+    private System.Threading.Timer? _productDebounceTimer;
+    private List<PromotionDto> promotions = new();
+    // Backing field cho SelectedPromotionId
+    private string _selectedPromotionId = string.Empty;
+    // Form model for create order
+    private CreateOrderForm createOrderForm = new();
+    // Property cho SelectedPromotionId với logic trong setter
+    public string SelectedPromotionId
+    {
+        get => _selectedPromotionId;
+        set
+        {
+            if (_selectedPromotionId != value)
+            {
+                _selectedPromotionId = value;
+                Console.WriteLine($"Promotion changed to: {value}"); // Log để debug
+                var promo = promotions.FirstOrDefault(p => p.Id.ToString() == value); // An toàn với Guid/String
+                var discount = promo?.DiscountValue ?? 0;
+                createOrderForm.DiscountAmount = discount;
+                Console.WriteLine($"Discount updated to: {discount}"); // Log giá trị giảm
+                UpdateTotals();
+                StateHasChanged(); // Đảm bảo re-render
+            }
+        }
+    }
+    // Properties for filters...
+    public string? StatusFilter
+    {
+        get => _statusFilter;
+        set
+        {
+            if (_statusFilter != value)
+            {
+                _statusFilter = value;
+                currentPage = 1;
+                InvokeAsync(async () =>
+                {
+                    await LoadOrders();
+                });
+            }
+        }
+    }
+    public DateTime? FromDate
+    {
+        get => _fromDate;
+        set
+        {
+            if (_fromDate != value)
+            {
+                _fromDate = value;
+                currentPage = 1;
+                InvokeAsync(async () =>
+                {
+                    await LoadOrders();
+                });
+            }
+        }
+    }
+    public DateTime? ToDate
+    {
+        get => _toDate;
+        set
+        {
+            if (_toDate != value)
+            {
+                _toDate = value;
+                currentPage = 1;
+                InvokeAsync(async () =>
+                {
+                    await LoadOrders();
+                });
+            }
+        }
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        cts = new CancellationTokenSource();
+        _toDate = DateTime.Today;
+        // Thêm mới: Lấy dữ liệu từ localStorage
+        var json = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "auth_user");
+        if (!string.IsNullOrEmpty(json))
+        {
+            var user = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+            var userIdStr = user["Id"].ToString() ?? "00000000-0000-0000-0000-000000000000";
+            currentUserId = Guid.Parse(userIdStr);
+            userName = user["Username"].ToString() ?? "Administrator";
+        }
+        createOrderForm.UserId = currentUserId;
+        StateHasChanged();
+        await LoadOrders();
+    }
+    // Existing methods: LoadOrders, etc. (giữ nguyên từ code trước)
+    private async Task LoadOrders()
+    {
+        isLoading = true;
+        customerMap.Clear();
+        StateHasChanged();
+        try
+        {
+            var apiResponse = await OrderService.GetOrdersAsync(
+                page: currentPage,
+                pageSize: 10,
+                q: searchTerm,
+                status: StatusFilter,
+                fromDate: FromDate,
+                toDate: ToDate
+            );
+            Console.WriteLine($"API Response: {System.Text.Json.JsonSerializer.Serialize(apiResponse)}");
+            if (apiResponse?.StatusCode == 200 && apiResponse.Data != null)
+            {
+                orders = apiResponse.Data.Orders ?? new();
+                pagination = apiResponse.Data.Pagination;
+                currentPage = pagination.CurrentPage;
+                foreach (var order in orders)
+                {
+                    Console.WriteLine($"OrderId: {order.Id}, Status: {order.Status}, Total: {order.TotalAmount}");
+                }
+                // Fetch customer details for unique customer IDs in parallel
+                var uniqueCustomerIds = orders.Select(o => o.CustomerId).Distinct().ToList();
+                if (uniqueCustomerIds.Any())
+                {
+                    var customerTasks = uniqueCustomerIds.Select(id => FetchCustomerAsync(id)).ToArray();
+                    var customerResults = await Task.WhenAll(customerTasks);
+                    for (int i = 0; i < uniqueCustomerIds.Count; i++)
+                    {
+                        var customer = customerResults[i];
+                        if (customer != null)
+                        {
+                            customerMap[uniqueCustomerIds[i]] = customer;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                orders = new();
+                pagination = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading orders: {ex.Message}");
+            orders = new();
+            pagination = null;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+    private async Task<CustomerDetailResponse?> FetchCustomerAsync(string customerId)
+    {
+        try
+        {
+            var response = await CustomerService.GetCustomerByIdAsync(customerId);
+            return response?.StatusCode == 200 ? response.Data : null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching customer {customerId}: {ex.Message}");
+            return null;
+        }
+    }
+    private async Task NavigatePage(int page)
+    {
+        if (page >= 1 && page <= (pagination?.TotalPages ?? 1))
+        {
+            currentPage = page;
+            await LoadOrders();
+        }
+    }
+    private void PrintOrder(string id)
+    {
+        Console.WriteLine($"Printing order: {id}");
+    }
+    private void ToggleAllCheckboxes(ChangeEventArgs e)
+    {
+        allCheckboxesSelected = (bool)e.Value;
+        StateHasChanged();
+    }
+    private async Task OnSearchChanged(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString();
+        currentPage = 1;
+        _debounceTimer?.Dispose();
+        _debounceTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await LoadOrders();
+            });
+        }, null, TimeSpan.FromMilliseconds(500), Timeout.InfiniteTimeSpan);
+    }
+    private void ToggleAdvancedFilters()
+    {
+        Console.WriteLine("Advanced filters toggled");
+    }
+    private void ExportReport()
+    {
+        Console.WriteLine("Exporting report");
+    }
+    private string GetStatusBadgeClass(string status)
+    {
+        return status.ToLower() switch
+        {
+            "pending" => "bg-info",
+            "paid" => "bg-success",
+            "canceled" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+    private string GetStatusDisplay(string status)
+    {
+        return status.ToLower() switch
+        {
+            "pending" => "Chờ xử lý",
+            "paid" => "Đã thanh toán",
+            "canceled" => "Đã hủy",
+            _ => status
+        };
+    }
+    private string FormatCurrency(decimal amount)
+    {
+        return amount.ToString("N0");
+    }
+    private string GetOrderIdDisplay(Guid id)
+    {
+        var idStr = id.ToString();
+        return idStr.Length >= 8 ? idStr.Substring(idStr.Length - 8).ToUpper() : idStr;
+    }
+    // Thêm mới: Method hiển thị phương thức thanh toán
+    private string GetPaymentMethodDisplay()
+    {
+        if (selectedOrderStatus.ToLower() == "pending")
+        {
+            return "Chờ xử lý";
+        }
+        else if (selectedPayment != null)
+        {
+            return selectedPayment.PaymentMethod.ToLower() switch
+            {
+                "cash" => "Tiền mặt",
+                "card" => "Thẻ",
+                _ => selectedPayment.PaymentMethod
+            };
+        }
+        return "Không xác định";
+    }
+    public async ValueTask DisposeAsync()
+    {
+        if (cts != null)
+        {
+            await Task.Run(() => cts.Cancel());
+            cts.Dispose();
+        }
+        _debounceTimer?.Dispose();
+        _customerDebounceTimer?.Dispose();
+        _productDebounceTimer?.Dispose();
+    }
+    // Sửa đổi: ViewOrder nhận thêm status parameter
+    private async Task ViewOrder(string idStr, string orderStatus)
+    {
+        if (string.IsNullOrEmpty(idStr) || !Guid.TryParse(idStr, out selectedOrderId))
+        {
+            Console.WriteLine($"Invalid order ID: {idStr}");
+            Toast.ShowWarning("Mã đơn hàng không hợp lệ.");
+            return;
+        }
+        selectedOrderStatus = orderStatus; // Lưu status
+        orderItemCurrentPage = 1;
+        showModal = true;
+        isLoadingOrderItems = true;
+        selectedPayment = null; // Reset payment
+        StateHasChanged();
+        try
+        {
+            Console.WriteLine($"Calling API to fetch order items for OrderId: {selectedOrderId}");
+            var response = await OrderItemService.GetOrderItemsByOrderIdAsync(selectedOrderId, page: 1, pageSize: 10);
+            if (response?.StatusCode == 200 && response.Data != null)
+            {
+                orderItems = response.Data.orderItems ?? new();
+                orderPagination = response.Data.Pagination;
+                Console.WriteLine($"Success! Fetched {orderItems.Count} order items for {selectedOrderId}.");
+            }
+            else
+            {
+                orderItems = new();
+                orderPagination = null;
+                Console.WriteLine($"API returned non-200 status: {response?.StatusCode}. Message: {response?.Message}");
+                Toast.ShowWarning("Không thể tải chi tiết đơn hàng.");
+            }
+  
+            // Thêm mới: Nếu status là "paid", tải payment
+            if (selectedOrderStatus.ToLower() == "paid")
+            {
+                var paymentResponse = await PaymentService.GetPaymentsByOrderIdAsync(selectedOrderId);
+                if (paymentResponse?.StatusCode == 200 && paymentResponse.Data?.PaymentDtos.Any() == true)
+                {
+                    selectedPayment = paymentResponse.Data.PaymentDtos.First();
+                    Console.WriteLine($"Loaded payment for order {selectedOrderId}: {selectedPayment.PaymentMethod}");
+                }
+                else
+                {
+                    Toast.ShowWarning("Không tìm thấy thông tin thanh toán.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching order items for {selectedOrderId}: {ex.Message}");
+            orderItems = new();
+            orderPagination = null;
+            Toast.ShowError($"Lỗi khi tải chi tiết đơn hàng: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingOrderItems = false;
+            StateHasChanged();
+        }
+    }
+    private async Task NavigateOrderItemsPage(int page)
+    {
+        if (page >= 1 && page <= (orderPagination?.TotalPages ?? 1))
+        {
+            orderItemCurrentPage = page;
+            await LoadOrderItems(selectedOrderId, page);
+        }
+    }
+    private async Task LoadOrderItems(Guid orderId, int page = 1)
+    {
+        isLoadingOrderItems = true;
+        StateHasChanged();
+        try
+        {
+            var response = await OrderItemService.GetOrderItemsByOrderIdAsync(orderId, page: page, pageSize: 10);
+            if (response?.StatusCode == 200 && response.Data != null)
+            {
+                orderItems = response.Data.orderItems ?? new();
+                orderPagination = response.Data.Pagination;
+                orderItemCurrentPage = orderPagination.CurrentPage;
+                Console.WriteLine($"Loaded page {page} for order items: {orderItems.Count} items.");
+            }
+            else
+            {
+                orderItems = new();
+                orderPagination = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading order items page {page}: {ex.Message}");
+            orderItems = new();
+            orderPagination = null;
+        }
+        finally
+        {
+            isLoadingOrderItems = false;
+            StateHasChanged();
+        }
+    }
+    private void CloseModal()
+    {
+        showModal = false;
+        orderItems.Clear();
+        orderPagination = null;
+        isLoadingOrderItems = false;
+        selectedOrderStatus = string.Empty; // Reset
+        selectedPayment = null; // Reset
+        StateHasChanged();
+    }
+    // New methods for update status modal
+    private void UpdateStatusOrder(string orderId, string currentOrderStatus)
+    {
+        selectedOrderForUpdate = orderId;
+        currentStatus = currentOrderStatus;
+        selectedPaymentMethod = "cash"; // Reset to default
+        updateErrorMessage = string.Empty;
+        updateStatusForm = new UpdateStatusOrderRequest { status = currentStatus };
+        showUpdateModal = true;
+        StateHasChanged();
+    }
+    private void CloseUpdateModal()
+    {
+        showUpdateModal = false;
+        selectedOrderForUpdate = null;
+        currentStatus = "pending";
+        selectedPaymentMethod = "cash";
+        updateErrorMessage = string.Empty;
+        updateStatusForm = new();
+    }
+    private async Task HandleUpdateStatusSubmit()
+    {
+        if (string.IsNullOrEmpty(selectedOrderForUpdate) || !Guid.TryParse(selectedOrderForUpdate, out var orderId))
+        {
+            updateErrorMessage = "Mã đơn hàng không hợp lệ.";
+            Toast.ShowWarning(updateErrorMessage);
+            StateHasChanged();
+            return;
+        }
+        updateStatusForm.status = currentStatus;
+        isUpdatingStatus = true;
+        updateErrorMessage = string.Empty;
+        StateHasChanged();
+        try
+        {
+            // Bước 1: Cập nhật trạng thái đơn hàng
+            var statusResponse = await OrderService.UpdateOrderStatusAsync(orderId, updateStatusForm);
+            if (statusResponse?.StatusCode != 200)
+            {
+                updateErrorMessage = $"Lỗi cập nhật trạng thái: {statusResponse?.Message ?? "Unknown error"}";
+                Toast.ShowError(updateErrorMessage);
+                return;
+            }
+            // Bước 2: Nếu trạng thái mới là "paid", tạo payment
+            if (currentStatus == "paid")
+            {
+                // Tìm order để lấy TotalAmount
+                var currentOrder = orders.FirstOrDefault(o => o.Id == selectedOrderForUpdate);
+                if (currentOrder == null || currentOrder.TotalAmount == null)
+                {
+                    updateErrorMessage = "Không thể lấy thông tin tổng tiền đơn hàng.";
+                    Toast.ShowError(updateErrorMessage);
+                    return;
+                }
+                var paymentRequest = new CreatePaymentRequest
+                {
+                    OrderId = orderId,
+                    Amount = currentOrder.TotalAmount.Value - currentOrder.DiscountAmount,
+                    PaymentMethod = selectedPaymentMethod
+                };
+                var paymentResponse = await PaymentService.CreatePaymentAsync(paymentRequest);
+                if (paymentResponse?.StatusCode != 200 && paymentResponse?.StatusCode != 201)
+                {
+                    updateErrorMessage = $"Cập nhật trạng thái thành công nhưng lỗi tạo thanh toán: {paymentResponse?.Message ?? "Unknown error"}";
+                    Toast.ShowWarning(updateErrorMessage);
+                }
+                else
+                {
+                    var successMessage = $"Cập nhật trạng thái thành công! Phương thức thanh toán: {(selectedPaymentMethod == "cash" ? "Tiền mặt" : "Thẻ")}";
+                    Toast.ShowSuccess(successMessage);
+                }
+            }
+            else
+            {
+                var statusDisplay = GetStatusDisplay(currentStatus);
+                var successMessage = $"Cập nhật trạng thái thành công: {statusDisplay}";
+                Toast.ShowSuccess(successMessage);
+            }
+            CloseUpdateModal();
+            await LoadOrders(); // Reload danh sách để cập nhật UI
+        }
+        catch (Exception ex)
+        {
+            updateErrorMessage = $"Lỗi: {ex.Message}";
+            Toast.ShowError(updateErrorMessage);
+            Console.WriteLine($"Full exception in update status: {ex}");
+        }
+        finally
+        {
+            isUpdatingStatus = false;
+            StateHasChanged();
+        }
+    }
+    // New methods for create order (UI demo - mock)
+    private async Task ShowCreateOrderModal()
+    {
+        _customerDebounceTimer?.Dispose();
+        _productDebounceTimer?.Dispose();
+        showCreateOrderModal = true;
+        createErrorMessage = string.Empty;
+        customerSearchTerm = string.Empty;
+        productSearchTerm = string.Empty;
+        SelectedPromotionId = string.Empty; // Reset property
+        filteredCustomers.Clear();
+        availableProducts.Clear();
+        cartItems.Clear();
+        createOrderForm = new CreateOrderForm();
+        createOrderForm.UserId = currentUserId;
+        createOrderForm.DiscountAmount = 0; // Reset discount
+        subTotal = 0;
+        totalAmount = 0;
+        isLoadingCustomers = false;
+        isLoadingProducts = false;
+        promotions.Clear();
+        await LoadPromotions();
+        StateHasChanged();
+    }
+    private async Task LoadPromotions()
+    {
+        try
+        {
+            var (promos, _) = await PromotionService.GetPromotionsAsync(pageSize: 50); // Lấy tối đa 50 phiếu khuyến mãi
+            promotions = promos ?? new List<PromotionDto>();
+            Console.WriteLine($"Loaded {promotions.Count} promotions."); // Log để debug
+            if (promotions.Any())
+            {
+                var firstPromo = promotions.First();
+                Console.WriteLine($"Sample promo: ID={firstPromo.Id}, Discount={firstPromo.DiscountValue}"); // Log mẫu
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading promotions: {ex.Message}");
+            promotions = new List<PromotionDto>();
+            Toast.ShowError("Lỗi khi tải danh sách khuyến mãi.");
+        }
+    }
+    private void CloseCreateOrderModal()
+    {
+        _customerDebounceTimer?.Dispose();
+        _productDebounceTimer?.Dispose();
+        showCreateOrderModal = false;
+    }
+    private async Task OnCustomerSearchChanged(ChangeEventArgs e)
+    {
+        customerSearchTerm = e.Value?.ToString() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(customerSearchTerm))
+        {
+            filteredCustomers.Clear();
+            selectedCustomerForCreate = null;
+            createOrderForm.CustomerId = Guid.Empty;
+            StateHasChanged();
+            return;
+        }
+        _customerDebounceTimer?.Dispose();
+        _customerDebounceTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await LoadFilteredCustomers();
+            });
+        }, null, TimeSpan.FromMilliseconds(300), Timeout.InfiniteTimeSpan);
+    }
+    private async Task LoadFilteredCustomers()
+    {
+        isLoadingCustomers = true;
+        StateHasChanged();
+        try
+        {
+            // Gọi API để lấy danh sách khách hàng với tìm kiếm
+            var response = await CustomerService.GetCustomersAsync(
+                page: 1,
+                pageSize: 20, // Giới hạn số lượng để phù hợp với dropdown
+                q: customerSearchTerm
+            );
+            if (response?.StatusCode == 200 && response.Data?.Customers != null)
+            {
+                filteredCustomers = response.Data.Customers;
+            }
+            else
+            {
+                filteredCustomers.Clear();
+                Toast.ShowWarning("Không tìm thấy khách hàng nào phù hợp.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error searching customers: {ex.Message}");
+            filteredCustomers.Clear();
+            Toast.ShowError("Lỗi khi tìm kiếm khách hàng.");
+        }
+        finally
+        {
+            isLoadingCustomers = false;
+            StateHasChanged();
+        }
+    }
+    private void SelectCustomer(CustomerDto customer)
+    {
+        selectedCustomerForCreate = customer;
+        createOrderForm.CustomerId = Guid.Parse(customer.Id);
+        customerSearchTerm = customer.Name;
+        filteredCustomers.Clear();
+        StateHasChanged();
+    }
+    private async Task OnProductSearchChanged(ChangeEventArgs e)
+    {
+        productSearchTerm = e.Value?.ToString() ?? string.Empty;
+        _productDebounceTimer?.Dispose();
+        _productDebounceTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await LoadProducts();
+            });
+        }, null, TimeSpan.FromMilliseconds(300), Timeout.InfiniteTimeSpan);
+    }
+    private async Task LoadProducts()
+    {
+        isLoadingProducts = true;
+        availableProducts.Clear(); // Clear ngay để tránh hiển thị dữ liệu cũ trong khi loading
+        StateHasChanged();
+        try
+        {
+            // Gọi API để lấy danh sách sản phẩm với tìm kiếm
+            var response = await ProductService.GetProductsAsync(
+                page: 1,
+                pageSize: 20, // Giới hạn số lượng để phù hợp với dropdown
+                searchQuery: productSearchTerm
+            );
+            if (response?.StatusCode == 200 && response.Data?.Products != null)
+            {
+                availableProducts = response.Data.Products;
+            }
+            else
+            {
+                availableProducts.Clear();
+                // Không show Toast nữa, để UI xử lý hiển thị thông báo
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading products: {ex.Message}");
+            availableProducts.Clear();
+            Toast.ShowError("Lỗi khi tìm kiếm sản phẩm.");
+        }
+        finally
+        {
+            isLoadingProducts = false;
+            StateHasChanged();
+        }
+    }
+    private void AddToCart(ProductDto product)
+    {
+        var existingItem = cartItems.FirstOrDefault(x => x.ProductId == Guid.Parse(product.Id));
+        if (existingItem != null)
+        {
+            existingItem.Quantity += 1;
+        }
+        else
+        {
+            cartItems.Add(new CartItem
+            {
+                ProductId = Guid.Parse(product.Id),
+                ProductName = product.ProductName,
+                Price = product.Price,
+                Quantity = 1
+            });
+        }
+        UpdateTotals();
+    }
+    private void UpdateQuantity(CartItem item, int delta)
+    {
+        var newQuantity = item.Quantity + delta;
+        if (newQuantity >= 1) // Strict >=1, không cho phép =0
+        {
+            item.Quantity = newQuantity;
+            UpdateTotals();
+        }
+        // Thêm: Disable +/- nếu cần, nhưng UI sẽ handle qua min=1 trên input
+        StateHasChanged();
+    }
+    private void RemoveFromCart(CartItem item)
+    {
+        cartItems.Remove(item);
+        UpdateTotals();
+        StateHasChanged();
+    }
+    private void UpdateTotals()
+    {
+        subTotal = cartItems.Sum(x => x.Price * x.Quantity);
+        var discount = createOrderForm.DiscountAmount ?? 0;
+        totalAmount = subTotal - discount;
+        createOrderForm.TotalAmount = totalAmount;
+        Console.WriteLine($"Totals updated: Sub={subTotal}, Discount={discount}, Total={totalAmount}"); // Log để debug
+        StateHasChanged();
+    }
+    private async Task HandleCreateOrderSubmit()
+    {
+        if (selectedCustomerForCreate == null || !cartItems.Any())
+        {
+            createErrorMessage = "Vui lòng chọn khách hàng và thêm ít nhất một sản phẩm.";
+            StateHasChanged();
+            return;
+        }
+        // THÊM MỚI: Validation quantity cho tất cả items
+        var invalidItems = cartItems.Where(i => i.Quantity <= 0).ToList();
+        if (invalidItems.Any())
+        {
+            createErrorMessage = $"Các sản phẩm sau có số lượng không hợp lệ (phải >=1): {string.Join(", ", invalidItems.Select(i => i.ProductName))}";
+            Toast.ShowWarning(createErrorMessage);
+            StateHasChanged();
+            return;
+        }
+        isCreatingOrder = true;
+        createErrorMessage = string.Empty;
+        StateHasChanged();
+        try
+        {
+            // Bước 1: Tạo Order
+            var orderRequest = new CreateOrderRequest
+            {
+                CustomerId = createOrderForm.CustomerId,
+                UserId = createOrderForm.UserId,
+                PromoId = string.IsNullOrEmpty(SelectedPromotionId) ? null : Guid.Parse(SelectedPromotionId),
+                TotalAmount = totalAmount, // Tổng sau khi trừ giảm giá
+                DiscountAmount = createOrderForm.DiscountAmount ?? 0
+            };
+            var orderResponse = await OrderService.CreateOrderAsync(orderRequest);
+            if ((orderResponse?.StatusCode != 200 && orderResponse.StatusCode != 201) || orderResponse.Data == null)
+            {
+                createErrorMessage = $"Lỗi tạo đơn hàng: {orderResponse?.Message ?? "Unknown error"}";
+                Toast.ShowError(createErrorMessage);
+                return;
+            }
+            var newOrderIdStr = orderResponse.Data.order.Id; // Giả sử OrderDetailResponse có property Id là string
+            if (!Guid.TryParse(newOrderIdStr, out var newOrderId))
+            {
+                createErrorMessage = "Lỗi: Mã đơn hàng mới không hợp lệ.";
+                Toast.ShowError(createErrorMessage);
+                return;
+            }
+            // Bước 2: Tạo Order Items
+            var items = cartItems.Select(item => new OrderItemInput
+            {
+                ProductId = item.ProductId,
+                Quantity = item.Quantity // Đảm bảo >0 từ validation
+            }).ToList();
+      
+            var itemsRequest = new CreateOrderItemsRequest
+            {
+                OrderId = newOrderId,
+                Items = items
+            };
+            var itemsResponse = await OrderItemService.CreateOrderItemsAsync(itemsRequest);
+            // THÊM MỚI: Hiển thị toast thành công giống như bên user management (sử dụng Toast.ShowSuccess với message đơn giản và chi tiết)
+            var successMessage = $"Tạo đơn hàng mới thành công! Mã đơn: #{GetOrderIdDisplay(newOrderId)}";
+            Toast.ShowSuccess(successMessage);
+            CloseCreateOrderModal();
+            await LoadOrders(); // Reload list
+        }
+        catch (Exception ex)
+        {
+            createErrorMessage = $"Lỗi: {ex.Message}";
+            Toast.ShowError(createErrorMessage);
+            Console.WriteLine($"Full exception: {ex}"); // Log stack trace
+        }
+        finally
+        {
+            isCreatingOrder = false;
+            StateHasChanged();
+        }
+    }
+    // Helper classes
+    public class CreateOrderForm
+    {
+        [Required(ErrorMessage = "Khách hàng là bắt buộc")]
+        public Guid CustomerId { get; set; }
+        [Required(ErrorMessage = "UserId là bắt buộc")]
+        public Guid UserId { get; set; }
+        public decimal? DiscountAmount { get; set; }
+        [Required]
+        public decimal TotalAmount { get; set; }
+    }
+    public class CartItem
+    {
+        public Guid ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public int Quantity { get; set; } = 1;
+        public decimal Subtotal => Price * Quantity;
+    }
+    //Lấy list của payment
+    public class PaymentListData
+    {
+        public List<PaymentDto> PaymentDtos { get; set; } = new();
+    }
+}
