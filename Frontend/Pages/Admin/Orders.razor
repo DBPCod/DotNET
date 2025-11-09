@@ -18,11 +18,13 @@
 @using System.Threading  
 @using System.Text.Json
 @using System.Collections.Generic
+@using Backend.Dtos.Requests.Payment
 @inject OrderService OrderService
 @inject OrderItemService OrderItemService
 @inject CustomerService CustomerService
 @inject ProductService ProductService
 @inject PromotionService PromotionService
+@inject PaymentService PaymentService
 @inject IJSRuntime JSRuntime
 @inject Blazored.Toast.Services.IToastService Toast  // Giả sử dùng Blazored.Toast cho notification
 @layout AdminLayout
@@ -134,8 +136,8 @@
                                                 <button class="btn btn-sm btn-outline-primary" @onclick="@(async () => await ViewOrder(order.Id))">
                                                     <i class="bi bi-eye"></i>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-warning" @onclick="() => EditOrder(order.Id)">
-                                                    <i class="bi bi-pencil"></i>
+                                                <button class="btn btn-sm btn-outline-warning" @onclick="@(() => UpdateStatusOrder(order.Id, order.Status))">
+                                                    <i class="bi bi-arrow-clockwise"></i>
                                                 </button>
                                                 <button class="btn btn-sm btn-outline-info" @onclick="() => PrintOrder(order.Id)">
                                                     <i class="bi bi-printer"></i>
@@ -256,6 +258,61 @@
                             <button type="button" class="btn btn-secondary" @onclick="CloseModal">Đóng</button>
                         </div>
                     }
+                </div>
+            </div>
+        </div>
+        <div class="modal-backdrop fade show"></div>
+    }
+
+    <!-- Modal Cập nhật trạng thái đơn hàng -->
+    @if (showUpdateModal)
+    {
+        <div class="modal fade show" tabindex="-1" style="display: block;" role="dialog">
+            <div class="modal-dialog modal-md" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Cập nhật trạng thái đơn hàng #@GetOrderIdDisplay(Guid.Parse(selectedOrderForUpdate ?? ""))</h5>
+                        <button type="button" class="btn-close" @onclick="CloseUpdateModal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <EditForm Model="updateStatusForm" OnValidSubmit="HandleUpdateStatusSubmit">
+                            <DataAnnotationsValidator />
+                            @if (!string.IsNullOrEmpty(updateErrorMessage))
+                            {
+                                <div class="alert alert-danger">@updateErrorMessage</div>
+                            }
+                            <div class="mb-3">
+                                <label class="form-label">Trạng thái mới <span class="text-danger">*</span></label>
+                                <InputSelect @bind-Value="currentStatus" class="form-select">
+                                    <option value="pending">Chờ xử lý</option>
+                                    <option value="paid">Đã thanh toán</option>
+                                    <option value="canceled">Đã hủy</option>
+                                </InputSelect>
+                                <ValidationMessage For="@(() => updateStatusForm.status)" class="text-danger" />
+                            </div>
+                            @if (currentStatus == "paid")
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label">Phương thức thanh toán <span class="text-danger">*</span></label>
+                                    <InputSelect @bind-Value="selectedPaymentMethod" class="form-select">
+                                        <option value="cash">Tiền mặt</option>
+                                        <option value="card">Thẻ</option>
+                                    </InputSelect>
+                                    <small class="text-muted">Mặc định: Tiền mặt</small>
+                                </div>
+                            }
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" @onclick="CloseUpdateModal" disabled="@isUpdatingStatus">Hủy</button>
+                                <button type="submit" class="btn btn-primary" disabled="@isUpdatingStatus">
+                                    @if (isUpdatingStatus)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    Cập nhật
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
                 </div>
             </div>
         </div>
@@ -630,6 +687,15 @@
     private int orderItemCurrentPage = 1;
     private bool isLoadingOrderItems = false;
 
+    // New state for update status modal
+    private bool showUpdateModal = false;
+    private string? selectedOrderForUpdate;
+    private string currentStatus = "pending";
+    private string selectedPaymentMethod = "cash";
+    private bool isUpdatingStatus = false;
+    private string updateErrorMessage = string.Empty;
+    private UpdateStatusOrderRequest updateStatusForm = new();
+
     // New state for create order modal (UI demo)
     private bool showCreateOrderModal = false;
     private bool isCreatingOrder = false;
@@ -837,11 +903,6 @@
         }
     }
 
-    private void EditOrder(string id)
-    {
-        Console.WriteLine($"Editing order: {id}");
-    }
-
     private void PrintOrder(string id)
     {
         Console.WriteLine($"Printing order: {id}");
@@ -1023,6 +1084,110 @@
         orderPagination = null;
         isLoadingOrderItems = false;
         StateHasChanged();
+    }
+
+    // New methods for update status modal
+    private void UpdateStatusOrder(string orderId, string currentOrderStatus)
+    {
+        selectedOrderForUpdate = orderId;
+        currentStatus = currentOrderStatus;
+        selectedPaymentMethod = "cash"; // Reset to default
+        updateErrorMessage = string.Empty;
+        updateStatusForm = new UpdateStatusOrderRequest { status = currentStatus };
+        showUpdateModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseUpdateModal()
+    {
+        showUpdateModal = false;
+        selectedOrderForUpdate = null;
+        currentStatus = "pending";
+        selectedPaymentMethod = "cash";
+        updateErrorMessage = string.Empty;
+        updateStatusForm = new();
+    }
+
+    private async Task HandleUpdateStatusSubmit()
+    {
+        if (string.IsNullOrEmpty(selectedOrderForUpdate) || !Guid.TryParse(selectedOrderForUpdate, out var orderId))
+        {
+            updateErrorMessage = "Mã đơn hàng không hợp lệ.";
+            Toast.ShowWarning(updateErrorMessage);
+            StateHasChanged();
+            return;
+        }
+
+        updateStatusForm.status = currentStatus;
+        isUpdatingStatus = true;
+        updateErrorMessage = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            // Bước 1: Cập nhật trạng thái đơn hàng
+            var statusResponse = await OrderService.UpdateOrderStatusAsync(orderId, updateStatusForm);
+
+            if (statusResponse?.StatusCode != 200)
+            {
+                updateErrorMessage = $"Lỗi cập nhật trạng thái: {statusResponse?.Message ?? "Unknown error"}";
+                Toast.ShowError(updateErrorMessage);
+                return;
+            }
+
+            // Bước 2: Nếu trạng thái mới là "paid", tạo payment
+            if (currentStatus == "paid")
+            {
+                // Tìm order để lấy TotalAmount
+                var currentOrder = orders.FirstOrDefault(o => o.Id == selectedOrderForUpdate);
+                if (currentOrder == null || currentOrder.TotalAmount == null)
+                {
+                    updateErrorMessage = "Không thể lấy thông tin tổng tiền đơn hàng.";
+                    Toast.ShowError(updateErrorMessage);
+                    return;
+                }
+
+                var paymentRequest = new CreatePaymentRequest
+                {
+                    OrderId = orderId,
+                    Amount = currentOrder.TotalAmount.Value,
+                    PaymentMethod = selectedPaymentMethod
+                };
+
+                var paymentResponse = await PaymentService.CreatePaymentAsync(paymentRequest);
+
+                if (paymentResponse?.StatusCode != 200 && paymentResponse?.StatusCode != 201)
+                {
+                    updateErrorMessage = $"Cập nhật trạng thái thành công nhưng lỗi tạo thanh toán: {paymentResponse?.Message ?? "Unknown error"}";
+                    Toast.ShowWarning(updateErrorMessage);
+                }
+                else
+                {
+                    var successMessage = $"Cập nhật trạng thái thành công! Phương thức thanh toán: {(selectedPaymentMethod == "cash" ? "Tiền mặt" : "Thẻ")}";
+                    Toast.ShowSuccess(successMessage);
+                }
+            }
+            else
+            {
+                var statusDisplay = GetStatusDisplay(currentStatus);
+                var successMessage = $"Cập nhật trạng thái thành công: {statusDisplay}";
+                Toast.ShowSuccess(successMessage);
+            }
+
+            CloseUpdateModal();
+            await LoadOrders(); // Reload danh sách để cập nhật UI
+        }
+        catch (Exception ex)
+        {
+            updateErrorMessage = $"Lỗi: {ex.Message}";
+            Toast.ShowError(updateErrorMessage);
+            Console.WriteLine($"Full exception in update status: {ex}");
+        }
+        finally
+        {
+            isUpdatingStatus = false;
+            StateHasChanged();
+        }
     }
 
     // New methods for create order (UI demo - mock)

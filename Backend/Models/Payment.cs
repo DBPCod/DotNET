@@ -19,7 +19,7 @@ public class Payment
     public decimal Amount { get; set; }
 
     [Column("payment_method")]
-    public string PaymentMethod { get; set; } = "cash"; // 'cash', 'card', 'bank_transfer', 'e-wallet'
+    public string PaymentMethod { get; set; } = "cash"; // 'cash', 'card',
 
     [Column("payment_date")]
     public DateTime PaymentDate { get; set; } = DateTime.Now;

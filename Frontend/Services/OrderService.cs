@@ -109,24 +109,24 @@ public class OrderService
     // }
 
     // PATCH - Cập nhật trạng thái order
-    // public async Task<ApiResponse<UpdateOrderStatusDto>?> UpdateOrderStatusAsync(Guid id, UpdateStatusOrderRequest request)
-    // {
-    //     try
-    //     {
-    //         var response = await _httpClient.PatchAsJsonAsync($"{BaseUrl}/{id}/status", request);
-    //         var result = await response.Content.ReadFromJsonAsync<ApiResponse<UpdateOrderStatusDto>>();
-    //         return result;
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Console.WriteLine($"Error updating order status: {ex.Message}");
-    //         return new ApiResponse<UpdateOrderStatusDto> 
-    //         { 
-    //             Message = ex.Message, 
-    //             StatusCode = 500 
-    //         };
-    //     }
-    // }
+    public async Task<ApiResponse<UpdateOrderStatusDto>?> UpdateOrderStatusAsync(Guid id, UpdateStatusOrderRequest request)
+    {
+        try
+        {
+            var response = await _httpClient.PatchAsJsonAsync($"{BaseUrl}/{id}/status", request);
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<UpdateOrderStatusDto>>();
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating order status: {ex.Message}");
+            return new ApiResponse<UpdateOrderStatusDto> 
+            { 
+                Message = ex.Message, 
+                StatusCode = 500 
+            };
+        }
+    }
 
     // DELETE - Xóa order (soft delete hoặc hard delete tùy backend)
     // public async Task<ApiResponse<bool>?> DeleteOrderAsync(Guid id)
