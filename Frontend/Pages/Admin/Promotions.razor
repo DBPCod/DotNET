@@ -24,18 +24,19 @@
     
     <div class="page-filters">  
         <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-2">
                 <input type="text" class="form-control" placeholder="Tìm kiếm khuyến mãi..." 
                        @bind="searchTerm" @onkeypress="HandleSearchKeyPress" />
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <select class="form-select" value="@selectedStatus" @onchange="HandleStatusChange">
                     <option value="">Tất cả trạng thái</option>
                     <option value="active">Đang hoạt động</option>
                     <option value="inactive">Tạm dừng</option>
+                    <option value="expired">Đã kết thúc</option>
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <select class="form-select" value="@selectedDiscountType" @onchange="HandleDiscountTypeFilterChange">
                     <option value="">Tất cả loại</option>
                     <option value="percent">Giảm giá %</option>
@@ -43,8 +44,21 @@
                     <option value="free_shipping">Miễn phí vận chuyển</option>
                 </select>
             </div>
-            <div class="col-md-2">
-                <button class="btn btn-outline-secondary w-100" @onclick="LoadPromotions">Lọc</button>
+            <div class="col-md-1">
+                <select class="form-select" @bind="pageSize" @bind:after="HandlePageSizeChange" title="Số mục mỗi trang">
+                    <option value="6">6</option>
+                    <option value="12">12</option>
+                    <option value="24">24</option>
+                    <option value="48">48</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary flex-fill" @onclick="() => LoadPromotions(1)">Tìm kiếm</button>
+                    <button class="btn btn-outline-primary" @onclick="ResetFilters" title="Làm mới">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -109,21 +123,33 @@
                 }
             </div>
 
+            @if (pagination != null)
+            {
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="text-muted">
+                        Hiển thị @(((pagination.CurrentPage - 1) * pagination.PageSize) + 1)
+                        đến @(Math.Min(pagination.CurrentPage * pagination.PageSize, pagination.TotalCount))
+                        trong tổng số @pagination.TotalCount khuyến mãi
+                    </div>
+                </div>
+            }
+
             @if (pagination != null && pagination.TotalPages > 1)
             {
                 <nav aria-label="Page navigation" class="mt-4">
                     <ul class="pagination justify-content-center">
                         <li class="page-item @(pagination.CurrentPage == 1 ? "disabled" : "")">
-                            <a class="page-link" href="#" @onclick="() => ChangePage(pagination.CurrentPage - 1)" @onclick:preventDefault>Trước</a>
+                            <a class="page-link" @onclick="() => LoadPromotions(pagination.CurrentPage - 1)">Trước</a>
                         </li>
                         @for (int i = 1; i <= pagination.TotalPages; i++)
                         {
-                            <li class="page-item @(i == pagination.CurrentPage ? "active" : "")">
-                                <a class="page-link" href="#" @onclick="() => ChangePage(i)" @onclick:preventDefault>@i</a>
+                            var pageNumber = i;
+                            <li class="page-item @(pagination.CurrentPage == pageNumber ? "active" : "")">
+                                <a class="page-link" @onclick="() => LoadPromotions(pageNumber)">@pageNumber</a>
                             </li>
                         }
                         <li class="page-item @(pagination.CurrentPage >= pagination.TotalPages ? "disabled" : "")">
-                            <a class="page-link" href="#" @onclick="() => ChangePage(pagination.CurrentPage + 1)" @onclick:preventDefault>Tiếp</a>
+                            <a class="page-link" @onclick="() => LoadPromotions(pagination.CurrentPage + 1)">Tiếp</a>
                         </li>
                     </ul>
                 </nav>
@@ -413,8 +439,9 @@
         await LoadPromotions();
     }
 
-    private async Task LoadPromotions()
+    private async Task LoadPromotions(int page = 1)
     {
+        currentPage = page;
         isLoading = true;
         StateHasChanged();
 
@@ -435,16 +462,164 @@
                 _ => null
             };
 
-            var result = await PromotionService.GetPromotionsAsync(
-                currentPage,
-                pageSize,
-                string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
-                statusEnum,
-                discountEnum
-            );
+            // Nếu chọn "Đã kết thúc", lấy tất cả active promotions để lọc ở client side
+            if (selectedStatus == "expired")
+            {
+                // Lấy tất cả active promotions (dùng pageSize lớn để lấy hết)
+                var allResult = await PromotionService.GetPromotionsAsync(
+                    1,
+                    10000, // Lấy nhiều để có đủ dữ liệu
+                    string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
+                    PromotionStatus.Active,
+                    discountEnum
+                );
+                
+                // Lọc "Đã kết thúc" ở client side
+                var today = DateTime.Today;
+                var allExpired = allResult.promotions
+                    .Where(p => p.Status == PromotionStatus.Active && p.EndDate < today)
+                    .ToList();
+                
+                var totalExpired = allExpired.Count;
+                
+                // Áp dụng pagination cho danh sách đã lọc
+                var skip = (currentPage - 1) * pageSize;
+                promotions = allExpired.Skip(skip).Take(pageSize).ToList();
+                
+                // Tạo pagination info mới
+                pagination = new PaginationInfo
+                {
+                    CurrentPage = currentPage,
+                    PageSize = pageSize,
+                    TotalCount = totalExpired,
+                    TotalPages = (int)Math.Ceiling(totalExpired / (double)pageSize)
+                };
+            }
+            else if (selectedStatus == "active")
+            {
+                // Lấy tất cả active promotions để lọc ở client side (loại bỏ đã kết thúc)
+                var allResult = await PromotionService.GetPromotionsAsync(
+                    1,
+                    10000, // Lấy nhiều để có đủ dữ liệu
+                    string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
+                    PromotionStatus.Active,
+                    discountEnum
+                );
+                
+                // Lọc "Đang hoạt động" - loại bỏ những cái đã kết thúc
+                var today = DateTime.Today;
+                var allActive = allResult.promotions
+                    .Where(p => p.Status == PromotionStatus.Active && p.EndDate >= today)
+                    .ToList();
+                
+                var totalActive = allActive.Count;
+                
+                // Áp dụng pagination cho danh sách đã lọc
+                var skip = (currentPage - 1) * pageSize;
+                promotions = allActive.Skip(skip).Take(pageSize).ToList();
+                
+                // Tạo pagination info mới
+                pagination = new PaginationInfo
+                {
+                    CurrentPage = currentPage,
+                    PageSize = pageSize,
+                    TotalCount = totalActive,
+                    TotalPages = (int)Math.Ceiling(totalActive / (double)pageSize)
+                };
+            }
+            else
+            {
+                var result = await PromotionService.GetPromotionsAsync(
+                    currentPage,
+                    pageSize,
+                    string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
+                    statusEnum,
+                    discountEnum
+                );
 
-            promotions = result.promotions;
-            pagination = result.pagination;
+                promotions = result.promotions;
+                pagination = result.pagination;
+            }
+
+            // Nếu rỗng nhưng vẫn còn trang trước, tự động lùi về trang hợp lệ gần nhất
+            if ((promotions == null || promotions.Count == 0) && pagination != null)
+            {
+                var lastPage = Math.Max(1, pagination.TotalPages);
+                if (currentPage > lastPage)
+                {
+                    currentPage = lastPage;
+                    
+                    if (selectedStatus == "expired")
+                    {
+                        // Xử lý lại cho expired
+                        var allResult = await PromotionService.GetPromotionsAsync(
+                            1,
+                            10000,
+                            string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
+                            PromotionStatus.Active,
+                            discountEnum
+                        );
+                        
+                        var today = DateTime.Today;
+                        var allExpired = allResult.promotions
+                            .Where(p => p.Status == PromotionStatus.Active && p.EndDate < today)
+                            .ToList();
+                        
+                        var totalExpired = allExpired.Count;
+                        var skip = (currentPage - 1) * pageSize;
+                        promotions = allExpired.Skip(skip).Take(pageSize).ToList();
+                        
+                        pagination = new PaginationInfo
+                        {
+                            CurrentPage = currentPage,
+                            PageSize = pageSize,
+                            TotalCount = totalExpired,
+                            TotalPages = (int)Math.Ceiling(totalExpired / (double)pageSize)
+                        };
+                    }
+                    else if (selectedStatus == "active")
+                    {
+                        // Xử lý lại cho active
+                        var allResult = await PromotionService.GetPromotionsAsync(
+                            1,
+                            10000,
+                            string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
+                            PromotionStatus.Active,
+                            discountEnum
+                        );
+                        
+                        var today = DateTime.Today;
+                        var allActive = allResult.promotions
+                            .Where(p => p.Status == PromotionStatus.Active && p.EndDate >= today)
+                            .ToList();
+                        
+                        var totalActive = allActive.Count;
+                        var skip = (currentPage - 1) * pageSize;
+                        promotions = allActive.Skip(skip).Take(pageSize).ToList();
+                        
+                        pagination = new PaginationInfo
+                        {
+                            CurrentPage = currentPage,
+                            PageSize = pageSize,
+                            TotalCount = totalActive,
+                            TotalPages = (int)Math.Ceiling(totalActive / (double)pageSize)
+                        };
+                    }
+                    else
+                    {
+                        // Xử lý lại cho các trạng thái khác
+                        var result = await PromotionService.GetPromotionsAsync(
+                            currentPage,
+                            pageSize,
+                            string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
+                            statusEnum,
+                            discountEnum
+                        );
+                        promotions = result.promotions;
+                        pagination = result.pagination;
+                    }
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -461,29 +636,34 @@
     {
         if (e.Key == "Enter")
         {
-            currentPage = 1;
-            await LoadPromotions();
+            await LoadPromotions(1);
         }
     }
 
     private async Task HandleStatusChange(ChangeEventArgs e)
     {
         selectedStatus = e.Value?.ToString() ?? "";
-        currentPage = 1;
-        await LoadPromotions();
+        await LoadPromotions(1);
     }
 
     private async Task HandleDiscountTypeFilterChange(ChangeEventArgs e)
     {
         selectedDiscountType = e.Value?.ToString() ?? "";
-        currentPage = 1;
-        await LoadPromotions();
+        await LoadPromotions(1);
     }
 
-    private async Task ChangePage(int page)
+    private async Task HandlePageSizeChange()
     {
-        currentPage = page;
-        await LoadPromotions();
+        await LoadPromotions(1);
+    }
+
+    private async Task ResetFilters()
+    {
+        searchTerm = "";
+        selectedStatus = "";
+        selectedDiscountType = "";
+        currentPage = 1;
+        await LoadPromotions(1);
     }
 
     private void ShowCreateModal()
@@ -556,6 +736,14 @@
         try
         {
             bool success;
+
+            // Validate client-side
+            var (isValid, validationMessage) = ValidatePromotionForm(currentPromotion, isEdit);
+            if (!isValid)
+            {
+                Toast.ShowError(validationMessage);
+                return;
+            }
             
             if (isEdit && editingPromotion != null)
             {
@@ -581,9 +769,10 @@
 
             if (success)
             {
+                var wasEdit = isEdit;
                 CloseModal();
-                await LoadPromotions();
-                Toast.ShowSuccess(isEdit ? "Cập nhật thành công!" : "Tạo khuyến mãi thành công!");
+                await LoadPromotions(pagination?.CurrentPage ?? 1);
+                Toast.ShowSuccess(wasEdit ? "Cập nhật thành công!" : "Tạo khuyến mãi thành công!");
             }
             else
             {
@@ -618,7 +807,7 @@
         
         if (success)
         {
-            await LoadPromotions();
+            await LoadPromotions(pagination?.CurrentPage ?? 1);
             Toast.ShowSuccess("Xóa thành công!");
         }
         else
@@ -676,6 +865,39 @@
             return "bg-success";
         }
         return "bg-secondary";
+    }
+
+    private (bool ok, string message) ValidatePromotionForm(CreatePromotionRequest request, bool isEditMode)
+    {
+        if (!isEditMode && string.IsNullOrWhiteSpace(request.PromoCode))
+            return (false, "Mã khuyến mãi là bắt buộc");
+
+        if (request.EndDate < request.StartDate)
+            return (false, "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu");
+
+        if (request.DiscountType == DiscountType.Percent)
+        {
+            if (request.DiscountValue <= 0 || request.DiscountValue > 100)
+                return (false, "Giá trị % phải trong khoảng 1-100");
+        }
+        else if (request.DiscountType == DiscountType.Fixed)
+        {
+            if (request.DiscountValue < 0)
+                return (false, "Giá trị giảm cố định phải ≥ 0");
+        }
+        else if (request.DiscountType == DiscountType.FreeShipping)
+        {
+            if (request.DiscountValue != 0)
+                return (false, "Miễn phí vận chuyển không cần giá trị giảm");
+        }
+
+        if (request.MinOrderAmount < 0)
+            return (false, "Giá trị đơn hàng tối thiểu phải ≥ 0");
+
+        if (request.UsageLimit < 0)
+            return (false, "Giới hạn sử dụng phải ≥ 0");
+
+        return (true, "");
     }
 }
 

@@ -91,6 +91,24 @@ public class PromotionService
         }
     }
 
+    public async Task<ValidatePromotionResponse?> ValidatePromotionAsync(string code, decimal orderTotal)
+    {
+        try
+        {
+            var url = $"{BaseUrl}/validate?code={Uri.EscapeDataString(code)}&orderTotal={orderTotal}";
+            var response = await _httpClient.GetFromJsonAsync<ApiResponse<ValidatePromotionData>>(url, JsonOptions);
+            if (response != null && response.StatusCode == 200)
+            {
+                return response.Data?.ValidationResult;
+            }
+            return null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
     public async Task<PromotionDto?> GetPromotionByIdAsync(string id)
     {
         try
