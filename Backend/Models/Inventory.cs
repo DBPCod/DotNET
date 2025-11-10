@@ -16,6 +16,9 @@ public class Inventory
     [Column("quantity")]
     public int Quantity { get; set; } = 0;
 
+    [Column("cost_price", TypeName = "decimal(10,2)")]
+    public decimal CostPrice { get; set; } = 0; // Giá nhập
+
     [Column("updated_at")]
     public DateTime UpdatedAt { get; set; } = DateTime.Now;
 
