@@ -1,3 +1,5 @@
+using Backend.Dtos.Requests;
+using Backend.Services.Apis;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Controllers;
@@ -8,4 +10,20 @@ public class InventoryController(InventoryService inventoryService) : Controller
 {
     private readonly InventoryService _inventoryService = inventoryService;
 
+    [HttpPost("update")]
+    public async Task<IActionResult> UpdateInventory([FromBody] UpdateInventoryRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            await _inventoryService.UpdateInventoryAsync(request);
+            return Ok(new { message = "Inventory updated successfully." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
 }

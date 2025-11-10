@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Backend.Models;
 
@@ -18,11 +19,13 @@ public class Payment
     public decimal Amount { get; set; }
 
     [Column("payment_method")]
-    public string PaymentMethod { get; set; } = "cash"; // 'cash', 'card', 'bank_transfer', 'e-wallet'
+    public string PaymentMethod { get; set; } = "cash"; // 'cash', 'card',
 
     [Column("payment_date")]
     public DateTime PaymentDate { get; set; } = DateTime.Now;
 
     // Navigation property
+    [JsonIgnore]
     public Order? Order { get; set; }
+
 }

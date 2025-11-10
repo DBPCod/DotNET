@@ -1,5 +1,20 @@
 @page "/admin/products"
 @layout AdminLayout
+@using Frontend.Models.Product
+@using Frontend.Models.Product.Requests
+@using Frontend.Models.Product.Responses
+@using Frontend.Models.Category
+@using Frontend.Models.Supplier
+@using Frontend.Models.Common
+@using Frontend.Services
+@using Frontend.Components
+@using Microsoft.AspNetCore.Components.Forms
+@inject ProductService ProductService
+@inject CategoryService CategoryService
+@inject SupplierService SupplierService
+@inject IJSRuntime JS
+@inject Blazored.Toast.Services.IToastService Toast
+@inject Blazored.Modal.Services.IModalService Modal
 
 <div class="admin-page">
     <div class="page-header">
@@ -8,48 +23,48 @@
                 <h2>Quản lý sản phẩm</h2>
                 <p class="text-muted">Danh sách và quản lý sản phẩm trong hệ thống</p>
             </div>
-            <button class="btn btn-primary">
+            <button class="btn btn-primary" @onclick="ShowCreateModal">
                 <i class="bi bi-plus"></i> Thêm sản phẩm
             </button>
         </div>
     </div>
     
     <div class="page-filters">
-        <div class="row">
+        <div class="row align-items-center g-3">
             <div class="col-md-3">
-                <input type="text" class="form-control" placeholder="Tìm kiếm sản phẩm..." />
+                <input type="text" class="form-control" placeholder="Tìm kiếm..." 
+                    @bind="searchQuery" @bind:event="oninput" />
             </div>
             <div class="col-md-2">
-                <select class="form-select">    
-                    <option>Tất cả danh mục</option>
-                    <option>Đồ uống</option>
-                    <option>Bánh kẹo</option>
-                    <option>Gia vị</option>
-                    <option>Đồ gia dụng</option>
-                    <option>Mỹ phẩm</option>
+                <select class="form-select" @bind="selectedCategory">
+                    <option value="">Tất cả danh mục</option>
+                    @foreach (var category in categories)
+                    {
+                        <option value="@category.Id">@category.CategoryName</option>
+                    }
                 </select>
             </div>
             <div class="col-md-2">
-                <select class="form-select">
-                    <option>Tất cả trạng thái</option>
-                    <option>Còn hàng</option>
-                    <option>Hết hàng</option>
-                    <option>Ngừng bán</option>
+                <select class="form-select" @bind="selectedStatus">
+                    <option value="">Trạng thái</option>
+                    <option value="true">Đang bán</option>
+                    <option value="false">Ngừng bán</option>
                 </select>
             </div>
-            <div class="col-md-2">
-                <select class="form-select">
-                    <option>Sắp xếp theo</option>
-                    <option>Tên A-Z</option>
-                    <option>Tên Z-A</option>
-                    <option>Giá tăng dần</option>
-                    <option>Giá giảm dần</option>
+            <div class="col-md-1">
+                <select class="form-select" @bind="pageSize" @bind:after="HandlePageSizeChange" title="Số dòng mỗi trang">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
                 </select>
             </div>
-            <div class="col-md-3">
-                <button class="btn btn-outline-secondary me-2">Lọc</button>
-                <button class="btn btn-outline-success">
-                    <i class="bi bi-download"></i> Xuất Excel
+            <div class="col-md-4 text-end">
+                <button class="btn btn-outline-secondary me-2" @onclick="HandleSearch">
+                    <i class="bi bi-search"></i> Lọc
+                </button>
+                <button class="btn btn-outline-primary" @onclick="ResetFilters">
+                    <i class="bi bi-arrow-clockwise"></i> Làm mới
                 </button>
             </div>
         </div>
@@ -58,164 +73,731 @@
     <div class="page-content">
         <div class="card">
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>
-                                    <input type="checkbox" class="form-check-input" />
-                                </th>
-                                <th>Hình ảnh</th>
-                                <th>Tên sản phẩm</th>
-                                <th>Danh mục</th>
-                                <th>Giá</th>
-                                <th>Tồn kho</th>
-                                <th>Trạng thái</th>
-                                <th>Hành động</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><input type="checkbox" class="form-check-input" /></td>
-                                <td>
-                                    <div class="product-image">
-                                        <i class="bi bi-cup-hot"></i>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div>
-                                        <div class="fw-bold">Coca Cola lon</div>
-                                        <small class="text-muted">Barcode: 8900000000001</small>
-                                    </div>
-                                </td>
-                                <td><span class="badge bg-primary">Đồ uống</span></td>
-                                <td>
-                                    <div>
-                                        <div class="fw-bold text-success">314,838 VNĐ</div>
-                                        <small class="text-muted">Đơn vị: hộp</small>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="badge bg-success">25</span>
-                                </td>
-                                <td><span class="badge bg-success">Còn hàng</span></td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <button class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-warning">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-danger">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><input type="checkbox" class="form-check-input" /></td>
-                                <td>
-                                    <div class="product-image">
-                                        <i class="bi bi-cake"></i>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div>
-                                        <div class="fw-bold">Bánh Oreo</div>
-                                        <small class="text-muted">Barcode: 8900000000006</small>
-                                    </div>
-                                </td>
-                                <td><span class="badge bg-warning">Bánh kẹo</span></td>
-                                <td>
-                                    <div>
-                                        <div class="fw-bold text-success">209,283 VNĐ</div>
-                                        <small class="text-muted">Đơn vị: chai</small>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="badge bg-success">105</span>
-                                </td>
-                                <td><span class="badge bg-success">Còn hàng</span></td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <button class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-warning">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-danger">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><input type="checkbox" class="form-check-input" /></td>
-                                <td>
-                                    <div class="product-image">
-                                        <i class="bi bi-shop"></i>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div>
-                                        <div class="fw-bold">Nước mắm Nam Ngư</div>
-                                        <small class="text-muted">Barcode: 8900000000011</small>
-                                    </div>
-                                </td>
-                                <td><span class="badge bg-info">Gia vị</span></td>
-                                <td>
-                                    <div>
-                                        <div class="fw-bold text-success">51,792 VNĐ</div>
-                                        <small class="text-muted">Đơn vị: chai</small>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="badge bg-warning">69</span>
-                                </td>
-                                <td><span class="badge bg-warning">Sắp hết hàng</span></td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <button class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-warning">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-danger">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <nav aria-label="Page navigation">
-                    <ul class="pagination justify-content-center">
-                        <li class="page-item disabled">
-                            <a class="page-link" href="#" tabindex="-1">Trước</a>
-                        </li>
-                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                        <li class="page-item"><a class="page-link" href="#">2</a></li>
-                        <li class="page-item"><a class="page-link" href="#">3</a></li>
-                        <li class="page-item">
-                            <a class="page-link" href="#">Tiếp</a>
-                        </li>
-                    </ul>
-                </nav>
+                @if (isLoading)
+                {
+                    <div class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Đang tải dữ liệu...</p>
+                    </div>
+                }
+                else if (products == null || !products.Any())
+                {
+                    <div class="text-center p-5">
+                        <p class="text-muted">Không có sản phẩm nào</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Hình ảnh</th>
+                                    <th>Tên sản phẩm</th>
+                                    <th>Mã vạch</th>
+                                    <th>Danh mục</th>
+                                    <th>Giá</th>
+                                    <th>Đơn vị</th>
+                                    <th>Trạng thái</th>
+                                    <th>Ngày tạo</th>
+                                    <th>Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var product in products)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="product-image">
+                                                @if (!string.IsNullOrEmpty(product.ImagePath))
+                                                {
+                                                    <img src="http://localhost:4040@(product.ImagePath)" alt="@product.ProductName" />
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-image"></i>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold">@product.ProductName</div>
+                                        </td>
+                                        <td>@(product.Barcode ?? "-")</td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(product.CategoryName))
+                                            {
+                                                <span class="badge bg-primary">@product.CategoryName</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold text-success">@ProductService.FormatPrice(product.Price)</div>
+                                        </td>
+                                        <td>@product.Unit</td>
+                                        <td>
+                                            <span class="badge @GetStatusBadgeClass(product.Status)">
+                                                @(product.Status ? "Đang bán" : "Ngừng bán")
+                                            </span>
+                                        </td>
+                                        <td>@product.CreatedAt.ToString("dd/MM/yyyy")</td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-primary" 
+                                                        @onclick="() => ShowViewModal(product)"
+                                                        title="Xem chi tiết">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-warning" 
+                                                        @onclick="() => ShowEditModal(product)"
+                                                        title="Chỉnh sửa">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-sm @(product.Status ? "btn-outline-danger" : "status-check-btn")" 
+                                                        @onclick="() => ToggleProductStatus(product)"
+                                                        title="@(product.Status ? "Ngừng bán" : "Kích hoạt bán")">
+                                                    <i class="bi @(product.Status ? "bi-trash" : "bi-check-circle-fill")"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    @if (pagination != null && pagination.TotalPages > 1)
+                    {
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center">
+                                <li class="page-item @(pagination.CurrentPage == 1 ? "disabled" : "")">
+                                    <a class="page-link" @onclick="() => LoadProducts(pagination.CurrentPage - 1)">Trước</a>
+                                </li>
+
+                                @for (int i = 1; i <= pagination.TotalPages; i++)
+                                {
+                                    var pageNumber = i;
+                                    <li class="page-item @(pagination.CurrentPage == pageNumber ? "active" : "")">
+                                        <a class="page-link" @onclick="() => LoadProducts(pageNumber)">@pageNumber</a>
+                                    </li>
+                                }
+
+                                <li class="page-item @(pagination.CurrentPage == pagination.TotalPages ? "disabled" : "")">
+                                    <a class="page-link" @onclick="() => LoadProducts(pagination.CurrentPage + 1)">Tiếp</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    }
+
+                    @if (pagination != null)
+                    {
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="text-muted">
+                                Hiển thị @((pagination.CurrentPage - 1) * pagination.PageSize + 1)
+                                đến @(Math.Min(pagination.CurrentPage * pagination.PageSize, pagination.TotalCount))
+                                trong tổng số @pagination.TotalCount sản phẩm
+                            </div>
+                        </div>
+                    }
+                }
             </div>
         </div>
     </div>
 </div>
 
+<!-- Modal Tạo/Sửa Product -->
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(isEditMode ? "Cập nhật sản phẩm" : "Thêm sản phẩm mới")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tên sản phẩm <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" @bind="formData.ProductName" 
+                                   placeholder="Nhập tên sản phẩm" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Mã vạch <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" @bind="formData.Barcode" 
+                                   placeholder="Nhập mã vạch" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Giá <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" @bind="formData.Price" 
+                                   step="0.01" min="0.01" max="99999999.99" placeholder="Nhập giá (tối đa 99,999,999.99)" />
+                            <small class="form-text text-muted">Giá tối đa: 99,999,999.99</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Đơn vị <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" @bind="formData.Unit" 
+                                   placeholder="VD: pcs, kg, lít..." />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Danh mục <span class="text-danger">*</span></label>
+                            <select class="form-select" @bind="formData.CategoryId">
+                                <option value="">-- Chọn danh mục --</option>
+                                @foreach (var category in categories)
+                                {
+                                    <option value="@category.Id">@category.CategoryName</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Nhà cung cấp <span class="text-danger">*</span></label>
+                            <select class="form-select" @bind="formData.SupplierId">
+                                <option value="">-- Chọn nhà cung cấp --</option>
+                                @foreach (var supplier in activeSuppliers)
+                                {
+                                    <option value="@supplier.Id">@supplier.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Trạng thái <span class="text-danger">*</span></label>
+                            <select class="form-select" value="@(formData.Status ? "true" : "false")" @onchange="@(e => UpdateStatus(e.Value?.ToString() ?? "true"))">
+                                <option value="true">Đang bán</option>
+                                <option value="false">Ngừng bán</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Hình ảnh sản phẩm <span class="text-danger">*</span></label>
+                        <InputFile id="productImageInput" class="form-control" accept="image/*" OnChange="HandleImageUpload" />
+                        @if (!string.IsNullOrEmpty(imagePreview))
+                        {
+                            <div class="mt-2 text-center">
+                                <img src="@imagePreview" alt="Preview" class="img-thumbnail" style="max-width: 200px; max-height: 200px;" />
+                                <button type="button" class="btn btn-sm btn-danger d-block mt-2" @onclick="ClearImage">
+                                    <i class="bi bi-x"></i> Xóa ảnh
+                                </button>
+                            </div>
+                        }
+                        <small class="form-text text-muted">
+                            Chấp nhận: JPG, PNG, GIF, WEBP. Tối đa 5MB
+                        </small>
+                    </div>
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">@errorMessage</div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Hủy</button>
+                    <button type="button" class="btn btn-primary" @onclick="HandleSubmit" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        @(isEditMode ? "Cập nhật" : "Tạo mới")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal Xem Chi tiết -->
+@if (showViewModal && selectedProduct != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Chi tiết sản phẩm</h5>
+                    <button type="button" class="btn-close" @onclick="() => showViewModal = false"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(selectedProduct.ImagePath))
+                    {
+                        <div class="text-center mb-3">
+                            <img src="http://localhost:4040@(selectedProduct.ImagePath)" alt="@selectedProduct.ProductName" 
+                                 style="max-width: 100%; max-height: 300px;" />
+                        </div>
+                    }
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Tên sản phẩm:</div>
+                        <div class="col-8">@selectedProduct.ProductName</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Mã vạch:</div>
+                        <div class="col-8">@(selectedProduct.Barcode ?? "-")</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Giá:</div>
+                        <div class="col-8 text-success fw-bold">@ProductService.FormatPrice(selectedProduct.Price)</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Đơn vị:</div>
+                        <div class="col-8">@selectedProduct.Unit</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Danh mục:</div>
+                        <div class="col-8">@(selectedProduct.CategoryName ?? "-")</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Nhà cung cấp:</div>
+                        <div class="col-8">@(selectedProduct.SupplierName ?? "-")</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Trạng thái:</div>
+                        <div class="col-8">
+                            <span class="badge @GetStatusBadgeClass(selectedProduct.Status)">
+                                @(selectedProduct.Status ? "Đang bán" : "Ngừng bán")
+                            </span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Ngày tạo:</div>
+                        <div class="col-8">@selectedProduct.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="() => showViewModal = false">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // Data
+    private List<ProductDto> products = new();
+    private List<CategoryDto> categories = new();
+    private List<SupplierDto> suppliers = new(); // Tất cả suppliers cho filter
+    private List<SupplierDto> activeSuppliers = new(); // Chỉ active suppliers cho form
+    private PaginationInfo? pagination;
+    
+    // State
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private bool showModal = false;
+    private bool showViewModal = false;
+    private bool isEditMode = false;
+    
+    // Filter
+    private string searchQuery = "";
+    private string selectedCategory = "";
+    private string selectedStatus = "";
+    private int pageSize = 10;
+
+    // Form
+    private ProductFormData formData = new();
+    private ProductDto? selectedProduct;
+    private string errorMessage = "";
+    private string imagePreview = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategories();
+        await LoadSuppliers();
+        await LoadActiveSuppliers();
+        await LoadProducts();
+    }
+
+    private async Task LoadCategories()
+    {
+        try
+        {
+            var response = await CategoryService.GetCategoriesAsync(1, 100);
+            if (response?.StatusCode == 200 && response.Data != null)
+            {
+                categories = response.Data.Categories ?? new List<CategoryDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading categories: {ex.Message}");
+        }
+    }
+
+    private async Task LoadSuppliers()
+    {
+        try
+        {
+            var response = await SupplierService.GetSuppliersAsync(1, 100);
+            if (response?.StatusCode == 200 && response.Data != null)
+            {
+                suppliers = response.Data.Suppliers ?? new List<SupplierDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading suppliers: {ex.Message}");
+        }
+    }
+
+    // Load chỉ suppliers đang hoạt động cho form thêm/sửa
+    private async Task LoadActiveSuppliers()
+    {
+        try
+        {
+            var response = await SupplierService.GetActiveSuppliersAsync();
+            if (response?.StatusCode == 200 && response.Data != null)
+            {
+                activeSuppliers = response.Data.Suppliers ?? new List<SupplierDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading active suppliers: {ex.Message}");
+        }
+    }
+
+    private async Task LoadProducts(int page = 1)
+    {
+        isLoading = true;
+        try
+        {
+            bool? statusFilter = null;
+            if (!string.IsNullOrEmpty(selectedStatus))
+            {
+                statusFilter = bool.Parse(selectedStatus);
+            }
+
+            var response = await ProductService.GetProductsAsync(
+                page: page,
+                pageSize: pageSize,
+                searchQuery: string.IsNullOrEmpty(searchQuery) ? null : searchQuery,
+                categoryId: string.IsNullOrEmpty(selectedCategory) ? null : selectedCategory,
+                supplierId: null,
+                status: statusFilter
+            );
+
+            if (response?.StatusCode == 200 && response.Data != null)
+            {
+                products = response.Data.Products ?? new List<ProductDto>();
+                pagination = response.Data.Pagination;
+            }
+            else
+            {
+                products = new List<ProductDto>();
+                Toast.ShowError(response?.Message ?? "Lỗi khi tải dữ liệu");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            Toast.ShowError("Có lỗi xảy ra khi tải dữ liệu");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleSearch()
+    {
+        await LoadProducts(1);
+    }
+
+    private async Task ResetFilters()
+    {
+        searchQuery = "";
+        selectedCategory = "";
+        selectedStatus = "";
+        await LoadProducts(1);
+    }
+
+    private async Task HandlePageSizeChange()
+    {
+        await LoadProducts(1);
+    }
+
+    private void ShowCreateModal()
+    {
+        isEditMode = false;
+        formData = new ProductFormData();
+        imagePreview = "";
+        errorMessage = "";
+        showModal = true;
+    }
+
+    private void ShowEditModal(ProductDto product)
+    {
+        isEditMode = true;
+        selectedProduct = product;
+        formData = new ProductFormData
+        {
+            ProductName = product.ProductName,
+            Barcode = product.Barcode,
+            Price = product.Price,
+            Unit = product.Unit,
+            CategoryId = product.CategoryId,
+            SupplierId = product.SupplierId,
+            Status = product.Status
+        };
+        imagePreview = product.ImagePath ?? "";
+        errorMessage = "";
+        showModal = true;
+    }
+
+    private void ShowViewModal(ProductDto product)
+    {
+        selectedProduct = product;
+        showViewModal = true;
+    }
+
+    private async Task HandleImageUpload(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file == null) return;
+
+            // Validate file size (5MB)
+            if (file.Size > 5 * 1024 * 1024)
+            {
+                errorMessage = "Kích thước file không được vượt quá 5MB";
+                return;
+            }
+
+            // Validate file type
+            var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp" };
+            if (!allowedTypes.Contains(file.ContentType.ToLower()))
+            {
+                errorMessage = "Chỉ chấp nhận file ảnh JPG, PNG, GIF, WEBP";
+                return;
+            }
+
+            // Store file for upload
+            formData.ImageFile = file;
+
+            // Create preview
+            var buffer = new byte[file.Size];
+            await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
+            var base64 = Convert.ToBase64String(buffer);
+            imagePreview = $"data:{file.ContentType};base64,{base64}";
+            
+            errorMessage = "";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error handling image: {ex.Message}");
+            errorMessage = $"Lỗi khi xử lý file ảnh: {ex.Message}";
+        }
+    }
+
+    private void ClearImage()
+    {
+        imagePreview = "";
+        formData.ImageFile = null;
+    }
+
+    private async Task HandleSubmit()
+    {
+        errorMessage = "";
+        
+        // Validation
+        if (string.IsNullOrWhiteSpace(formData.ProductName))
+        {
+            errorMessage = "Vui lòng nhập tên sản phẩm";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(formData.Barcode))
+        {
+            errorMessage = "Vui lòng nhập mã vạch";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(formData.CategoryId))
+        {
+            errorMessage = "Vui lòng chọn danh mục";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(formData.SupplierId))
+        {
+            errorMessage = "Vui lòng chọn nhà cung cấp";
+            return;
+        }
+
+        // Chỉ kiểm tra ảnh khi thêm mới (không phải edit)
+        if (!isEditMode && formData.ImageFile == null)
+        {
+            errorMessage = "Vui lòng chọn ảnh sản phẩm";
+            return;
+        }
+
+        if (formData.Price <= 0)
+        {
+            errorMessage = "Vui lòng nhập giá hợp lệ (lớn hơn 0)";
+            return;
+        }
+
+        if (formData.Price > 99999999.99m)
+        {
+            errorMessage = "Giá không được vượt quá 99,999,999.99";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(formData.Unit))
+        {
+            errorMessage = "Vui lòng nhập đơn vị";
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            ApiResponse<ProductDetailResponse>? response;
+            
+            if (isEditMode && selectedProduct != null)
+            {
+                var updateRequest = new UpdateProductRequest
+                {
+                    ProductName = formData.ProductName,
+                    Barcode = formData.Barcode,
+                    Price = formData.Price,
+                    Unit = formData.Unit,
+                    CategoryId = formData.CategoryId,
+                    SupplierId = formData.SupplierId,
+                    Status = formData.Status,
+                    Image = formData.ImageFile
+                };
+                
+                Console.WriteLine($"Updating product status to: {formData.Status}");
+                
+                response = await ProductService.UpdateProductAsync(selectedProduct.Id, updateRequest);
+            }
+            else
+            {
+                var createRequest = new CreateProductRequest
+                {
+                    ProductName = formData.ProductName,
+                    Barcode = formData.Barcode,
+                    Price = formData.Price,
+                    Unit = formData.Unit,
+                    CategoryId = formData.CategoryId,
+                    SupplierId = formData.SupplierId,
+                    Status = formData.Status,
+                    Image = formData.ImageFile
+                };
+                
+                response = await ProductService.CreateProductAsync(createRequest);
+            }
+
+            if (response?.StatusCode == 200 || response?.StatusCode == 201)
+            {
+                var successMessage = isEditMode ? "Cập nhật sản phẩm thành công!" : "Tạo sản phẩm mới thành công!";
+                Toast.ShowSuccess(successMessage);
+
+                // Cập nhật danh sách sản phẩm ngay lập tức
+                await LoadProducts(pagination?.CurrentPage ?? 1);
+                CloseModal();
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra khi lưu dữ liệu";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Lỗi: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task ToggleProductStatus(ProductDto product)
+    {
+        try
+        {
+            // Chuyển đổi trạng thái ngược lại
+            var newStatus = !product.Status;
+            
+            var updateRequest = new UpdateProductRequest
+            {
+                ProductName = product.ProductName,
+                Barcode = product.Barcode,
+                Price = product.Price,
+                Unit = product.Unit,
+                CategoryId = product.CategoryId,
+                SupplierId = product.SupplierId,
+                Status = newStatus
+            };
+
+            var response = await ProductService.UpdateProductAsync(product.Id, updateRequest);
+            
+            if (response?.StatusCode == 200)
+            {
+                var message = newStatus ? "Sản phẩm đã được kích hoạt bán!" : "Sản phẩm đã ngừng bán!";
+                Toast.ShowSuccess(message);
+                
+                // Cập nhật trạng thái trực tiếp trong danh sách để UI phản hồi nhanh
+                product.Status = newStatus;
+                StateHasChanged();
+                
+                // Tải lại dữ liệu để đồng bộ với server
+                await LoadProducts(pagination?.CurrentPage ?? 1);
+            }
+            else
+            {
+                Toast.ShowError(response?.Message ?? "Lỗi khi thay đổi trạng thái sản phẩm");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Lỗi: {ex.Message}");
+        }
+    }
+
+
+
+    private void CloseModal()
+    {
+        showModal = false;
+        formData = new();
+        selectedProduct = null;
+        imagePreview = "";
+        errorMessage = "";
+    }
+
+    private string GetStatusBadgeClass(bool status)
+    {
+        return status ? "bg-success" : "bg-secondary";
+    }
+
+    private void UpdateStatus(string value)
+    {
+        formData.Status = value.ToLower() == "true";
+        StateHasChanged();
+    }
+
+    private class ProductFormData
+    {
+        public string ProductName { get; set; } = "";
+        public string? Barcode { get; set; }
+        public decimal Price { get; set; }
+        public string Unit { get; set; } = "pcs";
+        public string? CategoryId { get; set; }
+        public string? SupplierId { get; set; }
+        public bool Status { get; set; } = true;
+        public IBrowserFile? ImageFile { get; set; }
+    }
+}
+
 <style>
     .admin-page {
-        max-width: 1200px;
-        margin-left: auto;
-        margin-right: auto;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
     }
     
     .page-header {
@@ -235,22 +817,46 @@
         margin-bottom: 2rem;
     }
     
+    .page-filters .form-control,
+    .page-filters .form-select {
+        font-size: 14px;
+        height: 38px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .page-filters .btn {
+        height: 38px;
+        font-size: 14px;
+        padding: 0 16px;
+        white-space: nowrap;
+    }
+    
     .page-content .card {
         border: none;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
     .product-image {
-        width: 50px;
-        height: 50px;
+        width: 80px;
+        height: 80px;
         background-color: #f8f9fa;
         border: 1px solid #dee2e6;
         border-radius: 4px;
         display: flex;
         align-items: center;
         justify-content: center;
+        overflow: hidden;
+    }
+    
+    .product-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .product-image i {
+        font-size: 2rem;
         color: #6c757d;
-        font-size: 1.5rem;
     }
     
     .table th {
@@ -262,5 +868,32 @@
     
     .btn-group .btn {
         margin: 0 2px;
+    }
+    
+    .modal.show {
+        display: block;
+    }
+    
+    .pagination .page-link {
+        cursor: pointer;
+    }
+    
+    .status-check-btn {
+        background: none;
+        border: 2px solid #198754;
+        color: #198754;
+        border-radius: 4px;
+        padding: 4px 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .status-check-btn:hover {
+        background-color: #198754;
+        color: white;
+        transform: scale(1.05);
+    }
+    
+    .status-check-btn:focus {
+        box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
     }
 </style>
