@@ -1,5 +1,18 @@
 @page "/admin/inventory"
 @layout AdminLayout
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@using Frontend.Models.Inventory
+@using Frontend.Models.Inventory.Requests
+@using Frontend.Models.Inventory.Responses
+@using Frontend.Models.Product
+@using Frontend.Models.Category
+@using Frontend.Models.Common
+@using Frontend.Services
+@inject InventoryService InventoryService
+@inject ProductService ProductService
+@inject CategoryService CategoryService
+@inject Blazored.Toast.Services.IToastService Toast
 
 <div class="admin-page">
     <div class="page-header">
@@ -9,58 +22,49 @@
                 <p class="text-muted">Theo dõi và quản lý kho hàng</p>
             </div>
             <div>
-                <button class="btn btn-outline-success me-2">
+                <button class="btn btn-outline-success me-2" @onclick="ExportReport">
                     <i class="bi bi-download"></i> Xuất báo cáo
                 </button>
-                <button class="btn btn-primary">
+                <button class="btn btn-primary" @onclick="ShowCreateModal">
                     <i class="bi bi-plus"></i> Nhập kho
                 </button>
             </div>
         </div>
     </div>
     
-    <div class="inventory-stats">
+    <div class="inventory-stats mb-3">
         <div class="row">
-            <div class="col-md-3">  
+            <div class="col-md-4">
                 <div class="stat-card">
                     <div class="stat-icon bg-success">
                         <i class="bi bi-check-circle"></i>
                     </div>
                     <div class="stat-content">
-                        <h3>1,234</h3>
+                        <h3>@(stats?.InStockItems ?? 0)</h3>
                         <p>Còn hàng</p>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="stat-icon bg-warning">
-                        <i class="bi bi-exclamation-triangle"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3>45</h3>
-                        <p>Sắp hết hàng</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <div class="stat-card">
                     <div class="stat-icon bg-danger">
                         <i class="bi bi-x-circle"></i>
                     </div>
                     <div class="stat-content">
-                        <h3>12</h3>
+                        <h3>@(stats?.OutOfStockItems ?? 0)</h3>
                         <p>Hết hàng</p>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <div class="stat-card">
                     <div class="stat-icon bg-info">
                         <i class="bi bi-box"></i>
                     </div>
                     <div class="stat-content">
-                        <h3>$89,500</h3>
+                        <h3 class="text-truncate" title="@InventoryService.FormatPrice(stats?.TotalInventoryValue ?? 0)">
+                            @InventoryService.FormatPrice(stats?.TotalInventoryValue ?? 0)
+                        </h3>
                         <p>Giá trị tồn kho</p>
                     </div>
                 </div>
@@ -68,98 +72,377 @@
         </div>
     </div>
     
-    <div class="page-filters">
-        <div class="row">
-            <div class="col-md-3">
-                <input type="text" class="form-control" placeholder="Tìm kiếm sản phẩm..." />
-            </div>
-            <div class="col-md-2">
-                <select class="form-select">
-                    <option>Tất cả trạng thái</option>
-                    <option>Còn hàng</option>
-                    <option>Sắp hết hàng</option>
-                    <option>Hết hàng</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <select class="form-select">
-                    <option>Tất cả danh mục</option>
-                    <option>Điện tử</option>
-                    <option>Thời trang</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <input type="number" class="form-control" placeholder="Số lượng tối thiểu" />
-            </div>
-            <div class="col-md-2">
-                <button class="btn btn-outline-secondary w-100">Lọc</button>
+    <div class="page-content">
+        <div class="page-filters mb-3">
+            <div class="row align-items-center">
+                <div class="col-md-3">
+                    <input type="text" class="form-control" placeholder="Tìm kiếm sản phẩm..."
+                           @bind="searchQuery" />
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" @bind="statusFilter">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="in_stock">Còn hàng</option>
+                        <option value="out_of_stock">Hết hàng</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" @bind="categoryFilter">
+                        <option value="">Tất cả danh mục</option>
+                        @foreach (var category in categories)
+                        {
+                            <option value="@category.Id">@category.CategoryName</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" class="form-control" placeholder="SL tối thiểu"
+                           @bind="minQuantityFilter" />
+                </div>
+                <div class="col-md-1">
+                    <select class="form-select" @bind="pageSize" @bind:after="HandlePageSizeChange">
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+                <div class="col-md-2 text-end">
+                    <button class="btn btn-outline-secondary me-2" @onclick="HandleSearch">
+                        <i class="bi bi-search"></i> Lọc
+                    </button>
+                    <button class="btn btn-outline-primary" @onclick="ResetFilters">
+                        <i class="bi bi-arrow-clockwise"></i> Làm mới
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
-    
-    <div class="page-content">
+
         <div class="card">
+            <div class="card-header">
+                <h5>Danh sách tồn kho</h5>
+            </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Sản phẩm</th>
-                                <th>SKU</th>
-                                <th>Tồn kho</th>
-                                <th>Giá nhập</th>
-                                <th>Giá bán</th>
-                                <th>Trạng thái</th>
-                                <th>Hành động</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="product-image me-3">
-                                            <i class="bi bi-image"></i>
-                                        </div>
-                                        <div>
-                                            <div class="fw-bold">iPhone 15 Pro</div>
-                                            <small class="text-muted">Điện tử</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>IP15P-001</td>
-                                <td>
-                                    <span class="badge bg-success">25</span>
-                                </td>
-                                <td>$800.00</td>
-                                <td>$999.00</td>
-                                <td><span class="badge bg-success">Còn hàng</span></td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <button class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-warning">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-info">
-                                            <i class="bi bi-arrow-up"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                @if (isLoading)
+                {
+                    <div class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <div class="mt-2 text-muted">Đang tải dữ liệu...</div>
+                    </div>
+                }
+                else if (inventories == null || !inventories.Any())
+                {
+                    <div class="text-center p-5 text-muted">Không có dữ liệu tồn kho nào</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Sản phẩm</th>
+                                    <th>Mã sản phẩm</th>
+                                    <th>Tồn kho</th>
+                                    <th>Giá nhập</th>
+                                    <th>Giá bán</th>
+                                    <th>Trạng thái</th>
+                                    <th>Cập nhật lần cuối</th>
+                                    <th class="text-end">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var inventory in inventories)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="product-image me-3">
+                                                    @if (!string.IsNullOrEmpty(inventory.ProductImagePath))
+                                                    {
+                                                        <img src="http://localhost:4040@(inventory.ProductImagePath)" alt="@inventory.ProductName" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-box"></i>
+                                                    }
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold">@inventory.ProductName</div>
+                                                    <small class="text-muted">@inventory.CategoryName</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>@(inventory.ProductBarcode ?? "-")</td>
+                                        <td>
+                                            <span class="badge @inventory.StatusBadgeClass">
+                                                @inventory.Quantity @inventory.ProductUnit
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold text-primary">
+                                                @InventoryService.FormatPrice(inventory.CostPrice)
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold text-success">
+                                                @InventoryService.FormatPrice(inventory.ProductPrice ?? 0)
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge @inventory.StatusBadgeClass">
+                                                @inventory.StatusText
+                                            </span>
+                                        </td>
+                                        <td>@inventory.UpdatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td class="text-end">
+                                            <div class="btn-group">
+                                                <button class="btn btn-sm btn-outline-primary" title="Xem chi tiết" 
+                                                        @onclick="() => ShowViewModal(inventory)">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-info" title="Chỉnh sửa" 
+                                                        @onclick="() => ShowEditModal(inventory)">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" title="Xóa" 
+                                                        @onclick="() => ShowDeleteConfirm(inventory)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @* Pagination *@
+                    @if (pagination != null && pagination.TotalPages > 1)
+                    {
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center">
+                                <li class="page-item @(pagination.CurrentPage == 1 ? "disabled" : "")">
+                                    <a class="page-link" @onclick="() => LoadInventories(pagination.CurrentPage - 1)">Trước</a>
+                                </li>
+
+                                @for (int i = 1; i <= pagination.TotalPages; i++)
+                                {
+                                    var pageNumber = i;
+                                    <li class="page-item @(pagination.CurrentPage == pageNumber ? "active" : "")">
+                                        <a class="page-link" @onclick="() => LoadInventories(pageNumber)">@pageNumber</a>
+                                    </li>
+                                }
+
+                                <li class="page-item @(pagination.CurrentPage == pagination.TotalPages ? "disabled" : "")">
+                                    <a class="page-link" @onclick="() => LoadInventories(pagination.CurrentPage + 1)">Tiếp</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    }
+
+                    @if (pagination != null)
+                    {
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div class="text-muted">
+                                Hiển thị @((pagination.CurrentPage - 1) * pagination.PageSize + 1)
+                                đến @(Math.Min(pagination.CurrentPage * pagination.PageSize, pagination.TotalCount))
+                                trong tổng số @pagination.TotalCount sản phẩm
+                            </div>
+                        </div>
+                    }
+                }
             </div>
         </div>
     </div>
 </div>
 
+@* Modal Tạo/Nhập kho *@
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(isEditMode ? "Cập nhật tồn kho" : "Nhập kho mới")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">@errorMessage</div>
+                    }
+                    <EditForm Model="formData" OnValidSubmit="HandleSubmit">
+                        <DataAnnotationsValidator />
+                        <div class="mb-3">
+                            <label class="form-label">Sản phẩm <span class="text-danger">*</span></label>
+                            @if (isEditMode)
+                            {
+                                <input type="text" class="form-control" value="@selectedInventory?.ProductName (@selectedInventory?.ProductBarcode)" readonly />
+                                <div class="form-text">Không thể thay đổi sản phẩm khi chỉnh sửa</div>
+                            }
+                            else
+                            {
+                                <select class="form-select" value="@formData.ProductId" @onchange="OnProductSelected">
+                                    <option value="">-- Chọn sản phẩm --</option>
+                                    @foreach (var product in products)
+                                    {
+                                        <option value="@product.Id">@product.ProductName (@product.Barcode)</option>
+                                    }
+                                </select>
+                                <ValidationMessage For="@(() => formData.ProductId)" class="text-danger" />
+                                @if (existingInventory != null)
+                                {
+                                    <div class="alert alert-info mt-2">
+                                        <small>
+                                            <strong>Tồn kho hiện tại:</strong> @existingInventory.Quantity @existingInventory.ProductUnit<br>
+                                            <strong>Giá nhập hiện tại:</strong> @InventoryService.FormatPrice(existingInventory.CostPrice)
+                                        </small>
+                                    </div>
+                                }
+                            }
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Số lượng <span class="text-danger">*</span></label>
+                            <InputNumber @bind-Value="formData.Quantity" class="form-control" placeholder="Nhập số lượng" />
+                            <ValidationMessage For="@(() => formData.Quantity)" class="text-danger" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Giá nhập <span class="text-danger">*</span></label>
+                            <InputNumber @bind-Value="formData.CostPrice" class="form-control" placeholder="Nhập giá nhập" />
+                            <ValidationMessage For="@(() => formData.CostPrice)" class="text-danger" />
+                            <div class="form-text">Giá nhập của sản phẩm (VND)</div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal" disabled="@isSaving">Hủy</button>
+                            <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                                @if (isSaving)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                @(isEditMode ? "Cập nhật" : "Tạo mới")
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Modal Điều chỉnh tồn kho *@
+@* Modal Xem chi tiết *@
+@if (showViewModal && selectedInventory != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Chi tiết tồn kho</h5>
+                    <button type="button" class="btn-close" @onclick="CloseViewModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Mã tồn kho:</div>
+                        <div class="col-8">
+                            <span class="badge bg-primary">@selectedInventory.Id</span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Sản phẩm:</div>
+                        <div class="col-8">@selectedInventory.ProductName</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Mã sản phẩm:</div>
+                        <div class="col-8">@(selectedInventory.ProductBarcode ?? "-")</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Danh mục:</div>
+                        <div class="col-8">@(selectedInventory.CategoryName ?? "-")</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Nhà cung cấp:</div>
+                        <div class="col-8">@(selectedInventory.SupplierName ?? "-")</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Số lượng tồn kho:</div>
+                        <div class="col-8">
+                            <span class="badge @selectedInventory.StatusBadgeClass fs-6">
+                                @selectedInventory.Quantity @selectedInventory.ProductUnit
+                            </span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Giá nhập:</div>
+                        <div class="col-8">
+                            <span class="text-primary fw-bold">@InventoryService.FormatPrice(selectedInventory.CostPrice)</span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Giá bán:</div>
+                        <div class="col-8">
+                            <span class="text-success fw-bold">@InventoryService.FormatPrice(selectedInventory.ProductPrice ?? 0)</span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Giá trị tồn kho:</div>
+                        <div class="col-8">
+                            <div>Theo giá nhập: <span class="text-primary fw-bold">@InventoryService.FormatPrice(selectedInventory.TotalCostValue ?? 0)</span></div>
+                            <div>Theo giá bán: <span class="text-success fw-bold">@InventoryService.FormatPrice(selectedInventory.TotalSellValue ?? 0)</span></div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Trạng thái:</div>
+                        <div class="col-8">
+                            <span class="badge @selectedInventory.StatusBadgeClass">
+                                @selectedInventory.StatusText
+                            </span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 fw-bold">Cập nhật lần cuối:</div>
+                        <div class="col-8">@selectedInventory.UpdatedAt.ToString("dd/MM/yyyy HH:mm:ss")</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseViewModal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Modal Xác nhận xóa *@
+@if (showDeleteModal && selectedInventory != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Xác nhận xóa</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDeleteModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Bạn có chắc chắn muốn xóa dữ liệu tồn kho của sản phẩm <strong>@selectedInventory.ProductName</strong>?</p>
+                    <p class="text-danger">Hành động này không thể hoàn tác!</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal" disabled="@isSaving">Hủy</button>
+                    <button type="button" class="btn btn-danger" @onclick="HandleDelete" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Xóa
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 <style>
     .admin-page {
-        max-width: 1200px;
-        margin-left: auto;
-        margin-right: auto;
+        padding: 2rem;
     }
     
     .page-header {
@@ -206,6 +489,15 @@
         font-size: 2rem;
         font-weight: 700;
         color: #2c3e50;
+        word-break: break-all;
+        line-height: 1.2;
+    }
+    
+    .stat-content h3.text-truncate {
+        font-size: 1.5rem;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
     }
     
     .stat-content p {
@@ -219,12 +511,16 @@
         padding: 1.5rem;
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        margin-bottom: 2rem;
     }
     
-    .page-content .card {
+    .card {
         border: none;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
     }
     
     .product-image {
@@ -238,6 +534,13 @@
         justify-content: center;
         color: #6c757d;
         font-size: 1.5rem;
+        overflow: hidden;
+    }
+    
+    .product-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
     }
     
     .table th {
@@ -247,7 +550,403 @@
         color: #495057;
     }
     
-    .btn-group .btn {
-        margin: 0 2px;
+    .modal-backdrop {
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .page-link {
+        cursor: pointer;
+    }
+
+    .pagination .page-item.disabled .page-link {
+        cursor: not-allowed;
     }
 </style>
+
+@code {
+    // Data
+    private List<InventoryDto> inventories = new();
+    private List<ProductDto> products = new();
+    private List<CategoryDto> categories = new();
+    private PaginationInfo? pagination;
+    private InventoryStatsResponse? stats;
+
+    // State
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private bool showModal = false;
+    private bool showViewModal = false;
+    private bool showDeleteModal = false;
+    private bool isEditMode = false;
+
+    // Filter
+    private string searchQuery = string.Empty;
+    private string statusFilter = string.Empty;
+    private string categoryFilter = string.Empty;
+    private int? minQuantityFilter;
+    private int pageSize = 10;
+
+    // Form
+    private InventoryFormData formData = new();
+    private InventoryDto? selectedInventory;
+    private InventoryDto? existingInventory; // Để hiển thị thông tin tồn kho hiện tại khi chọn sản phẩm
+    private string errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        await Task.WhenAll(
+            LoadInventories(),
+            LoadProducts(),
+            LoadCategories(),
+            LoadStats()
+        );
+    }
+
+    private async Task ReloadCurrentPage()
+    {
+        var currentPage = pagination?.CurrentPage ?? 1;
+        await Task.WhenAll(
+            LoadInventories(currentPage),
+            LoadStats()
+        );
+    }
+
+    private async Task LoadInventories(int page = 1)
+    {
+        isLoading = true;
+        try
+        {
+            var response = await InventoryService.GetInventoriesAsync(
+                page, pageSize, searchQuery, statusFilter, 
+                categoryFilter, minQuantityFilter);
+
+            if (response?.StatusCode == 200 && response.Data != null)
+            {
+                inventories = response.Data.Inventories;
+                pagination = response.Data.Pagination;
+            }
+            else
+            {
+                inventories = new();
+                Toast.ShowError(response?.Message ?? "Có lỗi xảy ra khi tải dữ liệu");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Lỗi: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadProducts()
+    {
+        try
+        {
+            var response = await ProductService.GetProductsAsync(1, 1000);
+            if (response?.StatusCode == 200 && response.Data != null)
+            {
+                products = response.Data.Products;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading products: {ex.Message}");
+        }
+    }
+
+    private async Task LoadCategories()
+    {
+        try
+        {
+            var response = await CategoryService.GetCategoriesAsync(1, 1000);
+            if (response?.StatusCode == 200 && response.Data != null)
+            {
+                categories = response.Data.Categories;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading categories: {ex.Message}");
+        }
+    }
+
+    private async Task LoadStats()
+    {
+        try
+        {
+            var response = await InventoryService.GetInventoryStatsAsync();
+            if (response?.StatusCode == 200)
+            {
+                stats = response.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading stats: {ex.Message}");
+        }
+    }
+
+    private async Task HandleSearch()
+    {
+        await LoadInventories(1);
+    }
+
+    private async Task ResetFilters()
+    {
+        searchQuery = string.Empty;
+        statusFilter = string.Empty;
+        categoryFilter = string.Empty;
+        minQuantityFilter = null;
+        await LoadInventories(1);
+    }
+
+    private async Task HandlePageSizeChange() => await LoadInventories(1);
+
+    private void ShowCreateModal()
+    {
+        isEditMode = false;
+        selectedInventory = null;
+        formData = new InventoryFormData();
+        errorMessage = string.Empty;
+        showModal = true;
+    }
+
+    private void ShowEditModal(InventoryDto inventory)
+    {
+        isEditMode = true;
+        selectedInventory = inventory;
+        formData = new InventoryFormData
+        {
+            ProductId = inventory.ProductId,
+            Quantity = inventory.Quantity,
+            CostPrice = inventory.CostPrice
+        };
+        errorMessage = string.Empty;
+        showModal = true;
+    }
+
+    private void ShowViewModal(InventoryDto inventory)
+    {
+        selectedInventory = inventory;
+        showViewModal = true;
+    }
+
+    private void ShowDeleteConfirm(InventoryDto inventory)
+    {
+        // Kiểm tra nếu còn tồn kho thì không cho xóa
+        if (inventory.Quantity > 0)
+        {
+            Toast.ShowWarning($"Không thể xóa sản phẩm '{inventory.ProductName}' vì còn tồn kho {inventory.Quantity} {inventory.ProductUnit}.");
+            return;
+        }
+
+        selectedInventory = inventory;
+        showDeleteModal = true;
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (isSaving) return;
+
+        // Validate ProductId for create mode only
+        if (!isEditMode && string.IsNullOrEmpty(formData.ProductId))
+        {
+            errorMessage = "Vui lòng chọn sản phẩm";
+            return;
+        }
+
+        isSaving = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            if (isEditMode)
+            {
+                var updateRequest = new UpdateInventoryRequest
+                {
+                    ProductId = formData.ProductId,
+                    Quantity = formData.Quantity,
+                    CostPrice = formData.CostPrice
+                };
+
+                var response = await InventoryService.UpdateInventoryAsync(selectedInventory!.Id, updateRequest);
+
+                if (response?.StatusCode == 200)
+                {
+                    Toast.ShowSuccess("Cập nhật tồn kho thành công!");
+                    CloseModal();
+                    await ReloadCurrentPage();
+                }
+                else
+                {
+                    errorMessage = response?.Message ?? "Có lỗi xảy ra";
+                }
+            }
+            else
+            {
+                // Kiểm tra xem sản phẩm đã có tồn kho chưa
+                if (existingInventory != null)
+                {
+                    // Tính giá nhập trung bình khi nhập thêm
+                    var totalOldValue = existingInventory.Quantity * existingInventory.CostPrice;
+                    var totalNewValue = formData.Quantity * formData.CostPrice;
+                    var newTotalQuantity = existingInventory.Quantity + formData.Quantity;
+                    var averageCostPrice = (totalOldValue + totalNewValue) / newTotalQuantity;
+
+                    var updateRequest = new UpdateInventoryRequest
+                    {
+                        ProductId = formData.ProductId,
+                        Quantity = newTotalQuantity,
+                        CostPrice = averageCostPrice
+                    };
+
+                    var response = await InventoryService.UpdateInventoryAsync(existingInventory.Id, updateRequest);
+
+                    if (response?.StatusCode == 200)
+                    {
+                        Toast.ShowSuccess($"Nhập kho thành công! Tổng tồn kho: {newTotalQuantity}, Giá nhập TB: {InventoryService.FormatPrice(averageCostPrice)}");
+                        CloseModal();
+                        await ReloadCurrentPage();
+                    }
+                    else
+                    {
+                        errorMessage = response?.Message ?? "Có lỗi xảy ra";
+                    }
+                }
+                else
+                {
+                    // Tạo mới nếu chưa có tồn kho
+                    var createRequest = new CreateInventoryRequest
+                    {
+                        ProductId = formData.ProductId,
+                        Quantity = formData.Quantity,
+                        CostPrice = formData.CostPrice
+                    };
+
+                    var response = await InventoryService.CreateInventoryAsync(createRequest);
+
+                    if (response?.StatusCode == 200 || response?.StatusCode == 201)
+                    {
+                        Toast.ShowSuccess("Tạo tồn kho thành công!");
+                        CloseModal();
+                        await ReloadCurrentPage();
+                    }
+                    else
+                    {
+                        errorMessage = response?.Message ?? "Có lỗi xảy ra";
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Lỗi: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task HandleDelete()
+    {
+        if (isSaving) return;
+
+        isSaving = true;
+
+        try
+        {
+            var response = await InventoryService.DeleteInventoryAsync(selectedInventory!.Id);
+
+            if (response?.StatusCode == 200)
+            {
+                Toast.ShowSuccess("Xóa tồn kho thành công!");
+                CloseDeleteModal();
+                await ReloadCurrentPage();
+            }
+            else
+            {
+                Toast.ShowError(response?.Message ?? "Có lỗi xảy ra");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Lỗi: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        formData = new InventoryFormData();
+        existingInventory = null;
+        errorMessage = string.Empty;
+    }
+
+    private void CloseViewModal()
+    {
+        showViewModal = false;
+        selectedInventory = null;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        selectedInventory = null;
+    }
+
+    private async Task ExportReport()
+    {
+        Toast.ShowInfo("Tính năng xuất báo cáo đang được phát triển");
+        // TODO: Implement export functionality
+    }
+
+    private void OnProductSelected(ChangeEventArgs e)
+    {
+        var selectedProductId = e.Value?.ToString();
+        existingInventory = null;
+        
+        if (!string.IsNullOrEmpty(selectedProductId))
+        {
+            // Tìm inventory hiện tại của sản phẩm này
+            existingInventory = inventories.FirstOrDefault(inv => inv.ProductId == selectedProductId);
+            
+            // Nếu có tồn kho hiện tại, pre-fill giá nhập
+            if (existingInventory != null)
+            {
+                formData.CostPrice = existingInventory.CostPrice;
+            }
+        }
+        
+        // Cập nhật ProductId để bind đúng
+        formData.ProductId = selectedProductId ?? "";
+        StateHasChanged();
+    }
+
+    // Form Data Classes
+    public class InventoryFormData
+    {
+        public string ProductId { get; set; } = "";
+
+        [Required(ErrorMessage = "Số lượng là bắt buộc")]
+        [Range(0, int.MaxValue, ErrorMessage = "Số lượng phải là số không âm")]
+        public int Quantity { get; set; }
+
+        [Required(ErrorMessage = "Giá nhập là bắt buộc")]
+        [Range(0, double.MaxValue, ErrorMessage = "Giá nhập phải là số không âm")]
+        public decimal CostPrice { get; set; } = 0;
+    }
+
+}
