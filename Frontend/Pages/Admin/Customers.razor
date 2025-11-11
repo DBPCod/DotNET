@@ -8,6 +8,7 @@
 @using Frontend.Models.Common
 @using Frontend.Services
 @inject CustomerService CustomerService
+@inject OrderService OrderService
 @inject Blazored.Toast.Services.IToastService Toast
 
 <div class="admin-page">
@@ -107,10 +108,10 @@
                                         </td>
                                         <td class="address-cell">@(string.IsNullOrWhiteSpace(customer.Address) ? "-" : customer.Address)</td>
                                         <td class="text-center">
-                                            <span class="badge bg-info">0</span>
+                                            <span class="badge bg-info">@GetOrderCount(customer.Id)</span>
                                         </td>
                                         <td class="text-center">
-                                            <span class="text-success fw-bold">0</span>
+                                            <span class="text-success fw-bold">@FormatCurrency(GetTotalSpent(customer.Id))</span>
                                         </td>
                                         <td>@customer.CreatedAt.ToString("dd/MM/yyyy")</td>
                                         <td>
@@ -209,12 +210,12 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Email <span class="text-danger">*</span></label>
-                            <InputText @bind-Value="formData.Email" type="email" class="form-control" placeholder="VD: example@mail.com" />
+                            <InputText @bind-Value="formData.Email" type="email" class="form-control" placeholder="VD: example@gmail.com" />
                             <ValidationMessage For="@(() => formData.Email)" class="text-danger" />
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Địa chỉ <span class="text-danger">*</span></label>
-                            <InputTextArea @bind-Value="formData.Address" class="form-control" rows="3" placeholder="Nhập địa chỉ đầy đủ (tối thiểu 10 ký tự)" />
+                            <InputTextArea @bind-Value="formData.Address" class="form-control" rows="3" placeholder="Nhập địa chỉ đầy đủ" />
                             <ValidationMessage For="@(() => formData.Address)" class="text-danger" />
                         </div>
                         <div class="mb-3">
@@ -410,6 +411,7 @@
     // Data
     private List<CustomerDto> customers = new();
     private PaginationInfo? pagination;
+    private Dictionary<string, CustomerOrderStats> customerOrderStats = new();
 
     // State
     private bool isLoading = true;
@@ -452,6 +454,9 @@
             {
                 customers = response.Data.Customers ?? new List<CustomerDto>();
                 pagination = response.Data.Pagination;
+                
+                // Load order statistics for each customer
+                await LoadCustomerOrderStats();
             }
             else
             {
@@ -667,6 +672,89 @@
         };
     }
 
+    private async Task LoadCustomerOrderStats()
+    {
+        customerOrderStats.Clear();
+        
+        // Get unique customer IDs
+        var customerIds = customers.Select(c => c.Id).Distinct().ToList();
+        
+        foreach (var customerId in customerIds)
+        {
+            try
+            {
+                // Parse customerId to Guid
+                if (!Guid.TryParse(customerId, out var customerGuid))
+                {
+                    Console.WriteLine($"Invalid customer ID format: {customerId}");
+                    continue;
+                }
+
+                // Get all orders for this customer (with a large page size to get all)
+                var orderResponse = await OrderService.GetOrdersAsync(
+                    page: 1,
+                    pageSize: 1000, // Get all orders
+                    q: null,
+                    status: null,
+                    fromDate: null,
+                    toDate: null,
+                    customerId: customerGuid
+                );
+
+                if (orderResponse?.StatusCode == 200 && orderResponse.Data?.Orders != null)
+                {
+                    var orders = orderResponse.Data.Orders;
+                    var orderCount = orders.Count;
+                    var totalSpent = orders.Sum(o => o.TotalAmount ?? 0);
+
+                    customerOrderStats[customerId] = new CustomerOrderStats
+                    {
+                        OrderCount = orderCount,
+                        TotalSpent = totalSpent
+                    };
+                }
+                else
+                {
+                    customerOrderStats[customerId] = new CustomerOrderStats
+                    {
+                        OrderCount = 0,
+                        TotalSpent = 0
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading stats for customer {customerId}: {ex.Message}");
+                customerOrderStats[customerId] = new CustomerOrderStats
+                {
+                    OrderCount = 0,
+                    TotalSpent = 0
+                };
+            }
+        }
+    }
+
+    private int GetOrderCount(string customerId)
+    {
+        return customerOrderStats.TryGetValue(customerId, out var stats) ? stats.OrderCount : 0;
+    }
+
+    private decimal GetTotalSpent(string customerId)
+    {
+        return customerOrderStats.TryGetValue(customerId, out var stats) ? stats.TotalSpent : 0;
+    }
+
+    private string FormatCurrency(decimal amount)
+    {
+        return amount.ToString("N0") + "đ";
+    }
+
+    public class CustomerOrderStats
+    {
+        public int OrderCount { get; set; }
+        public decimal TotalSpent { get; set; }
+    }
+
     public class CustomerFormData
     {
         [Required(ErrorMessage = "Tên khách hàng là bắt buộc")]
@@ -683,7 +771,7 @@
         public string? Email { get; set; }
         
         [Required(ErrorMessage = "Địa chỉ là bắt buộc")]
-        [StringLength(500, MinimumLength = 10, ErrorMessage = "Địa chỉ phải từ 10-500 ký tự")]
+        [StringLength(500, ErrorMessage = "Địa chỉ không được vượt quá 500 ký tự")]
         public string? Address { get; set; }
         
         [Required(ErrorMessage = "Trạng thái là bắt buộc")]

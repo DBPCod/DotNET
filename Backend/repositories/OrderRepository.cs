@@ -21,7 +21,8 @@ public class OrderRepository(AppDbContext context)
     public async Task<(List<Order> orders, int totalCount)> HandleGetOrdersWithPagination(
     int page, int pageSize, string? searchTerm = null, string? status = null,
     DateTime? fromDate = null,
-    DateTime? toDate = null
+    DateTime? toDate = null,
+    Guid? customerId = null
     )
     {
         try
@@ -29,6 +30,7 @@ public class OrderRepository(AppDbContext context)
             // Thêm log params vào repo
             Console.WriteLine($"Repo Called - Search: {searchTerm}, Status: {status}");
             Console.WriteLine($"Repo FromDate: {fromDate?.Date}, ToDate: {toDate?.Date}");
+            Console.WriteLine($"Repo CustomerId: {customerId}");
 
             var query = _context.Order
                 .Include(o => o.Customer)
@@ -45,6 +47,12 @@ public class OrderRepository(AppDbContext context)
             if (!string.IsNullOrEmpty(status))
             {
                 query = query.Where(o => o.Status.ToLower() == status.ToLower());
+            }
+
+            // Thêm filter theo CustomerId
+            if (customerId.HasValue)
+            {
+                query = query.Where(o => o.CustomerId == customerId.Value);
             }
 
             // Log trước filter ngày
