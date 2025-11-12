@@ -22,7 +22,8 @@ public class OrderService
         string? q = null,  // Tìm kiếm theo mã đơn hàng
         string? status = null,  // Lọc theo trạng thái (e.g., "PENDING", "PROCESSING", "DELIVERED", "CANCELLED")
         DateTime? fromDate = null,  // Lọc từ ngày
-        DateTime? toDate = null)   // Lọc đến ngày
+        DateTime? toDate = null,   // Lọc đến ngày
+        Guid? customerId = null)   // Lọc theo customer ID
     {
         try
         {
@@ -40,6 +41,9 @@ public class OrderService
             
             if (toDate.HasValue)
                 query += $"&toDate={toDate.Value:yyyy-MM-dd}";
+            
+            if (customerId.HasValue)
+                query += $"&customerId={customerId.Value}";
 
             var response = await _httpClient.GetFromJsonAsync<ApiResponse<OrderListResponse>>(query);
             Console.WriteLine("Fetched orders successfully.");

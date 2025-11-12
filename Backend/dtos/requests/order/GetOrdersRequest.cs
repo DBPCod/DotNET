@@ -10,4 +10,7 @@ public class GetOrdersRequest
     // Thêm mới: Params cho filter ngày (optional, bind từ query)
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
+    
+    // Thêm mới: Filter theo CustomerId
+    public Guid? CustomerId { get; set; }
 }

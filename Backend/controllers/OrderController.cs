@@ -57,7 +57,8 @@
                     request.Q,
                     request.Status,
                     request.FromDate,  // Thêm
-                    request.ToDate     // Thêm
+                    request.ToDate,    // Thêm
+                    request.CustomerId // Thêm CustomerId filter
                 );
 
                 var orderDtos = OrderMapper.MapListEntityToListDto(orders);
