@@ -1,5 +1,6 @@
 @page "/admin/orders"
 @using Frontend.Models.Customer
+@using Frontend.Models.Inventory.Responses
 @using Frontend.Models.Product
 @using Frontend.Models.Promotions
 @using Frontend.Services
@@ -10,7 +11,7 @@
 @using Frontend.Models.OrderItem.Responses
 @using Frontend.Models.Order
 @using Frontend.Models.OrderItem
-@using Frontend.Models.Product.Responses // Giả sử có ProductDto
+@using Frontend.Models.Product.Responses
 @using Frontend.Models.Promotions.Responses
 @* @using Microsoft.AspNetCore.Components.Authorization *@
 @using System.ComponentModel.DataAnnotations
@@ -19,12 +20,14 @@
 @using System.Text.Json
 @using System.Collections.Generic
 @using Backend.Dtos.Requests.Payment
+@using Frontend.Models.Inventory.Requests
 @inject OrderService OrderService
 @inject OrderItemService OrderItemService
 @inject CustomerService CustomerService
 @inject ProductService ProductService
 @inject PromotionService PromotionService
 @inject PaymentService PaymentService
+@inject InventoryService InventoryService
 @inject IJSRuntime JSRuntime
 @inject Blazored.Toast.Services.IToastService Toast // Giả sử dùng Blazored.Toast cho notification
 @layout AdminLayout
@@ -46,7 +49,7 @@
             </div>
         </div>
     </div>
-  
+ 
     <div class="page-filters">
         <div class="row">
             <div class="col-md-3">
@@ -74,7 +77,7 @@
             </div>
         </div>
     </div>
-  
+ 
     <div class="page-content">
         <div class="card">
             <div class="card-body">
@@ -149,7 +152,7 @@
                         </table>
                     </div>
                 }
-              
+             
                 @if (pagination != null && orders.Any())
                 {
                     <nav aria-label="Page navigation">
@@ -558,16 +561,16 @@
         margin-left: auto;
         margin-right: auto;
     }
-  
+ 
     .page-header {
         margin-bottom: 2rem;
     }
-  
+ 
     .page-header h2 {
         margin-bottom: 0.5rem;
         color: #2c3e50;
     }
-  
+ 
     .page-filters {
         background: white;
         padding: 1.5rem;
@@ -575,19 +578,19 @@
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         margin-bottom: 2rem;
     }
-  
+ 
     .page-content .card {
         border: none;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-  
+ 
     .table th {
         background-color: #f8f9fa;
         border-top: none;
         font-weight: 600;
         color: #495057;
     }
-  
+ 
     .btn-group .btn {
         margin: 0 2px;
     }
@@ -999,7 +1002,7 @@
                 Console.WriteLine($"API returned non-200 status: {response?.StatusCode}. Message: {response?.Message}");
                 Toast.ShowWarning("Không thể tải chi tiết đơn hàng.");
             }
-  
+ 
             // Thêm mới: Nếu status là "paid", tải payment
             if (selectedOrderStatus.ToLower() == "paid")
             {
@@ -1121,7 +1124,7 @@
                 Toast.ShowError(updateErrorMessage);
                 return;
             }
-            // Bước 2: Nếu trạng thái mới là "paid", tạo payment
+            // Bước 2: Nếu trạng thái mới là "paid", tạo payment và trừ tồn kho
             if (currentStatus == "paid")
             {
                 // Tìm order để lấy TotalAmount
@@ -1146,8 +1149,18 @@
                 }
                 else
                 {
-                    var successMessage = $"Cập nhật trạng thái thành công! Phương thức thanh toán: {(selectedPaymentMethod == "cash" ? "Tiền mặt" : "Thẻ")}";
-                    Toast.ShowSuccess(successMessage);
+                    // Bước 3: Trừ tồn kho cho các sản phẩm trong đơn hàng
+                    var inventoryAdjustmentSuccess = await AdjustInventoryForOrder(orderId);
+                    if (inventoryAdjustmentSuccess)
+                    {
+                        var successMessage = $"Cập nhật trạng thái thành công! Phương thức thanh toán: {(selectedPaymentMethod == "cash" ? "Tiền mặt" : "Thẻ")}. Đã trừ tồn kho.";
+                        Toast.ShowSuccess(successMessage);
+                    }
+                    else
+                    {
+                        var warningMessage = $"Cập nhật trạng thái và thanh toán thành công, nhưng có lỗi khi trừ tồn kho. Vui lòng kiểm tra thủ công.";
+                        Toast.ShowWarning(warningMessage);
+                    }
                 }
             }
             else
@@ -1169,6 +1182,90 @@
         {
             isUpdatingStatus = false;
             StateHasChanged();
+        }
+    }
+    // New method: Adjust inventory for all order items
+    private async Task<bool> AdjustInventoryForOrder(Guid orderId)
+    {
+        try
+        {
+            // Fetch all order items (use large pageSize to get all)
+            var itemsResponse = await OrderItemService.GetOrderItemsByOrderIdAsync(orderId, page: 1, pageSize: int.MaxValue);
+            if (itemsResponse?.StatusCode != 200 || itemsResponse.Data?.orderItems == null)
+            {
+                Console.WriteLine($"Failed to fetch order items for inventory adjustment: {itemsResponse?.Message}");
+                return false;
+            }
+
+            var orderItemsToAdjust = itemsResponse.Data.orderItems;
+            var updateTasks = new List<Task<ApiResponse<InventoryDetailResponse>?>>();
+
+            foreach (var item in orderItemsToAdjust)
+            {
+                if (item.Quantity <= 0) continue; // Skip invalid quantities
+
+                // Bước 1: Lấy số lượng hiện tại của sản phẩm
+                var currentInventoryResponse = await InventoryService.GetInventoryByProductIdAsync(item.ProductId);
+                if (currentInventoryResponse?.StatusCode != 200 || currentInventoryResponse.Data == null)
+                {
+                    Console.WriteLine($"Failed to fetch current inventory for product {item.ProductId}: {currentInventoryResponse?.Message}");
+                    Toast.ShowWarning($"Không thể lấy tồn kho hiện tại cho sản phẩm {item.ProductId}. Bỏ qua.");
+                    continue;
+                }
+
+                var currentInventory = currentInventoryResponse.Data;
+                var currentQuantity = currentInventory.Inventory.Quantity;
+                var currentProductId = currentInventory.Inventory.ProductId;
+                var currentCostPrice = currentInventory.Inventory.CostPrice;
+                // Bước 2: Kiểm tra số lượng trong hóa đơn và trừ
+                var orderQuantity = item.Quantity;
+                if (currentQuantity < orderQuantity)
+                {
+                    Console.WriteLine($"Insufficient stock for product {item.ProductId}: Current {currentQuantity}, Required {orderQuantity}");
+                    Toast.ShowWarning($"Sản phẩm {item.ProductId} không đủ tồn kho (hiện có {currentQuantity}, cần {orderQuantity}). Không thể trừ.");
+                    return false; // Fail if any item insufficient
+                }
+
+                var newQuantity = currentQuantity - orderQuantity;
+                Console.WriteLine(currentProductId + " productId");
+                // Bước 3: Tạo request update với số lượng mới và gửi xuống service
+                UpdateInventoryRequest? updateRequest = new UpdateInventoryRequest
+                {
+                    ProductId = currentProductId,
+                    CostPrice = currentCostPrice,
+                    Quantity = newQuantity
+                    // Giả sử UpdateInventoryRequest có các field khác nếu cần, như Price, Status, etc. - chỉ set Quantity ở đây
+                };
+
+
+                Console.WriteLine(updateRequest.ProductId + " Line1");
+                // Gọi update với inventory Id
+                var inventoryId = currentInventory.Inventory.Id.ToString(); // Giả sử InventoryDetailResponse có Id là Guid
+                updateTasks.Add(InventoryService.UpdateInventoryAsync(inventoryId, updateRequest));
+            }
+
+            if (!updateTasks.Any())
+            {
+                Console.WriteLine("No valid order items to adjust inventory.");
+                return true; // No items, consider success
+            }
+
+            var updateResults = await Task.WhenAll(updateTasks);
+            var allSuccess = updateResults.All(r => r?.StatusCode == 200 || r?.StatusCode == 201);
+
+            if (!allSuccess)
+            {
+                var failedItems = updateResults.Where(r => r?.StatusCode != 200 && r?.StatusCode != 201).Select(r => r?.Message).ToList();
+                Console.WriteLine($"Inventory update failed for some items: {string.Join(", ", failedItems ?? new List<string>())}");
+            }
+
+            return allSuccess;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error adjusting inventory for order {orderId}: {ex.Message}");
+            Toast.ShowError($"Lỗi khi trừ tồn kho: {ex.Message}");
+            return false;
         }
     }
     // New methods for create order (UI demo - mock)
@@ -1426,7 +1523,7 @@
                 ProductId = item.ProductId,
                 Quantity = item.Quantity // Đảm bảo >0 từ validation
             }).ToList();
-      
+     
             var itemsRequest = new CreateOrderItemsRequest
             {
                 OrderId = newOrderId,
