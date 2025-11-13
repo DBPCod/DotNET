@@ -2,11 +2,12 @@ namespace Backend.Services.Apis;
 using Backend.Dtos.Requests.Order;
 using Backend.Dtos.Responses;
 
-public class OrderService(OrderRepository orderRepository, CustomerRepository customerRepository,UserRepository userRepository)
+public class OrderService(OrderRepository orderRepository, CustomerRepository customerRepository, UserRepository userRepository, PromotionRepository promotionRepository)
 {
     private readonly OrderRepository _orderRepository = orderRepository;
     private readonly CustomerRepository _customerRepository = customerRepository;
     private readonly UserRepository _userRepository = userRepository;
+    private readonly PromotionRepository _promotionRepository = promotionRepository;
 
     public async Task<List<Order>> HandleGetAllOrder()
     {
@@ -81,6 +82,12 @@ public class OrderService(OrderRepository orderRepository, CustomerRepository cu
         };
 
         var created = await _orderRepository.HandleCreateOrder(order);
+
+        // Tăng số lượt sử dụng của mã khuyến mãi nếu có
+        if (created.PromoId.HasValue)
+        {
+            await _promotionRepository.HandleIncrementUsedCount(created.PromoId.Value);
+        }
 
         return created;
     }
