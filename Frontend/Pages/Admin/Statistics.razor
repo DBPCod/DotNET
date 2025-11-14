@@ -1,101 +1,255 @@
 @page "/admin/statistics"
 @layout AdminLayout
+@using Frontend.Services
+@using Frontend.Models.Order.Responses
+@using Frontend.Models.OrderItem.Responses
+@using Frontend.Models.Common
+@using Frontend.Models
+@using Microsoft.JSInterop
+@inject OrderService OrderService
+@inject OrderItemService OrderItemService
+@inject ProductService ProductService
+@inject IJSRuntime JSRuntime
 
 <div class="admin-page">
     <div class="page-header">
-        <h2>Thống kê</h2>
-        <p class="text-muted">Báo cáo và phân tích dữ liệu hệ thống</p>
-    </div>
-    
-    <div class="stats-filters">
-        <div class="row">
-            <div class="col-md-3">
-                <label class="form-label">Từ ngày</label>
-                <input type="date" class="form-control" />
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2>Thống kê & Báo cáo</h2>
+                <p class="text-muted">Phân tích dữ liệu và xuất báo cáo hệ thống</p>
             </div>
-            <div class="col-md-3">
-                <label class="form-label">Đến ngày</label>
-                <input type="date" class="form-control" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Loại báo cáo</label>
-                <select class="form-select">
-                    <option>Doanh thu</option>
-                    <option>Đơn hàng</option>
-                    <option>Sản phẩm</option>
-                    <option>Khách hàng</option>
-                </select>
-            </div>
-            <div class="col-md-3 d-flex align-items-end">
-                <button class="btn btn-primary">Tạo báo cáo</button>
-            </div>
-        </div>
-    </div>
-    
-    <div class="stats-content">
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>Biểu đồ doanh thu theo tháng</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-placeholder">
-                            <i class="bi bi-bar-chart"></i>
-                            <p>Biểu đồ sẽ được hiển thị ở đây</p>
-                        </div>
-                    </div>
+            <div class="export-buttons">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" id="exportDropdown">
+                        <i class="bi bi-download"></i> Xuất báo cáo
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                        <li><a class="dropdown-item" href="javascript:void(0)" @onclick="ExportToPDF" @onclick:preventDefault="true">
+                            <i class="bi bi-file-pdf text-danger"></i> Xuất PDF
+                        </a></li>
+                        <li><a class="dropdown-item" href="javascript:void(0)" @onclick="ExportToExcel" @onclick:preventDefault="true">
+                            <i class="bi bi-file-excel text-success"></i> Xuất Excel
+                        </a></li>
+                    </ul>
                 </div>
             </div>
         </div>
-        
-        <div class="row mt-4">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>Top sản phẩm bán chạy</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="list-group">
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                Sản phẩm A
-                                <span class="badge bg-primary rounded-pill">150</span>
+    </div>
+    
+    <div class="stats-filters">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label"><i class="bi bi-calendar-event"></i> Từ ngày</label>
+                <input type="date" class="form-control" @bind="fromDate" @bind:event="onchange" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label"><i class="bi bi-calendar-check"></i> Đến ngày</label>
+                <input type="date" class="form-control" @bind="toDate" @bind:event="onchange" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label"><i class="bi bi-funnel"></i> Loại báo cáo</label>
+                <select class="form-select" value="@reportType" @onchange="OnReportTypeChanged">
+                    <option value="revenue">Doanh thu</option>
+                    <option value="orders">Đơn hàng</option>
+                    <option value="products">Sản phẩm</option>
+                    <option value="customers">Khách hàng</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-primary w-100" @onclick="LoadStatistics">
+                    <i class="bi bi-search"></i> Tạo báo cáo
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+            <p class="mt-3 text-muted">Đang tải dữ liệu thống kê...</p>
+        </div>
+    }
+    else
+    {
+        <div class="stats-content">
+            <!-- Summary Cards -->
+            <div class="row mb-4">
+                                <div class="col-md-3">
+                                    <div class="stat-card revenue-card">
+                                        <div class="stat-icon">
+                                            <i class="bi bi-currency-dollar"></i>
+                                        </div>
+                                        <div class="stat-info">
+                                            <h6>@GetSummaryLabel("total")</h6>
+                                            <h3>@FormatPrice(totalRevenue)</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-card orders-card">
+                                        <div class="stat-icon">
+                                            <i class="bi bi-cart-check"></i>
+                                        </div>
+                                        <div class="stat-info">
+                                            <h6>Tổng đơn hàng</h6>
+                                            <h3>@totalOrdersCount</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-card average-card">
+                                        <div class="stat-icon">
+                                            <i class="bi bi-graph-up"></i>
+                                        </div>
+                                        <div class="stat-info">
+                                            <h6>@GetSummaryLabel("average")</h6>
+                                            <h3>@FormatPrice(averageOrderValue)</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-card products-card">
+                                        <div class="stat-icon">
+                                            <i class="bi bi-box-seam"></i>
+                                        </div>
+                                        <div class="stat-info">
+                                            <h6>Sản phẩm đã bán</h6>
+                                            <h3>@totalProductsSold</h3>
+                                        </div>
+                                    </div>
+                                </div>
+            </div>
+
+            <!-- Revenue Chart -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card chart-card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="bi bi-bar-chart-fill"></i> 
+                                @GetChartTitle()
+                            </h5>
+                            <div class="chart-controls">
+                                @if (reportType?.ToLower() == "revenue")
+                                {
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick="ToggleChartType">
+                                        <i class="bi bi-arrow-repeat"></i> Đổi loại biểu đồ
+                                    </button>
+                                }
                             </div>
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                Sản phẩm B
-                                <span class="badge bg-primary rounded-pill">120</span>
-                            </div>
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                Sản phẩm C
-                                <span class="badge bg-primary rounded-pill">98</span>
-                            </div>
+                        </div>
+                        <div class="card-body">
+                            @if (monthlyRevenue.Any())
+                            {
+                                <div class="chart-container" style="height: 400px; position: relative;">
+                                    <canvas id="revenueChart"></canvas>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="chart-placeholder">
+                                    <i class="bi bi-bar-chart"></i>
+                                    <p>Không có dữ liệu để hiển thị</p>
+                                </div>
+                            }
                         </div>
                     </div>
                 </div>
             </div>
             
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>Phân bố đơn hàng theo trạng thái</h5>
+            <div class="row">
+                <!-- Top Products -->
+                <div class="col-md-6 mb-4">
+                    <div class="card chart-card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-trophy-fill"></i> Top sản phẩm bán chạy</h5>
+                        </div>
+                        <div class="card-body">
+                            @if (topProducts.Any())
+                            {
+                                <div class="chart-container" style="height: 350px; position: relative;">
+                                    <canvas id="topProductsChart"></canvas>
+                                </div>
+                                <div class="top-products-list mt-3">
+                                    @foreach (var product in topProducts.Take(10))
+                                    {
+                                        <div class="product-item">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div class="flex-grow-1">
+                                                    <strong>@product.ProductName</strong>
+                                                    <br />
+                                                    <small class="text-muted">@FormatPrice(product.TotalRevenue)</small>
+                                                </div>
+                                                <span class="badge bg-primary rounded-pill">@product.QuantitySold</span>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-4">
+                                    <i class="bi bi-inbox display-4 text-muted"></i>
+                                    <p class="text-muted mt-2">Không có dữ liệu</p>
+                                </div>
+                            }
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div class="chart-placeholder">
-                            <i class="bi bi-pie-chart"></i>
-                            <p>Biểu đồ tròn sẽ được hiển thị ở đây</p>
+                </div>
+                
+                <!-- Order Status Distribution -->
+                <div class="col-md-6 mb-4">
+                    <div class="card chart-card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-pie-chart-fill"></i> Phân bố đơn hàng theo trạng thái</h5>
+                        </div>
+                        <div class="card-body">
+                            @if (orderStatusDistribution.Any())
+                            {
+                                <div class="chart-container" style="height: 350px; position: relative;">
+                                    <canvas id="statusChart"></canvas>
+                                </div>
+                                <div class="status-legend mt-3">
+                                    @foreach (var status in orderStatusDistribution)
+                                    {
+                                        var total = orderStatusDistribution.Sum(s => s.Count);
+                                        var percentage = total > 0 ? (status.Count * 100.0 / total) : 0;
+                                        <div class="status-item">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span>
+                                                    <span class="status-dot @GetStatusColor(status.Status)"></span>
+                                                    @GetStatusDisplayName(status.Status)
+                                                </span>
+                                                <span><strong>@status.Count</strong> (@percentage.ToString("F1")%)</span>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="chart-placeholder">
+                                    <i class="bi bi-pie-chart"></i>
+                                    <p>Không có dữ liệu để hiển thị</p>
+                                </div>
+                            }
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    }
 </div>
 
 <style>
     .admin-page {
-        max-width: 1200px;
+        max-width: 1400px;
         margin-left: auto;
         margin-right: auto;
+        padding: 1rem;
     }
     
     .page-header {
@@ -105,19 +259,109 @@
     .page-header h2 {
         margin-bottom: 0.5rem;
         color: #2c3e50;
+        font-weight: 700;
     }
     
     .stats-filters {
-        background: white;
+        background: #34495e;
         padding: 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         margin-bottom: 2rem;
+        color: white;
     }
     
-    .stats-content .card {
+    .stats-filters .form-label {
+        color: white;
+        font-weight: 500;
+    }
+    
+    .stats-filters .form-control,
+    .stats-filters .form-select {
         border: none;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-radius: 8px;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+        height: 100%;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .stat-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: white;
+        flex-shrink: 0;
+    }
+    
+    .revenue-card .stat-icon {
+        background: #3498db;
+    }
+    
+    .orders-card .stat-icon {
+        background: #e74c3c;
+    }
+    
+    .average-card .stat-icon {
+        background: #2ecc71;
+    }
+    
+    .products-card .stat-icon {
+        background: #f39c12;
+    }
+    
+    .stat-info h6 {
+        margin: 0;
+        color: #6c757d;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-info h3 {
+        margin: 0;
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+    
+    .chart-card {
+        border: none;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    
+    .chart-card .card-header {
+        background: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        padding: 1rem 1.5rem;
+    }
+    
+    .chart-card .card-header h5 {
+        color: #2c3e50;
+        font-weight: 600;
+    }
+    
+    .chart-container {
+        position: relative;
     }
     
     .chart-placeholder {
@@ -126,17 +370,605 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        background-color: #f8f9fa;
-        border-radius: 4px;
+        background: #f8f9fa;
+        border-radius: 8px;
         color: #6c757d;
     }
     
     .chart-placeholder i {
-        font-size: 3rem;
+        font-size: 4rem;
         margin-bottom: 1rem;
+        opacity: 0.5;
     }
     
-    .list-group-item {
-        border: 1px solid #dee2e6;
+    .top-products-list {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    
+    .product-item {
+        padding: 0.75rem;
+        border-bottom: 1px solid #e9ecef;
+        transition: background 0.2s;
+    }
+    
+    .product-item:hover {
+        background: #f8f9fa;
+    }
+    
+    .product-item:last-child {
+        border-bottom: none;
+    }
+    
+    .status-legend {
+        max-height: 150px;
+        overflow-y: auto;
+    }
+    
+    .status-item {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .status-item:last-child {
+        border-bottom: none;
+    }
+    
+    .status-dot {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+    }
+    
+    .export-buttons .btn-group {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    @@media (max-width: 768px) {
+        .admin-page {
+            padding: 0.5rem;
+        }
+        
+        .stat-card {
+            margin-bottom: 1rem;
+        }
+        
+        .chart-container {
+            height: 250px !important;
+        }
     }
 </style>
+
+@code {
+    private bool isLoading = false;
+    private DateTime? fromDate;
+    private DateTime? toDate;
+    private string reportType = "revenue";
+    private bool useBarChart = true; // Toggle between bar and line chart
+    
+    private List<MonthlyRevenue> monthlyRevenue = new();
+    private List<TopProduct> topProducts = new();
+    private List<OrderStatusCount> orderStatusDistribution = new();
+    private decimal totalRevenue = 0;
+    private int totalOrdersCount = 0;
+    private decimal averageOrderValue = 0;
+    private int totalProductsSold = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Set default date range to last 6 months
+        toDate = DateTime.Now;
+        fromDate = DateTime.Now.AddMonths(-6);
+        await LoadStatistics();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender || !isLoading)
+        {
+            await RenderCharts();
+        }
+    }
+
+    private async Task LoadStatistics()
+    {
+        isLoading = true;
+        StateHasChanged();
+        
+        try
+        {
+            // Load all orders in the date range
+            var ordersResponse = await OrderService.GetOrdersAsync(
+                page: 1,
+                pageSize: 10000,
+                fromDate: fromDate,
+                toDate: toDate
+            );
+
+            if (ordersResponse?.StatusCode == 200 && ordersResponse.Data != null)
+            {
+                var orders = ordersResponse.Data.Orders ?? new();
+                totalOrdersCount = ordersResponse.Data.Pagination?.TotalCount ?? orders.Count;
+                
+                // Nếu có nhiều hơn 10000 orders trong khoảng thời gian, load thêm
+                if (ordersResponse.Data.Pagination != null && ordersResponse.Data.Pagination.TotalPages > 1)
+                {
+                    var allOrdersList = new List<OrderDto>(orders);
+                    for (int page = 2; page <= ordersResponse.Data.Pagination.TotalPages; page++)
+                    {
+                        var nextPageResponse = await OrderService.GetOrdersAsync(
+                            page: page,
+                            pageSize: 10000,
+                            fromDate: fromDate,
+                            toDate: toDate
+                        );
+                        if (nextPageResponse?.StatusCode == 200 && nextPageResponse.Data?.Orders != null)
+                        {
+                            allOrdersList.AddRange(nextPageResponse.Data.Orders);
+                        }
+                    }
+                    orders = allOrdersList;
+                }
+
+                // Xử lý theo loại báo cáo
+                switch (reportType?.ToLower())
+                {
+                    case "revenue":
+                        // Báo cáo doanh thu
+                        monthlyRevenue = orders
+                            .Where(o => o.Status?.ToLower() == "paid" && o.TotalAmount.HasValue)
+                            .GroupBy(o => new { o.OrderDate.Year, o.OrderDate.Month })
+                            .Select(g => new MonthlyRevenue
+                            {
+                                Month = $"{g.Key.Month:00}/{g.Key.Year}",
+                                Revenue = g.Sum(o => o.TotalAmount ?? 0)
+                            })
+                            .OrderBy(x => x.Month)
+                            .ToList();
+
+                        totalRevenue = orders
+                            .Where(o => o.Status?.ToLower() == "paid" && o.TotalAmount.HasValue)
+                            .Sum(o => o.TotalAmount ?? 0);
+
+                        var paidOrders = orders.Where(o => o.Status?.ToLower() == "paid" && o.TotalAmount.HasValue).ToList();
+                        averageOrderValue = paidOrders.Any() ? paidOrders.Average(o => o.TotalAmount ?? 0) : 0;
+                        break;
+
+                    case "orders":
+                        // Báo cáo đơn hàng - Thống kê theo số lượng đơn hàng
+                        monthlyRevenue = orders
+                            .GroupBy(o => new { o.OrderDate.Year, o.OrderDate.Month })
+                            .Select(g => new MonthlyRevenue
+                            {
+                                Month = $"{g.Key.Month:00}/{g.Key.Year}",
+                                Revenue = g.Count() // Sử dụng Revenue field để lưu số lượng đơn hàng
+                            })
+                            .OrderBy(x => x.Month)
+                            .ToList();
+
+                        totalRevenue = orders.Count; // Tổng số đơn hàng
+                        averageOrderValue = monthlyRevenue.Any() ? monthlyRevenue.Average(m => m.Revenue) : 0; // Trung bình đơn hàng/tháng
+                        break;
+
+                    case "products":
+                        // Báo cáo sản phẩm - Tập trung vào top products
+                        monthlyRevenue = new List<MonthlyRevenue>(); // Không cần monthly cho products
+                        totalRevenue = 0; // Sẽ tính từ top products
+                        averageOrderValue = 0;
+                        break;
+
+                    case "customers":
+                        // Báo cáo khách hàng - Thống kê theo khách hàng
+                        var uniqueCustomers = orders.Where(o => o.CustomerId != null).Select(o => o.CustomerId).Distinct().Count();
+                        monthlyRevenue = orders
+                            .Where(o => o.CustomerId != null)
+                            .GroupBy(o => new { o.OrderDate.Year, o.OrderDate.Month })
+                            .Select(g => new MonthlyRevenue
+                            {
+                                Month = $"{g.Key.Month:00}/{g.Key.Year}",
+                                Revenue = g.Select(o => o.CustomerId).Distinct().Count() // Số khách hàng mới mỗi tháng
+                            })
+                            .OrderBy(x => x.Month)
+                            .ToList();
+
+                        totalRevenue = uniqueCustomers; // Tổng số khách hàng
+                        averageOrderValue = orders.Any() && uniqueCustomers > 0 ? (decimal)(orders.Count / (double)uniqueCustomers) : 0; // Đơn hàng trung bình/khách hàng
+                        break;
+
+                    default:
+                        // Mặc định: Báo cáo doanh thu
+                        monthlyRevenue = orders
+                            .Where(o => o.Status?.ToLower() == "paid" && o.TotalAmount.HasValue)
+                            .GroupBy(o => new { o.OrderDate.Year, o.OrderDate.Month })
+                            .Select(g => new MonthlyRevenue
+                            {
+                                Month = $"{g.Key.Month:00}/{g.Key.Year}",
+                                Revenue = g.Sum(o => o.TotalAmount ?? 0)
+                            })
+                            .OrderBy(x => x.Month)
+                            .ToList();
+
+                        totalRevenue = orders
+                            .Where(o => o.Status?.ToLower() == "paid" && o.TotalAmount.HasValue)
+                            .Sum(o => o.TotalAmount ?? 0);
+
+                        var defaultPaidOrders = orders.Where(o => o.Status?.ToLower() == "paid" && o.TotalAmount.HasValue).ToList();
+                        averageOrderValue = defaultPaidOrders.Any() ? defaultPaidOrders.Average(o => o.TotalAmount ?? 0) : 0;
+                        break;
+                }
+
+                // Order status distribution - Luôn hiển thị
+                orderStatusDistribution = orders
+                    .GroupBy(o => o.Status?.ToLower() ?? "unknown")
+                    .Select(g => new OrderStatusCount
+                    {
+                        Status = g.Key,
+                        Count = g.Count()
+                    })
+                    .ToList();
+
+                // Load top products - Chỉ load nếu không phải báo cáo customers
+                if (reportType?.ToLower() != "customers")
+                {
+                    await LoadTopProducts(orders);
+                }
+                else
+                {
+                    topProducts.Clear();
+                    totalProductsSold = 0;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading statistics: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+            await RenderCharts();
+        }
+    }
+
+    private async Task LoadTopProducts(List<OrderDto> orders)
+    {
+        try
+        {
+            var orderIds = orders.Select(o => o.Id).ToList();
+            var allOrderItems = new List<OrderItemDto>();
+
+            // Load order items for all orders
+            foreach (var orderId in orderIds)
+            {
+                if (Guid.TryParse(orderId, out var orderGuid))
+                {
+                    var orderItemsResponse = await OrderItemService.GetOrderItemsByOrderIdAsync(orderGuid, page: 1, pageSize: 10000);
+                    if (orderItemsResponse?.StatusCode == 200 && orderItemsResponse.Data?.orderItems != null)
+                    {
+                        allOrderItems.AddRange(orderItemsResponse.Data.orderItems);
+                    }
+                }
+            }
+
+            // Group by product and calculate totals
+            var productStats = allOrderItems
+                .GroupBy(oi => oi.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    QuantitySold = g.Sum(oi => oi.Quantity),
+                    TotalRevenue = g.Sum(oi => oi.Price * oi.Quantity)
+                })
+                .OrderByDescending(x => x.TotalRevenue) // Sắp xếp theo doanh thu để lấy top sản phẩm bán chạy nhất
+                .Take(10)
+                .ToList();
+
+            topProducts.Clear();
+            totalProductsSold = allOrderItems.Sum(oi => oi.Quantity);
+
+            // Load product names
+            foreach (var stat in productStats)
+            {
+                if (!string.IsNullOrEmpty(stat.ProductId))
+                {
+                    var productResponse = await ProductService.GetProductByIdAsync(stat.ProductId);
+                    var productName = productResponse?.StatusCode == 200 && productResponse.Data?.Product != null
+                        ? productResponse.Data.Product.ProductName
+                        : "Sản phẩm không xác định";
+
+                    topProducts.Add(new TopProduct
+                    {
+                        ProductId = stat.ProductId,
+                        ProductName = productName,
+                        QuantitySold = stat.QuantitySold,
+                        TotalRevenue = stat.TotalRevenue
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading top products: {ex.Message}");
+        }
+    }
+
+    private async Task RenderCharts()
+    {
+        if (isLoading) return;
+
+        try
+        {
+            // Revenue Chart - Hiển thị theo loại báo cáo
+            if (monthlyRevenue.Any())
+            {
+                var labels = monthlyRevenue.Select(m => m.Month).ToArray();
+                var data = monthlyRevenue.Select(m => (double)m.Revenue).ToArray();
+                
+                var (chartLabel, chartType) = GetChartConfig();
+                var isCurrency = reportType?.ToLower() == "revenue";
+                
+                if (reportType?.ToLower() == "revenue" && !useBarChart)
+                {
+                    await JSRuntime.InvokeVoidAsync("chartHelper.createLineChart",
+                        "revenueChart", labels, data, chartLabel,
+                        "rgba(52, 152, 219, 0.1)", "rgba(52, 152, 219, 1)", isCurrency);
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("chartHelper.createBarChart",
+                        "revenueChart", labels, data, chartLabel,
+                        "rgba(52, 152, 219, 0.6)", "rgba(52, 152, 219, 1)", isCurrency);
+                }
+            }
+
+            // Top Products Chart - Hiển thị 5 sản phẩm bán chạy nhất
+            if (topProducts.Any())
+            {
+                // Lấy tối đa 5 sản phẩm (đã được sắp xếp và lấy 5 ở trên)
+                var productsToShow = topProducts.Take(10).ToList();
+                
+                var productLabels = productsToShow.Select(p => p.ProductName.Length > 15 
+                    ? p.ProductName.Substring(0, 15) + "..." 
+                    : p.ProductName).ToArray();
+                
+                // Hiển thị theo doanh thu (TotalRevenue) thay vì số lượng để phản ánh đúng "bán chạy"
+                var productData = productsToShow.Select(p => (double)p.TotalRevenue).ToArray();
+                
+                await JSRuntime.InvokeVoidAsync("chartHelper.createBarChart",
+                    "topProductsChart", productLabels, productData, "Doanh thu (VNĐ)",
+                    "rgba(52, 152, 219, 0.6)", "rgba(52, 152, 219, 1)");
+            }
+
+            // Status Distribution Chart
+            if (orderStatusDistribution.Any())
+            {
+                var statusLabels = orderStatusDistribution.Select(s => GetStatusDisplayName(s.Status)).ToArray();
+                var statusData = orderStatusDistribution.Select(s => (double)s.Count).ToArray();
+                var statusColors = orderStatusDistribution.Select(s => 
+                    s.Status == "paid" ? "rgba(75, 192, 192, 0.8)" :
+                    s.Status == "pending" ? "rgba(255, 206, 86, 0.8)" :
+                    s.Status == "canceled" ? "rgba(255, 99, 132, 0.8)" :
+                    "rgba(153, 102, 255, 0.8)").ToArray();
+                
+                await JSRuntime.InvokeVoidAsync("chartHelper.createDoughnutChart",
+                    "statusChart", statusLabels, statusData, statusColors);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error rendering charts: {ex.Message}");
+        }
+    }
+
+    private async Task OnReportTypeChanged(ChangeEventArgs e)
+    {
+        reportType = e.Value?.ToString() ?? "revenue";
+        await LoadStatistics();
+    }
+
+    private async Task ToggleChartType()
+    {
+        useBarChart = !useBarChart;
+        await RenderCharts();
+    }
+
+    private async Task ExportToPDF()
+    {
+        try
+        {
+            if (!monthlyRevenue.Any())
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Không có dữ liệu để xuất báo cáo!");
+                return;
+            }
+
+            var title = $"Báo cáo thống kê - {DateTime.Now:dd/MM/yyyy}";
+            var headers = new[] { "Tháng", "Doanh thu (VNĐ)" };
+            var rows = monthlyRevenue.Select(m => new object[] { m.Month, FormatPrice(m.Revenue) }).ToList();
+            
+            var exportData = new
+            {
+                headers = headers,
+                rows = rows
+            };
+
+            var result = await JSRuntime.InvokeAsync<bool>("exportHelper.exportToPDF", title, exportData);
+            if (!result)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Có lỗi xảy ra khi xuất PDF. Vui lòng kiểm tra console để biết thêm chi tiết.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error exporting to PDF: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Lỗi khi xuất PDF: {ex.Message}");
+        }
+    }
+
+    private async Task ExportToExcel()
+    {
+        try
+        {
+            if (!monthlyRevenue.Any() && !topProducts.Any() && !orderStatusDistribution.Any())
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Không có dữ liệu để xuất báo cáo!");
+                return;
+            }
+
+            var title = $"Bao_cao_thong_ke_{DateTime.Now:yyyyMMdd}";
+            
+            var sheets = new List<object>();
+            
+            if (monthlyRevenue.Any())
+            {
+                sheets.Add(new
+                {
+                    name = "Doanh thu theo tháng",
+                    headers = new[] { "Tháng", "Doanh thu (VNĐ)" },
+                    rows = monthlyRevenue.Select(m => new object[] { m.Month, m.Revenue }).ToList()
+                });
+            }
+            
+            if (topProducts.Any())
+            {
+                sheets.Add(new
+                {
+                    name = "Top sản phẩm",
+                    headers = new[] { "Tên sản phẩm", "Số lượng bán", "Doanh thu (VNĐ)" },
+                    rows = topProducts.Select(p => new object[] { p.ProductName, p.QuantitySold, p.TotalRevenue }).ToList()
+                });
+            }
+            
+            if (orderStatusDistribution.Any())
+            {
+                sheets.Add(new
+                {
+                    name = "Phân bố trạng thái",
+                    headers = new[] { "Trạng thái", "Số lượng" },
+                    rows = orderStatusDistribution.Select(s => new object[] { GetStatusDisplayName(s.Status), s.Count }).ToList()
+                });
+            }
+
+            var exportData = new { sheets = sheets.ToArray() };
+            var result = await JSRuntime.InvokeAsync<bool>("exportHelper.exportToExcel", title, exportData);
+            if (!result)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Có lỗi xảy ra khi xuất Excel. Vui lòng kiểm tra console để biết thêm chi tiết.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error exporting to Excel: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Lỗi khi xuất Excel: {ex.Message}");
+        }
+    }
+
+    private string GetChartTitle()
+    {
+        return reportType?.ToLower() switch
+        {
+            "revenue" => "Biểu đồ doanh thu theo tháng",
+            "orders" => "Biểu đồ số lượng đơn hàng theo tháng",
+            "products" => "Thống kê sản phẩm",
+            "customers" => "Biểu đồ số lượng khách hàng theo tháng",
+            _ => "Biểu đồ doanh thu theo tháng"
+        };
+    }
+
+    private (string Label, string Type) GetChartConfig()
+    {
+        return reportType?.ToLower() switch
+        {
+            "revenue" => ("Doanh thu (VNĐ)", "bar"),
+            "orders" => ("Số lượng đơn hàng", "bar"),
+            "customers" => ("Số lượng khách hàng", "bar"),
+            _ => ("Doanh thu (VNĐ)", "bar")
+        };
+    }
+
+    private string GetSummaryLabel(string field)
+    {
+        return reportType?.ToLower() switch
+        {
+            "revenue" => field switch
+            {
+                "total" => "Tổng doanh thu",
+                "average" => "Đơn hàng trung bình",
+                _ => field
+            },
+            "orders" => field switch
+            {
+                "total" => "Tổng đơn hàng",
+                "average" => "Đơn hàng trung bình/tháng",
+                _ => field
+            },
+            "customers" => field switch
+            {
+                "total" => "Tổng khách hàng",
+                "average" => "Đơn hàng trung bình/khách hàng",
+                _ => field
+            },
+            _ => field switch
+            {
+                "total" => "Tổng doanh thu",
+                "average" => "Đơn hàng trung bình",
+                _ => field
+            }
+        };
+    }
+
+    private string FormatPrice(decimal amount)
+    {
+        // Nếu là báo cáo orders hoặc customers, format như số nguyên
+        if (reportType?.ToLower() == "orders" || reportType?.ToLower() == "customers")
+        {
+            return amount.ToString("N0");
+        }
+        return $"{amount:N0} VNĐ";
+    }
+
+    private string GetStatusDisplayName(string? status)
+    {
+        return status?.ToLower() switch
+        {
+            "paid" => "Đã thanh toán",
+            "pending" => "Chờ xử lý",
+            "canceled" => "Đã hủy",
+            _ => "Không xác định"
+        };
+    }
+
+    private string GetStatusColor(string? status)
+    {
+        return status?.ToLower() switch
+        {
+            "paid" => "bg-success",
+            "pending" => "bg-warning",
+            "canceled" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private class MonthlyRevenue
+    {
+        public string Month { get; set; } = "";
+        public decimal Revenue { get; set; }
+    }
+
+    private class TopProduct
+    {
+        public string ProductId { get; set; } = "";
+        public string ProductName { get; set; } = "";
+        public int QuantitySold { get; set; }
+        public decimal TotalRevenue { get; set; }
+    }
+
+    private class OrderStatusCount
+    {
+        public string Status { get; set; } = "";
+        public int Count { get; set; }
+    }
+}
