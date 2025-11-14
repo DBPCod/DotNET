@@ -154,7 +154,7 @@ public class InventoryService
             var json = JsonSerializer.Serialize(request);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             
-            var response = await _httpClient.PutAsync($"{BaseUrl}/adjust", content);
+            var response = await _httpClient.PostAsync($"{BaseUrl}/update", content);
             var responseContent = await response.Content.ReadAsStringAsync();
             
             return JsonSerializer.Deserialize<ApiResponse<InventoryDetailResponse>>(responseContent, new JsonSerializerOptions
