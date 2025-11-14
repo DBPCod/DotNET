@@ -1,5 +1,14 @@
 @page "/admin"
 @layout AdminLayout
+@using Frontend.Services
+@using Frontend.Models.Order.Responses
+@using Frontend.Models.Customer.Responses
+@using Frontend.Models.Product.Responses
+@using Frontend.Models.Common
+@using Frontend.Models
+@inject OrderService OrderService
+@inject CustomerService CustomerService
+@inject ProductService ProductService
 
 <div class="admin-dashboard">
     <div class="dashboard-header">
@@ -7,89 +16,98 @@
         <p class="text-muted">Tổng quan hệ thống</p>
     </div>
     
-    <div class="dashboard-stats">
-        <div class="stat-card">
-            <div class="stat-icon">
-                <i class="bi bi-people"></i>
+    @if (isLoading)
+    {
+        <div class="text-center py-4">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Đang tải...</span>
             </div>
-            <div class="stat-content">
-                <h3>20</h3>
-                <p>Khách hàng</p>
+        </div>
+    }
+    else
+    {
+        <div class="dashboard-stats">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>@totalCustomers</h3>
+                    <p>Khách hàng</p>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="bi bi-cart-check"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>@totalOrders</h3>
+                    <p>Đơn hàng</p>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="bi bi-box"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>@totalProducts</h3>
+                    <p>Sản phẩm</p>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="bi bi-currency-dollar"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>@FormatRevenue(totalRevenue)</h3>
+                    <p>Doanh thu</p>
+                </div>
             </div>
         </div>
         
-        <div class="stat-card">
-            <div class="stat-icon">
-                <i class="bi bi-cart-check"></i>
-            </div>
-            <div class="stat-content">
-                <h3>30</h3>
-                <p>Đơn hàng</p>
-            </div>
-        </div>
-        
-        <div class="stat-card">
-            <div class="stat-icon">
-                <i class="bi bi-box"></i>
-            </div>
-            <div class="stat-content">
-                <h3>50</h3>
-                <p>Sản phẩm</p>
-            </div>
-        </div>
-        
-        <div class="stat-card">
-            <div class="stat-icon">
-                <i class="bi bi-currency-dollar"></i>
-            </div>
-            <div class="stat-content">
-                <h3>45.2M VNĐ</h3>
-                <p>Doanh thu</p>
-            </div>
-        </div>
-    </div>
-    
-    <div class="dashboard-content">
-        <div class="dashboard-section">
-            <h4>Đơn hàng gần đây</h4>
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Mã đơn hàng</th>
-                            <th>Khách hàng</th>
-                            <th>Ngày tạo</th>
-                            <th>Tổng tiền</th>
-                            <th>Trạng thái</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>#ORD001</td>
-                            <td>Khách hàng 5</td>
-                            <td>2024-01-15</td>
-                            <td>1,192,330 VNĐ</td>
-                            <td><span class="badge bg-success">Đã thanh toán</span></td>
-                        </tr>
-                        <tr>
-                            <td>#ORD002</td>
-                            <td>Khách hàng 17</td>
-                            <td>2024-01-14</td>
-                            <td>1,731,608 VNĐ</td>
-                            <td><span class="badge bg-success">Đã thanh toán</span></td>
-                        </tr>
-                        <tr>
-                            <td>#ORD003</td>
-                            <td>Khách hàng 8</td>
-                            <td>2024-01-13</td>
-                            <td>720,782 VNĐ</td>
-                            <td><span class="badge bg-success">Đã thanh toán</span></td>
-                        </tr>
-                    </tbody>
-                </table>
+        <div class="dashboard-content">
+            <div class="dashboard-section">
+                <h4>Đơn hàng gần đây</h4>
+                @if (recentOrders == null || !recentOrders.Any())
+                {
+                    <div class="text-center py-4">
+                        <p class="text-muted">Không có đơn hàng nào.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Mã đơn hàng</th>
+                                    <th>Khách hàng</th>
+                                    <th>Ngày tạo</th>
+                                    <th>Tổng tiền</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var order in recentOrders)
+                                {
+                                    <tr>
+                                        <td>#@order.Id.Substring(0, 8).ToUpper()</td>
+                                        <td>@GetCustomerName(order.CustomerId)</td>
+                                        <td>@order.OrderDate.ToString("dd/MM/yyyy")</td>
+                                        <td>@FormatPrice(order.TotalAmount ?? 0)</td>
+                                        <td>@GetStatusBadge(order.Status)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
             </div>
         </div>
-    </div>
+    }
 </div>
 
 <style>
@@ -173,3 +191,156 @@
         font-size: 0.75rem;
     }
 </style>
+
+@code {
+    private bool isLoading = true;
+    private int totalCustomers = 0;
+    private int totalOrders = 0;
+    private int totalProducts = 0;
+    private decimal totalRevenue = 0;
+    private List<OrderDto> recentOrders = new();
+    private Dictionary<string, string> customerMap = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        isLoading = true;
+        try
+        {
+            // Load customers count
+            var customersResponse = await CustomerService.GetCustomersAsync(page: 1, pageSize: 1);
+            if (customersResponse?.StatusCode == 200 && customersResponse.Data?.Pagination != null)
+            {
+                totalCustomers = customersResponse.Data.Pagination.TotalCount;
+            }
+
+            // Load products count
+            var productsResponse = await ProductService.GetProductsAsync(page: 1, pageSize: 1);
+            if (productsResponse?.StatusCode == 200 && productsResponse.Data?.Pagination != null)
+            {
+                totalProducts = productsResponse.Data.Pagination.TotalCount;
+            }
+
+            // Load orders and calculate revenue - Lấy tất cả orders không giới hạn
+            var ordersResponse = await OrderService.GetOrdersAsync(page: 1, pageSize: 10000);
+            if (ordersResponse?.StatusCode == 200 && ordersResponse.Data != null)
+            {
+                var allOrders = ordersResponse.Data.Orders ?? new();
+                // Sử dụng TotalCount từ pagination để có số chính xác
+                totalOrders = ordersResponse.Data.Pagination?.TotalCount ?? allOrders.Count;
+                
+                // Nếu có nhiều hơn 10000 orders, cần load thêm các trang
+                if (ordersResponse.Data.Pagination != null && ordersResponse.Data.Pagination.TotalPages > 1)
+                {
+                    var allOrdersList = new List<OrderDto>(allOrders);
+                    for (int page = 2; page <= ordersResponse.Data.Pagination.TotalPages; page++)
+                    {
+                        var nextPageResponse = await OrderService.GetOrdersAsync(page: page, pageSize: 10000);
+                        if (nextPageResponse?.StatusCode == 200 && nextPageResponse.Data?.Orders != null)
+                        {
+                            allOrdersList.AddRange(nextPageResponse.Data.Orders);
+                        }
+                    }
+                    allOrders = allOrdersList;
+                }
+                
+                // Calculate total revenue from paid orders - Tính từ tất cả orders đã load
+                totalRevenue = allOrders
+                    .Where(o => o.Status?.ToLower() == "paid" && o.TotalAmount.HasValue)
+                    .Sum(o => o.TotalAmount ?? 0);
+
+                // Get recent orders (last 5, ordered by date descending)
+                // Sắp xếp theo OrderDate, nếu OrderDate giống nhau thì sắp xếp theo Id (mới nhất)
+                recentOrders = allOrders
+                    .OrderByDescending(o => o.OrderDate)
+                    .ThenByDescending(o => o.Id) // Đảm bảo thứ tự nhất quán
+                    .Take(5)
+                    .ToList();
+
+                // Load customer names for recent orders
+                var uniqueCustomerIds = recentOrders
+                    .Where(o => !string.IsNullOrEmpty(o.CustomerId))
+                    .Select(o => o.CustomerId!)
+                    .Distinct()
+                    .ToList();
+
+                foreach (var customerId in uniqueCustomerIds)
+                {
+                    if (Guid.TryParse(customerId, out var guid))
+                    {
+                        var customerResponse = await CustomerService.GetCustomerByIdAsync(customerId);
+                        if (customerResponse?.StatusCode == 200 && customerResponse.Data?.Customer != null)
+                        {
+                            customerMap[customerId] = customerResponse.Data.Customer.Name;
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dashboard data: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetCustomerName(string? customerId)
+    {
+        if (string.IsNullOrEmpty(customerId))
+            return "Khách vãng lai";
+        
+        return customerMap.TryGetValue(customerId, out var name) ? name : "Khách hàng";
+    }
+
+    private RenderFragment GetStatusBadge(string? status)
+    {
+        var statusLower = status?.ToLower() ?? "";
+        var badgeClass = statusLower switch
+        {
+            "paid" => "bg-success",
+            "pending" => "bg-warning text-dark",
+            "canceled" => "bg-danger",
+            _ => "bg-secondary"
+        };
+        
+        var statusText = statusLower switch
+        {
+            "paid" => "Đã thanh toán",
+            "pending" => "Chờ xử lý",
+            "canceled" => "Đã hủy",
+            _ => "Không xác định"
+        };
+
+        return builder =>
+        {
+            builder.OpenElement(0, "span");
+            builder.AddAttribute(1, "class", $"badge {badgeClass}");
+            builder.AddContent(2, statusText);
+            builder.CloseElement();
+        };
+    }
+
+    private string FormatPrice(decimal amount)
+    {
+        return $"{amount:N0} VNĐ";
+    }
+
+    private string FormatRevenue(decimal revenue)
+    {
+        if (revenue >= 1_000_000_000)
+            return $"{revenue / 1_000_000_000:F1}B VNĐ";
+        else if (revenue >= 1_000_000)
+            return $"{revenue / 1_000_000:F1}M VNĐ";
+        else if (revenue >= 1_000)
+            return $"{revenue / 1_000:F1}K VNĐ";
+        else
+            return $"{revenue:N0} VNĐ";
+    }
+}
