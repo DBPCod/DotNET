@@ -21,7 +21,7 @@ public class CreateUserRequest
     public string FullName { get; set; } = "";
 
     [Required(ErrorMessage = "Role is required")]
-    [RegularExpression("^(ADMIN|STAFF|CUSTOMER)$", ErrorMessage = "Role must be ADMIN, STAFF, or CUSTOMER")]
+    [RegularExpression("^(ADMIN|STAFF)$", ErrorMessage = "Role must be ADMIN or STAFF only")]
     public string Role { get; set; } = "STAFF";
 
     [RegularExpression("^(ACTIVE|INACTIVE)$", ErrorMessage = "Status must be ACTIVE or INACTIVE")]
