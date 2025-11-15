@@ -228,6 +228,20 @@
                                     <span class="badge @(selectedOrderStatus == "pending" ? "bg-warning" : "bg-success")">@GetPaymentMethodDisplay()</span>
                                 </div>
                             </div>
+                            <!-- Thêm phần hiển thị mã khuyến mãi -->
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <label class="form-label fw-bold">Mã khuyến mãi:</label>
+                                    @if (!string.IsNullOrEmpty(selectedPromoCode))
+                                    {
+                                        <span class="badge bg-info">@selectedPromoCode</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Không áp dụng</span>
+                                    }
+                                </div>
+                            </div>
                             @if (selectedOrderStatus.ToLower() == "paid" && selectedPayment != null)
                             {
                                 <div class="row mb-3">
@@ -693,6 +707,7 @@
     private bool isLoadingOrderItems = false;
     private string selectedOrderStatus = string.Empty; // Thêm mới: Lưu trạng thái order
     private PaymentDto? selectedPayment; // Thêm mới: Lưu payment info
+    private string selectedPromoCode = string.Empty; // Thêm mới: Lưu mã khuyến mãi
     // New state for update status modal
     private bool showUpdateModal = false;
     private string? selectedOrderForUpdate;
@@ -1014,7 +1029,9 @@
         showModal = true;
         isLoadingOrderItems = true;
         selectedPayment = null; // Reset payment
+        selectedPromoCode = string.Empty; // Reset promo code
         StateHasChanged();
+        
         try
         {
             Console.WriteLine($"Calling API to fetch order items for OrderId: {selectedOrderId}");
@@ -1031,6 +1048,24 @@
                 orderPagination = null;
                 Console.WriteLine($"API returned non-200 status: {response?.StatusCode}. Message: {response?.Message}");
                 Toast.ShowWarning("Không thể tải chi tiết đơn hàng.");
+            }
+            // Thêm mới: Fetch chi tiết order để lấy promo code
+            var orderDetailResponse = await OrderService.GetOrderByIdAsync(selectedOrderId);
+            if (orderDetailResponse?.StatusCode == 200 && orderDetailResponse.Data != null)
+            {
+                Console.WriteLine(orderDetailResponse.Data.order.CustomerId + " HAHAH");
+                // Giả sử OrderDetailResponse.Data.order có PromoCode; nếu không, fetch từ PromotionService bằng PromoId
+                var promo = await PromotionService.GetPromotionByIdAsync(orderDetailResponse.Data.order.PromoId);
+                selectedPromoCode = promo.PromoCode ?? string.Empty;
+                if (string.IsNullOrEmpty(selectedPromoCode) && !string.IsNullOrEmpty(orderDetailResponse.Data.order.PromoId))
+                {
+                    var promoResponse = await PromotionService.GetPromotionByIdAsync(orderDetailResponse.Data.order.PromoId);
+                    if (promoResponse != null)
+                    {
+                        selectedPromoCode = promoResponse.PromoCode ?? string.Empty;
+                    }
+                }
+                Console.WriteLine($"Loaded promo code for order {selectedOrderId}: {selectedPromoCode}");
             }
             // Thêm mới: Nếu status là "paid", tải payment
             if (selectedOrderStatus.ToLower() == "paid")
@@ -1138,6 +1173,7 @@
         isLoadingOrderItems = false;
         selectedOrderStatus = string.Empty; // Reset
         selectedPayment = null; // Reset
+        selectedPromoCode = string.Empty; // Reset promo code
         _productNames.Clear(); // Clear cache
         StateHasChanged();
     }
