@@ -263,7 +263,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">@(isEditMode ? "Cập nhật tồn kho" : "Nhập kho mới")</h5>
+                    <h5 class="modal-title">@(isEditMode ? "Cập nhật tồn kho" : "Nhập kho")</h5>
                     <button type="button" class="btn-close" @onclick="CloseModal"></button>
                 </div>
                 <div class="modal-body">
@@ -319,7 +319,7 @@
                                 {
                                     <span class="spinner-border spinner-border-sm me-2"></span>
                                 }
-                                @(isEditMode ? "Cập nhật" : "Tạo mới")
+                                @(isEditMode ? "Cập nhật" : "Nhập kho")
                             </button>
                         </div>
                     </EditForm>
@@ -835,7 +835,7 @@
 
                     if (response?.StatusCode == 200 || response?.StatusCode == 201)
                     {
-                        Toast.ShowSuccess("Tạo tồn kho thành công!");
+                        Toast.ShowSuccess("Nhập kho thành công!");
                         CloseModal();
                         await ReloadCurrentPage();
                     }

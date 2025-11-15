@@ -146,32 +146,6 @@ public class InventoryService
         }
     }
 
-    // PUT - Điều chỉnh số lượng tồn kho
-    public async Task<ApiResponse<InventoryDetailResponse>?> AdjustInventoryAsync(AdjustInventoryRequest request)
-    {
-        try
-        {
-            var json = JsonSerializer.Serialize(request);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-            
-            var response = await _httpClient.PostAsync($"{BaseUrl}/update", content);
-            var responseContent = await response.Content.ReadAsStringAsync();
-            
-            return JsonSerializer.Deserialize<ApiResponse<InventoryDetailResponse>>(responseContent, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error adjusting inventory: {ex.Message}");
-            return new ApiResponse<InventoryDetailResponse>
-            {
-                Message = ex.Message,
-                StatusCode = 500
-            };
-        }
-    }
 
     // DELETE - Xóa inventory
     public async Task<ApiResponse<object>?> DeleteInventoryAsync(string id)
@@ -226,8 +200,6 @@ public class InventoryService
         return status?.ToUpper() switch
         {
             "IN_STOCK" => "Còn hàng",
-            "LOW_STOCK" => "Sắp hết hàng", 
-            "OUT_OF_STOCK" => "Hết hàng",
             _ => "Không xác định"
         };
     }

@@ -17,7 +17,6 @@ public class InventoryStatsResponse
 {
     public int TotalItems { get; set; }
     public int InStockItems { get; set; }
-    public int LowStockItems { get; set; }
     public int OutOfStockItems { get; set; }
     public decimal TotalInventoryValue { get; set; }
 }

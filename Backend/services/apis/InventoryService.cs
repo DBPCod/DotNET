@@ -97,22 +97,6 @@ public class InventoryService(InventoryRepository inventoryRepository)
         return true;
     }
 
-    public async Task<InventoryDto> AdjustQuantityAsync(Guid productId, int adjustment, string? reason = null)
-    {
-        var inventory = await _inventoryRepository.GetByProductIdAsync(productId);
-        if (inventory == null)
-            throw new Exception("Inventory not found for the given product.");
-
-        inventory.Quantity += adjustment;
-        if (inventory.Quantity < 0)
-            inventory.Quantity = 0;
-
-        inventory.UpdatedAt = DateTime.Now;
-
-        await _inventoryRepository.UpdateAsync(inventory);
-        return MapToDto(inventory);
-    }
-
     public async Task<bool> DeleteAsync(Guid id)
     {
         var inventory = await _inventoryRepository.GetByIdAsync(id);
@@ -125,13 +109,12 @@ public class InventoryService(InventoryRepository inventoryRepository)
 
     public async Task<object> GetStatsAsync()
     {
-        var (inStock, lowStock, outOfStock, totalValue) = await _inventoryRepository.GetStatsAsync();
+        var (inStock, outOfStock, totalValue) = await _inventoryRepository.GetStatsAsync();
         
         return new
         {
-            TotalItems = inStock + lowStock + outOfStock,
+            TotalItems = inStock + outOfStock,
             InStockItems = inStock,
-            LowStockItems = lowStock,
             OutOfStockItems = outOfStock,
             TotalInventoryValue = totalValue
         };
