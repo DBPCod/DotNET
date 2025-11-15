@@ -54,8 +54,8 @@ public class InventoryRepository(AppDbContext context)
         if (!string.IsNullOrEmpty(searchQuery))
         {
             query = query.Where(i => 
-                i.Product!.ProductName.Contains(searchQuery) ||
-                (i.Product!.Barcode != null && i.Product.Barcode.Contains(searchQuery)));
+                i.Product != null && i.Product.ProductName.Contains(searchQuery) ||
+                (i.Product != null && i.Product.Barcode != null && i.Product.Barcode.Contains(searchQuery)));
         }
 
         // Filter by status
@@ -64,10 +64,7 @@ public class InventoryRepository(AppDbContext context)
             switch (status.ToLower())
             {
                 case "in_stock":
-                    query = query.Where(i => i.Quantity > 10);
-                    break;
-                case "low_stock":
-                    query = query.Where(i => i.Quantity > 0 && i.Quantity <= 10);
+                    query = query.Where(i => i.Quantity > 0);
                     break;
                 case "out_of_stock":
                     query = query.Where(i => i.Quantity == 0);
@@ -111,17 +108,16 @@ public class InventoryRepository(AppDbContext context)
         await _context.SaveChangesAsync();
     }
 
-    public async Task<(int InStock, int LowStock, int OutOfStock, decimal TotalValue)> GetStatsAsync()
+    public async Task<(int InStock, int OutOfStock, decimal TotalValue)> GetStatsAsync()
     {
         var inventories = await _context.Inventory
             .Include(i => i.Product)
             .ToListAsync();
 
-        var inStock = inventories.Count(i => i.Quantity > 10);
-        var lowStock = inventories.Count(i => i.Quantity > 0 && i.Quantity <= 10);
+        var inStock = inventories.Count(i => i.Quantity > 0);
         var outOfStock = inventories.Count(i => i.Quantity == 0);
-        var totalValue = inventories.Sum(i => (i.Product?.Price ?? 0) * i.Quantity);
+        var totalValue = inventories.Sum(i => i.CostPrice * i.Quantity);
 
-        return (inStock, lowStock, outOfStock, totalValue);
+        return (inStock, outOfStock, totalValue);
     }
 }
