@@ -35,7 +35,6 @@
                         <option value="">Vai trò</option>
                         <option value="ADMIN">Admin</option>
                         <option value="STAFF">Staff</option>
-                        <option value="CUSTOMER">Customer</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -233,7 +232,6 @@
                         <select class="form-select" @bind="formData.Role">
                             <option value="STAFF">Staff</option>
                             <option value="ADMIN">Admin</option>
-                            <option value="CUSTOMER">Customer</option>
                         </select>
                     </div>
                     @if (isEditMode)
@@ -631,7 +629,6 @@
     {
         "ADMIN" => "bg-primary",
         "STAFF" => "bg-info",
-        "CUSTOMER" => "bg-secondary",
         _ => "bg-secondary"
     };
 

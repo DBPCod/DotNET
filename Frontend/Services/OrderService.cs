@@ -22,7 +22,8 @@ public class OrderService
         string? q = null,  // Tìm kiếm theo mã đơn hàng
         string? status = null,  // Lọc theo trạng thái (e.g., "PENDING", "PROCESSING", "DELIVERED", "CANCELLED")
         DateTime? fromDate = null,  // Lọc từ ngày
-        DateTime? toDate = null)   // Lọc đến ngày
+        DateTime? toDate = null,   // Lọc đến ngày
+        Guid? customerId = null)   // Lọc theo customer ID
     {
         try
         {
@@ -40,6 +41,9 @@ public class OrderService
             
             if (toDate.HasValue)
                 query += $"&toDate={toDate.Value:yyyy-MM-dd}";
+            
+            if (customerId.HasValue)
+                query += $"&customerId={customerId.Value}";
 
             var response = await _httpClient.GetFromJsonAsync<ApiResponse<OrderListResponse>>(query);
             Console.WriteLine("Fetched orders successfully.");
@@ -90,23 +94,23 @@ public class OrderService
     }
 
     // GET - Lấy order theo ID
-    // public async Task<ApiResponse<OrderDetailResponse>?> GetOrderByIdAsync(Guid id)
-    // {
-    //     try
-    //     {
-    //         var response = await _httpClient.GetFromJsonAsync<ApiResponse<OrderDetailResponse>>($"{BaseUrl}/{id}");
-    //         return response;
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Console.WriteLine($"Error getting order: {ex.Message}");
-    //         return new ApiResponse<OrderDetailResponse> 
-    //         { 
-    //             Message = ex.Message, 
-    //             StatusCode = 500 
-    //         };
-    //     }
-    // }
+    public async Task<ApiResponse<OrderDetailResponse>?> GetOrderByIdAsync(Guid id)
+    {
+        try
+        {
+            var response = await _httpClient.GetFromJsonAsync<ApiResponse<OrderDetailResponse>>($"{BaseUrl}/{id}");
+            return response;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting order: {ex.Message}");
+            return new ApiResponse<OrderDetailResponse> 
+            { 
+                Message = ex.Message, 
+                StatusCode = 500 
+            };
+        }
+    }
 
     // PATCH - Cập nhật trạng thái order
     public async Task<ApiResponse<UpdateOrderStatusDto>?> UpdateOrderStatusAsync(Guid id, UpdateStatusOrderRequest request)

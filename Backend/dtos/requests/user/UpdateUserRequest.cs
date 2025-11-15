@@ -17,7 +17,7 @@ public class UpdateUserRequest
     [StringLength(255, ErrorMessage = "Full name cannot exceed 255 characters")]
     public string? FullName { get; set; }
 
-    [RegularExpression("^(ADMIN|STAFF|CUSTOMER)$", ErrorMessage = "Role must be ADMIN, STAFF, or CUSTOMER")]
+    [RegularExpression("^(ADMIN|STAFF)$", ErrorMessage = "Role must be ADMIN or STAFF only")]
     public string? Role { get; set; }
 
     [RegularExpression("^(ACTIVE|INACTIVE)$", ErrorMessage = "Status must be ACTIVE or INACTIVE")]

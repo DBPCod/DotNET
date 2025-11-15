@@ -1,5 +1,6 @@
 @page "/admin/orders"
 @using Frontend.Models.Customer
+@using Frontend.Models.Inventory.Responses
 @using Frontend.Models.Product
 @using Frontend.Models.Promotions
 @using Frontend.Services
@@ -10,7 +11,7 @@
 @using Frontend.Models.OrderItem.Responses
 @using Frontend.Models.Order
 @using Frontend.Models.OrderItem
-@using Frontend.Models.Product.Responses // Giả sử có ProductDto
+@using Frontend.Models.Product.Responses
 @using Frontend.Models.Promotions.Responses
 @* @using Microsoft.AspNetCore.Components.Authorization *@
 @using System.ComponentModel.DataAnnotations
@@ -19,12 +20,14 @@
 @using System.Text.Json
 @using System.Collections.Generic
 @using Backend.Dtos.Requests.Payment
+@using Frontend.Models.Inventory.Requests
 @inject OrderService OrderService
 @inject OrderItemService OrderItemService
 @inject CustomerService CustomerService
 @inject ProductService ProductService
 @inject PromotionService PromotionService
 @inject PaymentService PaymentService
+@inject InventoryService InventoryService
 @inject IJSRuntime JSRuntime
 @inject Blazored.Toast.Services.IToastService Toast // Giả sử dùng Blazored.Toast cho notification
 @layout AdminLayout
@@ -46,7 +49,6 @@
             </div>
         </div>
     </div>
-  
     <div class="page-filters">
         <div class="row">
             <div class="col-md-3">
@@ -63,10 +65,18 @@
             <div class="col-md-2">
                 <input type="date" class="form-control" @bind="FromDate" />
             </div>
+            <div class="col-md-1">
+                <select class="form-select" @bind="pageSize" @bind:after="HandlePageSizeChange" title="Số dòng mỗi trang">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                </select>
+            </div>
             <div class="col-md-2">
                 <input type="date" class="form-control" @bind="ToDate" />
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <button class="btn btn-outline-secondary me-2" @onclick="LoadOrders">Lọc</button>
                 <button class="btn btn-outline-primary" @onclick="ToggleAdvancedFilters">
                     <i class="bi bi-funnel"></i> Bộ lọc nâng cao
@@ -74,7 +84,6 @@
             </div>
         </div>
     </div>
-  
     <div class="page-content">
         <div class="card">
             <div class="card-body">
@@ -100,9 +109,6 @@
                         <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>
-                                        <input type="checkbox" class="form-check-input" @onchange="ToggleAllCheckboxes" />
-                                    </th>
                                     <th>Mã đơn hàng</th>
                                     <th>Khách hàng</th>
                                     <th>Tổng tiền</th>
@@ -117,7 +123,6 @@
                                     var customer = customerMap.GetValueOrDefault(order.CustomerId);
                                     var orderIdDisplay = !string.IsNullOrEmpty(order.Id) && order.Id.Length >= 8 ? order.Id.Substring(order.Id.Length - 8).ToUpper() : order.Id ?? "N/A";
                                     <tr>
-                                        <td><input type="checkbox" class="form-check-input" /></td>
                                         <td>
                                             <div class="fw-bold text-primary">#@orderIdDisplay</div>
                                         </td>
@@ -138,9 +143,6 @@
                                                 <button class="btn btn-sm btn-outline-warning" @onclick="@(() => UpdateStatusOrder(order.Id, order.Status))">
                                                     <i class="bi bi-arrow-clockwise"></i>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-info" @onclick="() => PrintOrder(order.Id)">
-                                                    <i class="bi bi-printer"></i>
-                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -148,26 +150,40 @@
                             </tbody>
                         </table>
                     </div>
-                }
-              
-                @if (pagination != null && orders.Any())
-                {
-                    <nav aria-label="Page navigation">
-                        <ul class="pagination justify-content-center">
-                            <li class="page-item @(pagination.HasPreviousPage ? "" : "disabled")">
-                                <a class="page-link" href="#" @onclick="@(async () => await NavigatePage(currentPage - 1))" @onclick:preventDefault="true">Trước</a>
-                            </li>
-                            @for (int i = 1; i <= pagination.TotalPages; i++)
-                            {
-                                <li class="page-item @(i == currentPage ? "active" : "")">
-                                    <a class="page-link" href="#" @onclick="@(async () => await NavigatePage(i))" @onclick:preventDefault="true">@i</a>
+                
+                    @if (pagination != null && pagination.TotalPages > 1)
+                    {
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center">
+                                <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                                    <a class="page-link" @onclick="@(async () => await NavigatePage(currentPage - 1))">Trước</a>
                                 </li>
-                            }
-                            <li class="page-item @(pagination.HasNextPage ? "" : "disabled")">
-                                <a class="page-link" href="#" @onclick="@(async () => await NavigatePage(currentPage + 1))" @onclick:preventDefault="true">Tiếp</a>
-                            </li>
-                        </ul>
-                    </nav>
+
+                                @for (int i = 1; i <= pagination.TotalPages; i++)
+                                {
+                                    var pageNum = i;
+                                    <li class="page-item @(currentPage == pageNum ? "active" : "")">
+                                        <a class="page-link" @onclick="@(async () => await NavigatePage(pageNum))">@pageNum</a>
+                                    </li>
+                                }
+
+                                <li class="page-item @(currentPage == pagination.TotalPages ? "disabled" : "")">
+                                    <a class="page-link" @onclick="@(async () => await NavigatePage(currentPage + 1))">Tiếp</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    }
+
+                    @if (pagination != null)
+                    {
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="text-muted">
+                                Hiển thị @((pagination.CurrentPage - 1) * pageSize + 1)
+                                đến @(Math.Min(pagination.CurrentPage * pageSize, pagination.TotalCount))
+                                trong tổng số @pagination.TotalCount đơn hàng
+                            </div>
+                        </div>
+                    }
                 }
             </div>
         </div>
@@ -212,6 +228,20 @@
                                     <span class="badge @(selectedOrderStatus == "pending" ? "bg-warning" : "bg-success")">@GetPaymentMethodDisplay()</span>
                                 </div>
                             </div>
+                            <!-- Thêm phần hiển thị mã khuyến mãi -->
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <label class="form-label fw-bold">Mã khuyến mãi:</label>
+                                    @if (!string.IsNullOrEmpty(selectedPromoCode))
+                                    {
+                                        <span class="badge bg-info">@selectedPromoCode</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Không áp dụng</span>
+                                    }
+                                </div>
+                            </div>
                             @if (selectedOrderStatus.ToLower() == "paid" && selectedPayment != null)
                             {
                                 <div class="row mb-3">
@@ -226,7 +256,7 @@
                                 <table class="table table-hover">
                                     <thead>
                                         <tr>
-                                            <th>Sản phẩm (ID)</th>
+                                            <th>Sản phẩm</th>
                                             <th>Số lượng</th>
                                             <th>Đơn giá</th>
                                             <th>Thành tiền</th>
@@ -237,7 +267,7 @@
                                         {
                                             <tr>
                                                 <td>
-                                                    <div class="fw-bold">@item.ProductId</div> <!-- Tạm hiển thị ID, sau có thể fetch tên product -->
+                                                    <div class="fw-bold">@GetProductName(item.ProductId)</div>
                                                 </td>
                                                 <td>@item.Quantity</td>
                                                 <td>@FormatCurrency(item.Price) VND</td>
@@ -558,16 +588,13 @@
         margin-left: auto;
         margin-right: auto;
     }
-  
     .page-header {
         margin-bottom: 2rem;
     }
-  
     .page-header h2 {
         margin-bottom: 0.5rem;
         color: #2c3e50;
     }
-  
     .page-filters {
         background: white;
         padding: 1.5rem;
@@ -575,19 +602,16 @@
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         margin-bottom: 2rem;
     }
-  
     .page-content .card {
         border: none;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-  
     .table th {
         background-color: #f8f9fa;
         border-top: none;
         font-weight: 600;
         color: #495057;
     }
-  
     .btn-group .btn {
         margin: 0 2px;
     }
@@ -664,6 +688,7 @@
     private PaginationInfo? pagination;
     private Dictionary<string, CustomerDetailResponse?> customerMap = new();
     private int currentPage = 1;
+    private int pageSize = 10;
     private string? searchTerm;
     private bool isLoading = true;
     private bool allCheckboxesSelected = false;
@@ -682,6 +707,7 @@
     private bool isLoadingOrderItems = false;
     private string selectedOrderStatus = string.Empty; // Thêm mới: Lưu trạng thái order
     private PaymentDto? selectedPayment; // Thêm mới: Lưu payment info
+    private string selectedPromoCode = string.Empty; // Thêm mới: Lưu mã khuyến mãi
     // New state for update status modal
     private bool showUpdateModal = false;
     private string? selectedOrderForUpdate;
@@ -713,6 +739,8 @@
     private string _selectedPromotionId = string.Empty;
     // Form model for create order
     private CreateOrderForm createOrderForm = new();
+    // Cache for product names
+    private Dictionary<string, string> _productNames = new();
     // Property cho SelectedPromotionId với logic trong setter
     public string SelectedPromotionId
     {
@@ -724,7 +752,22 @@
                 _selectedPromotionId = value;
                 Console.WriteLine($"Promotion changed to: {value}"); // Log để debug
                 var promo = promotions.FirstOrDefault(p => p.Id.ToString() == value); // An toàn với Guid/String
-                var discount = promo?.DiscountValue ?? 0;
+                var discount = 0m;
+                if (promo != null)
+                {
+                    switch (promo.DiscountType)
+                    {
+                        case DiscountType.Percent:
+                            discount = subTotal * (promo.DiscountValue / 100m);
+                            break;
+                        case DiscountType.Fixed:
+                            discount = promo.DiscountValue;
+                            break;
+                        case DiscountType.FreeShipping:
+                            discount = 0m; // Không giảm giá, chỉ miễn phí ship nếu cần xử lý thêm
+                            break;
+                    }
+                }
                 createOrderForm.DiscountAmount = discount;
                 Console.WriteLine($"Discount updated to: {discount}"); // Log giá trị giảm
                 UpdateTotals();
@@ -798,6 +841,11 @@
         StateHasChanged();
         await LoadOrders();
     }
+    private async Task HandlePageSizeChange()
+    {
+        currentPage = 1;
+        await LoadOrders();
+    }
     // Existing methods: LoadOrders, etc. (giữ nguyên từ code trước)
     private async Task LoadOrders()
     {
@@ -808,7 +856,7 @@
         {
             var apiResponse = await OrderService.GetOrdersAsync(
                 page: currentPage,
-                pageSize: 10,
+                pageSize: pageSize,
                 q: searchTerm,
                 status: StatusFilter,
                 fromDate: FromDate,
@@ -981,7 +1029,9 @@
         showModal = true;
         isLoadingOrderItems = true;
         selectedPayment = null; // Reset payment
+        selectedPromoCode = string.Empty; // Reset promo code
         StateHasChanged();
+        
         try
         {
             Console.WriteLine($"Calling API to fetch order items for OrderId: {selectedOrderId}");
@@ -999,7 +1049,24 @@
                 Console.WriteLine($"API returned non-200 status: {response?.StatusCode}. Message: {response?.Message}");
                 Toast.ShowWarning("Không thể tải chi tiết đơn hàng.");
             }
-  
+            // Thêm mới: Fetch chi tiết order để lấy promo code
+            var orderDetailResponse = await OrderService.GetOrderByIdAsync(selectedOrderId);
+            if (orderDetailResponse?.StatusCode == 200 && orderDetailResponse.Data != null)
+            {
+                Console.WriteLine(orderDetailResponse.Data.order.CustomerId + " HAHAH");
+                // Giả sử OrderDetailResponse.Data.order có PromoCode; nếu không, fetch từ PromotionService bằng PromoId
+                var promo = await PromotionService.GetPromotionByIdAsync(orderDetailResponse.Data.order.PromoId);
+                selectedPromoCode = promo.PromoCode ?? string.Empty;
+                if (string.IsNullOrEmpty(selectedPromoCode) && !string.IsNullOrEmpty(orderDetailResponse.Data.order.PromoId))
+                {
+                    var promoResponse = await PromotionService.GetPromotionByIdAsync(orderDetailResponse.Data.order.PromoId);
+                    if (promoResponse != null)
+                    {
+                        selectedPromoCode = promoResponse.PromoCode ?? string.Empty;
+                    }
+                }
+                Console.WriteLine($"Loaded promo code for order {selectedOrderId}: {selectedPromoCode}");
+            }
             // Thêm mới: Nếu status là "paid", tải payment
             if (selectedOrderStatus.ToLower() == "paid")
             {
@@ -1014,6 +1081,8 @@
                     Toast.ShowWarning("Không tìm thấy thông tin thanh toán.");
                 }
             }
+            // Load product names for order items
+            await LoadProductNamesForOrder();
         }
         catch (Exception ex)
         {
@@ -1027,6 +1096,32 @@
             isLoadingOrderItems = false;
             StateHasChanged();
         }
+    }
+    private async Task LoadProductNamesForOrder()
+    {
+        if (!orderItems.Any()) return;
+
+        var uniqueProductIds = orderItems.Select(i => i.ProductId).Distinct().ToList();
+        var tasks = uniqueProductIds.Select(id => ProductService.GetProductByIdAsync(id));
+        var responses = await Task.WhenAll(tasks);
+
+        for (int i = 0; i < uniqueProductIds.Count; i++)
+        {
+            var resp = responses[i];
+            if (resp?.Data != null)
+            {
+                _productNames[uniqueProductIds[i]] = resp.Data.Product.ProductName ?? uniqueProductIds[i];
+            }
+            else
+            {
+                _productNames[uniqueProductIds[i]] = uniqueProductIds[i];
+            }
+        }
+        StateHasChanged();
+    }
+    private string GetProductName(string productId)
+    {
+        return _productNames.TryGetValue(productId, out var name) ? name : productId;
     }
     private async Task NavigateOrderItemsPage(int page)
     {
@@ -1055,6 +1150,8 @@
                 orderItems = new();
                 orderPagination = null;
             }
+            // Reload product names after paginating
+            await LoadProductNamesForOrder();
         }
         catch (Exception ex)
         {
@@ -1076,6 +1173,8 @@
         isLoadingOrderItems = false;
         selectedOrderStatus = string.Empty; // Reset
         selectedPayment = null; // Reset
+        selectedPromoCode = string.Empty; // Reset promo code
+        _productNames.Clear(); // Clear cache
         StateHasChanged();
     }
     // New methods for update status modal
@@ -1121,7 +1220,7 @@
                 Toast.ShowError(updateErrorMessage);
                 return;
             }
-            // Bước 2: Nếu trạng thái mới là "paid", tạo payment
+            // Bước 2: Nếu trạng thái mới là "paid", tạo payment và trừ tồn kho
             if (currentStatus == "paid")
             {
                 // Tìm order để lấy TotalAmount
@@ -1146,8 +1245,18 @@
                 }
                 else
                 {
-                    var successMessage = $"Cập nhật trạng thái thành công! Phương thức thanh toán: {(selectedPaymentMethod == "cash" ? "Tiền mặt" : "Thẻ")}";
-                    Toast.ShowSuccess(successMessage);
+                    // Bước 3: Trừ tồn kho cho các sản phẩm trong đơn hàng
+                    var inventoryAdjustmentSuccess = await AdjustInventoryForOrder(orderId);
+                    if (inventoryAdjustmentSuccess)
+                    {
+                        var successMessage = $"Cập nhật trạng thái thành công! Phương thức thanh toán: {(selectedPaymentMethod == "cash" ? "Tiền mặt" : "Thẻ")}. Đã trừ tồn kho.";
+                        Toast.ShowSuccess(successMessage);
+                    }
+                    else
+                    {
+                        var warningMessage = $"Cập nhật trạng thái và thanh toán thành công, nhưng có lỗi khi trừ tồn kho. Vui lòng kiểm tra thủ công.";
+                        Toast.ShowWarning(warningMessage);
+                    }
                 }
             }
             else
@@ -1169,6 +1278,79 @@
         {
             isUpdatingStatus = false;
             StateHasChanged();
+        }
+    }
+    // New method: Adjust inventory for all order items
+    private async Task<bool> AdjustInventoryForOrder(Guid orderId)
+    {
+        try
+        {
+            // Fetch all order items (use large pageSize to get all)
+            var itemsResponse = await OrderItemService.GetOrderItemsByOrderIdAsync(orderId, page: 1, pageSize: int.MaxValue);
+            if (itemsResponse?.StatusCode != 200 || itemsResponse.Data?.orderItems == null)
+            {
+                Console.WriteLine($"Failed to fetch order items for inventory adjustment: {itemsResponse?.Message}");
+                return false;
+            }
+            var orderItemsToAdjust = itemsResponse.Data.orderItems;
+            var updateTasks = new List<Task<ApiResponse<InventoryDetailResponse>?>>();
+            foreach (var item in orderItemsToAdjust)
+            {
+                if (item.Quantity <= 0) continue; // Skip invalid quantities
+                // Bước 1: Lấy số lượng hiện tại của sản phẩm
+                var currentInventoryResponse = await InventoryService.GetInventoryByProductIdAsync(item.ProductId);
+                if (currentInventoryResponse?.StatusCode != 200 || currentInventoryResponse.Data == null)
+                {
+                    Console.WriteLine($"Failed to fetch current inventory for product {item.ProductId}: {currentInventoryResponse?.Message}");
+                    Toast.ShowWarning($"Không thể lấy tồn kho hiện tại cho sản phẩm {item.ProductId}. Bỏ qua.");
+                    continue;
+                }
+                var currentInventory = currentInventoryResponse.Data;
+                var currentQuantity = currentInventory.Inventory.Quantity;
+                var currentProductId = currentInventory.Inventory.ProductId;
+                var currentCostPrice = currentInventory.Inventory.CostPrice;
+                // Bước 2: Kiểm tra số lượng trong hóa đơn và trừ
+                var orderQuantity = item.Quantity;
+                if (currentQuantity < orderQuantity)
+                {
+                    Console.WriteLine($"Insufficient stock for product {item.ProductId}: Current {currentQuantity}, Required {orderQuantity}");
+                    Toast.ShowWarning($"Sản phẩm {item.ProductId} không đủ tồn kho (hiện có {currentQuantity}, cần {orderQuantity}). Không thể trừ.");
+                    return false; // Fail if any item insufficient
+                }
+                var newQuantity = currentQuantity - orderQuantity;
+                Console.WriteLine(currentProductId + " productId");
+                // Bước 3: Tạo request update với số lượng mới và gửi xuống service
+                UpdateInventoryRequest? updateRequest = new UpdateInventoryRequest
+                {
+                    ProductId = currentProductId,
+                    CostPrice = currentCostPrice,
+                    Quantity = newQuantity
+                    // Giả sử UpdateInventoryRequest có các field khác nếu cần, như Price, Status, etc. - chỉ set Quantity ở đây
+                };
+                Console.WriteLine(updateRequest.ProductId + " Line1");
+                // Gọi update với inventory Id
+                var inventoryId = currentInventory.Inventory.Id.ToString(); // Giả sử InventoryDetailResponse có Id là Guid
+                updateTasks.Add(InventoryService.UpdateInventoryAsync(inventoryId, updateRequest));
+            }
+            if (!updateTasks.Any())
+            {
+                Console.WriteLine("No valid order items to adjust inventory.");
+                return true; // No items, consider success
+            }
+            var updateResults = await Task.WhenAll(updateTasks);
+            var allSuccess = updateResults.All(r => r?.StatusCode == 200 || r?.StatusCode == 201);
+            if (!allSuccess)
+            {
+                var failedItems = updateResults.Where(r => r?.StatusCode != 200 && r?.StatusCode != 201).Select(r => r?.Message).ToList();
+                Console.WriteLine($"Inventory update failed for some items: {string.Join(", ", failedItems ?? new List<string>())}");
+            }
+            return allSuccess;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error adjusting inventory for order {orderId}: {ex.Message}");
+            Toast.ShowError($"Lỗi khi trừ tồn kho: {ex.Message}");
+            return false;
         }
     }
     // New methods for create order (UI demo - mock)
@@ -1426,7 +1608,7 @@
                 ProductId = item.ProductId,
                 Quantity = item.Quantity // Đảm bảo >0 từ validation
             }).ToList();
-      
+    
             var itemsRequest = new CreateOrderItemsRequest
             {
                 OrderId = newOrderId,
