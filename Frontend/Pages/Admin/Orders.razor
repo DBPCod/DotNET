@@ -737,7 +737,22 @@
                 _selectedPromotionId = value;
                 Console.WriteLine($"Promotion changed to: {value}"); // Log để debug
                 var promo = promotions.FirstOrDefault(p => p.Id.ToString() == value); // An toàn với Guid/String
-                var discount = promo?.DiscountValue ?? 0;
+                var discount = 0m;
+                if (promo != null)
+                {
+                    switch (promo.DiscountType)
+                    {
+                        case DiscountType.Percent:
+                            discount = subTotal * (promo.DiscountValue / 100m);
+                            break;
+                        case DiscountType.Fixed:
+                            discount = promo.DiscountValue;
+                            break;
+                        case DiscountType.FreeShipping:
+                            discount = 0m; // Không giảm giá, chỉ miễn phí ship nếu cần xử lý thêm
+                            break;
+                    }
+                }
                 createOrderForm.DiscountAmount = discount;
                 Console.WriteLine($"Discount updated to: {discount}"); // Log giá trị giảm
                 UpdateTotals();
