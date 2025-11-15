@@ -200,6 +200,7 @@ public class InventoryService
         return status?.ToUpper() switch
         {
             "IN_STOCK" => "Còn hàng",
+            "OUT_OF_STOCK" => "Hết hàng",
             _ => "Không xác định"
         };
     }
