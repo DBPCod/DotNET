@@ -94,23 +94,23 @@ public class OrderService
     }
 
     // GET - Lấy order theo ID
-    // public async Task<ApiResponse<OrderDetailResponse>?> GetOrderByIdAsync(Guid id)
-    // {
-    //     try
-    //     {
-    //         var response = await _httpClient.GetFromJsonAsync<ApiResponse<OrderDetailResponse>>($"{BaseUrl}/{id}");
-    //         return response;
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Console.WriteLine($"Error getting order: {ex.Message}");
-    //         return new ApiResponse<OrderDetailResponse> 
-    //         { 
-    //             Message = ex.Message, 
-    //             StatusCode = 500 
-    //         };
-    //     }
-    // }
+    public async Task<ApiResponse<OrderDetailResponse>?> GetOrderByIdAsync(Guid id)
+    {
+        try
+        {
+            var response = await _httpClient.GetFromJsonAsync<ApiResponse<OrderDetailResponse>>($"{BaseUrl}/{id}");
+            return response;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting order: {ex.Message}");
+            return new ApiResponse<OrderDetailResponse> 
+            { 
+                Message = ex.Message, 
+                StatusCode = 500 
+            };
+        }
+    }
 
     // PATCH - Cập nhật trạng thái order
     public async Task<ApiResponse<UpdateOrderStatusDto>?> UpdateOrderStatusAsync(Guid id, UpdateStatusOrderRequest request)
