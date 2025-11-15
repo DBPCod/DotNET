@@ -99,9 +99,31 @@
         [HttpGet("{id}")]
         public async Task<IActionResult> GetOrderById(Guid id)
         {
-            var order = await _orderService.HandleGetOrderById(id);
-            return Ok(order);
+            var response = new Response();
+
+            try
+            {
+                var order = await _orderService.HandleGetOrderById(id);
+                var orderDto = OrderMapper.MapEntityToDto(order);
+
+                response.Message = "Order retrieved successfully";
+                response.StatusCode = 200;
+                response.Data.Order = orderDto ; 
+            }
+            catch (ExceptionCustom ex)
+            {
+                response.Message = ex.Message;
+                response.StatusCode = ex.StatusCode;
+            }
+            catch (Exception ex)
+            {
+                response.Message = ex.Message;
+                response.StatusCode = 500;
+            }
+
+            return StatusCode(response.StatusCode, response);
         }
+
 
         [HttpPost]
         public async Task<IActionResult> HandleCreateOrder([FromBody] CreateOrderRequest order)
