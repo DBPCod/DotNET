@@ -10,4 +10,5 @@ public class CategoryDto
     // Các field dưới đây có thể không có từ backend; dùng tạm cho UI nếu cần
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
+    public int ProductCount { get; set; } = 0;
 }
