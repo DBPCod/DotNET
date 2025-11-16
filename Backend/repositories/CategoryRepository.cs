@@ -25,6 +25,15 @@ public class CategoryRepository(AppDbContext context)
             .ToListAsync();
     }
 
+    public async Task<Dictionary<Guid, int>> GetProductCountsAsync(IEnumerable<Guid> categoryIds)
+    {
+        return await _context.Product
+            .Where(p => categoryIds.Contains(p.CategoryId!.Value) && p.Status == true)
+            .GroupBy(p => p.CategoryId!.Value)
+            .Select(g => new { CategoryId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.CategoryId, x => x.Count);
+    }
+
     public async Task<int> GetTotalCountAsync(string? q = null)
     {
         var query = _context.Category.AsQueryable();

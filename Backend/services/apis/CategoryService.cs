@@ -17,8 +17,12 @@ public class CategoryService(CategoryRepository categoryRepository)
         var totalCount = await _categoryRepository.GetTotalCountAsync(q);
         var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
 
+        // Get product counts for all categories
+        var categoryIds = list.Select(c => c.Id).ToList();
+        var productCounts = await _categoryRepository.GetProductCountsAsync(categoryIds);
+
         var response = new Response { StatusCode = 200, Message = "OK" };
-        response.Data.Categories = CategoryMapper.MapListEntityToListDto(list);
+        response.Data.Categories = CategoryMapper.MapListEntityToListDto(list, productCounts);
         response.Data.Pagination = new PaginationInfo
         {
             CurrentPage = page,
@@ -42,9 +46,13 @@ public class CategoryService(CategoryRepository categoryRepository)
             return response;
         }
 
+        // Get product count for this category
+        var productCounts = await _categoryRepository.GetProductCountsAsync(new[] { id });
+        var productCount = productCounts.GetValueOrDefault(id, 0);
+
         response.StatusCode = 200;
         response.Message = "OK";
-        response.Data.Category = CategoryMapper.MapEntityToDto(entity);
+        response.Data.Category = CategoryMapper.MapEntityToDto(entity, productCount);
         return response;
     }
 

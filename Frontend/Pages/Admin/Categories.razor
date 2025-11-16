@@ -85,7 +85,7 @@
                                             <tr>
                                                 <td>@c.CategoryName</td>
                                                 <td class="description-cell">@(string.IsNullOrWhiteSpace(c.Description) ? "-" : c.Description)</td>
-                                                <td>-</td>
+                                                <td><span class="badge bg-info">@c.ProductCount</span></td>
                                                 <td>
                                                     <span class="badge @GetStatusBadgeClass(c.Status)">@GetStatusDisplay(c.Status)</span>
                                                 </td>

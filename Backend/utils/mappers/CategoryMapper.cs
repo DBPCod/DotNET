@@ -2,7 +2,7 @@ namespace Backend.Utils.Mappers;
 
 public static class CategoryMapper
 {
-    public static CategoryDto MapEntityToDto(Category entity)
+    public static CategoryDto MapEntityToDto(Category entity, int productCount = 0)
     {
         if (entity == null) return null!;
 
@@ -12,14 +12,15 @@ public static class CategoryMapper
             CategoryName = entity.CategoryName,
             Description = entity.Description,
             Status = ((int)entity.Status).ToString(),  // Convert to "0" or "1"
+            ProductCount = productCount
         };
     }
 
-    public static List<CategoryDto> MapListEntityToListDto(IEnumerable<Category> entities)
+    public static List<CategoryDto> MapListEntityToListDto(IEnumerable<Category> entities, Dictionary<Guid, int>? productCounts = null)
     {
         return [.. entities
                 .Where(c => c != null)
-                .Select(MapEntityToDto)];
+                .Select(e => MapEntityToDto(e, productCounts?.GetValueOrDefault(e.Id, 0) ?? 0))];
     }
 
     public static Category MapDtoToEntity(CategoryDto dto)
