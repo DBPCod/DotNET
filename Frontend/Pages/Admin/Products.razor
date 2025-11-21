@@ -279,6 +279,7 @@
                         <InputFile id="productImageInput" class="form-control" accept="image/*" OnChange="HandleImageUpload" />
                         @if (!string.IsNullOrEmpty(imagePreview))
                         {
+                            Console.WriteLine(imagePreview + "haha");
                             <div class="mt-2 text-center">
                                 <img src="@imagePreview" alt="Preview" class="img-thumbnail" style="max-width: 200px; max-height: 200px;" />
                                 <button type="button" class="btn btn-sm btn-danger d-block mt-2" @onclick="ClearImage">
@@ -540,7 +541,9 @@
             SupplierId = product.SupplierId,
             Status = product.Status
         };
-        imagePreview = product.ImagePath ?? "";
+        imagePreview = !string.IsNullOrEmpty(product.ImagePath) 
+        ? $"http://localhost:4040{product.ImagePath}"
+        : "";
         errorMessage = "";
         showModal = true;
     }
