@@ -1,4 +1,6 @@
 @page "/admin-access"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
 
 <div class="admin-access-page">
     <div class="container">
@@ -128,3 +130,14 @@
         transform: translateY(-1px);
     }
 </style>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "token");
+        if (string.IsNullOrEmpty(token))
+        {
+            NavigationManager.NavigateTo("/auth/login?returnUrl=" + Uri.EscapeDataString(NavigationManager.Uri), replace: true);        
+        }
+    }
+}
