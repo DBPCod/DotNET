@@ -23,9 +23,10 @@ builder.Services.AddScoped(sp => {
     return client;
 });
 
-// Đăng ký UserService
+// Đăng ký services dùng chung
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<CartService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<CustomerService>();
 builder.Services.AddScoped<PromotionService>();

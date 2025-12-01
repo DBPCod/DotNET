@@ -1,18 +1,114 @@
 ﻿@inherits LayoutComponentBase
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+@using Frontend.Services
+@inject AuthService AuthService
+@inject CartService CartService
+@inject NavigationManager NavigationManager
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+<div class="user-layout">
+    <header class="user-header">
+        <div class="container-fluid user-header-inner">
+            <div class="user-brand" @onclick="@(() => NavigationManager.NavigateTo("/"))">
+                <span class="user-title">Spot247</span>
+            </div>
+
+            <nav class="user-nav">
+                <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
+                    Trang chủ
+                </NavLink>
+                <NavLink class="nav-link cart-nav-link" href="/cart">
+                    Giỏ hàng
+                    @if (cartItemCount > 0)
+                    {
+                        <span class="cart-badge">@cartItemCount</span>
+                    }
+                </NavLink>
+                <NavLink class="nav-link" href="/orders">
+                    Đặt hàng
+                </NavLink>
+                <NavLink class="nav-link" href="/bill">
+                    Thanh toán
+                </NavLink>
+            </nav>
+
+            <div class="user-auth-actions">
+                @if (AuthService.CurrentUser is null)
+                {
+                    <button class="btn btn-outline-light btn-sm" @onclick="NavigateToLogin">
+                        Đăng nhập
+                    </button>
+                }
+                else
+                {
+                    <span class="user-welcome">
+                        Xin chào, @(string.IsNullOrWhiteSpace(AuthService.CurrentUser.FullName)
+                            ? AuthService.CurrentUser.Username
+                            : AuthService.CurrentUser.FullName)
+                    </span>
+                    <button class="btn btn-outline-light btn-sm" @onclick="Logout">
+                        Đăng xuất
+                    </button>
+                }
+            </div>
         </div>
+    </header>
 
+    <main class="user-main">
         <article class="content px-4">
             @Body
         </article>
     </main>
+
+    <footer class="user-footer">
+        <div class="container user-footer-inner">
+            <div class="user-footer-left">
+                <div class="user-footer-brand">
+                    <span class="user-title">Spot247</span>
+                </div>
+                <p class="user-footer-text">
+                    Cửa hàng bán lẻ Spot247 - cung cấp sản phẩm tiêu dùng hằng ngày với giá tốt và giao hàng nhanh chóng.
+                </p>
+            </div>
+            <div class="user-footer-right">
+                <div class="user-footer-links">
+                    <span class="user-footer-label">Liên hệ</span>
+                    <span>Hotline: 0123 456 789</span>
+                    <span>Email: support@spot247.vn</span>
+                </div>
+            </div>
+        </div>
+        <div class="user-footer-bottom">
+            <span>© @DateTime.Now.Year Spot247. All rights reserved.</span>
+        </div>
+    </footer>
 </div>
 
+@code {
+    private int cartItemCount = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthService.InitializeAsync();
+        CartService.OnChange += UpdateCartCount;
+        UpdateCartCount();
+        StateHasChanged();
+    }
+
+    private void UpdateCartCount()
+    {
+        cartItemCount = CartService.GetTotalQuantity();
+        StateHasChanged();
+    }
+
+    private void NavigateToLogin()
+    {
+        NavigationManager.NavigateTo("/auth/login");
+    }
+
+    private async Task Logout()
+    {
+        await AuthService.LogoutAsync();
+        StateHasChanged();
+        NavigationManager.NavigateTo("/");
+    }
+}
 

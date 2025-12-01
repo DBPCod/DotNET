@@ -106,7 +106,7 @@
         await AuthService.InitializeAsync();
         if (AuthService.CurrentUser != null)
         {
-            Navigation.NavigateTo("/admin");
+            Navigation.NavigateTo("/");
             return;
         }
     }
