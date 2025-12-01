@@ -1,0 +1,129 @@
+@page "/cart"
+@using Frontend.Services
+@using Frontend.Models.Common
+@inject CartService CartService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Giỏ hàng</PageTitle>
+
+<div class="cart-page">
+    <h2>Giỏ hàng của bạn</h2>
+
+    @if (CartService.Items == null || !CartService.Items.Any())
+    {
+        <div class="alert alert-info mt-4">
+            Giỏ hàng đang trống. Hãy quay lại <a href="/">trang chủ</a> để chọn sản phẩm.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive mt-4">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Sản phẩm</th>
+                        <th class="text-end">Đơn giá</th>
+                        <th class="text-center">Số lượng</th>
+                        <th class="text-end">Thành tiền</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in CartService.Items)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    @if (!string.IsNullOrEmpty(item.ImagePath))
+                                    {
+                                        <img class="cart-item-image me-2" src="@GetImageUrl(item.ImagePath)" alt="@item.ProductName" />
+                                    }
+                                    <span>@item.ProductName</span>
+                                </div>
+                            </td>
+                            <td class="text-end">@item.UnitPrice.ToString("N0") VNĐ</td>
+                            <td class="text-center">
+                                <input type="number" min="1" class="form-control form-control-sm quantity-input"
+                                       value="@item.Quantity"
+                                       @onchange="(e => OnQuantityChanged(item.ProductId, e.Value?.ToString()))" />
+                            </td>
+                            <td class="text-end">@item.Total.ToString("N0") VNĐ</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-danger" @onclick="@(() => Remove(item.ProductId))">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="cart-summary mt-4 d-flex justify-content-between align-items-center">
+            <div>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="Clear">
+                    Xóa hết
+                </button>
+            </div>
+            <div class="text-end">
+                <div class="fw-semibold mb-2">
+                    Tổng tiền: <span class="text-danger">@CartService.GetTotal().ToString("N0") VNĐ</span>
+                </div>
+                <button class="btn btn-primary" @onclick="GoToOrder">
+                    Đặt hàng ngay
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        CartService.OnChange += StateHasChanged;
+    }
+
+    private void Remove(string productId) => CartService.Remove(productId);
+
+    private void Clear() => CartService.Clear();
+
+    private void GoToOrder() => NavigationManager.NavigateTo("/orders");
+
+    private void OnQuantityChanged(string productId, string? value)
+    {
+        if (int.TryParse(value, out var quantity))
+        {
+            CartService.UpdateQuantity(productId, quantity);
+        }
+    }
+
+    private string GetImageUrl(string imagePath)
+        => $"http://localhost:4040/{imagePath.TrimStart('/')}";
+}
+
+<style>
+    .cart-page h2 {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .cart-item-image {
+        width: 40px;
+        height: 40px;
+        object-fit: cover;
+        border-radius: 6px;
+    }
+
+    .quantity-input {
+        max-width: 80px;
+        margin: 0 auto;
+        text-align: center;
+    }
+
+    .cart-summary {
+        padding-top: 1rem;
+        border-top: 1px solid #e5e7eb;
+    }
+</style>
+
+

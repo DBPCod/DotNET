@@ -1,51 +1,116 @@
 ﻿@page "/"
+@using Frontend.Services
+@using Frontend.Models.Product
+@using Frontend.Models.Product.Responses
+@inject ProductService ProductService
+@inject CartService CartService
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
-<PageTitle>Cửa hàng bán lẻ - Home</PageTitle>
+<PageTitle>Spot247 - Cửa hàng bán lẻ</PageTitle>
 
-<div class="hero-section">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-6">
-                <div class="hero-content">
-                    <h1 class="hero-title">Cửa hàng bán lẻ</h1>
-                    <p class="hero-subtitle">Hệ thống quản lý cửa hàng bán lẻ hiện đại với đầy đủ các sản phẩm từ đồ uống, bánh kẹo, gia vị đến đồ gia dụng và mỹ phẩm</p>
-                    <div class="hero-actions">
-                        <a href="/admin-access" class="btn btn-primary btn-lg me-3">
-                            <i class="bi bi-shield-check"></i> Quản trị cửa hàng
-                        </a>
-                        <a href="/counter" class="btn btn-outline-primary btn-lg">
-                            <i class="bi bi-info-circle"></i> Tìm hiểu thêm
-                        </a>
+<section class="home-hero">
+    <div id="homeCarousel" class="carousel slide" data-bs-ride="carousel">
+        <div class="carousel-inner">
+            <div class="carousel-item active home-hero-slide home-hero-slide-1">
+                <div class="container h-100 d-flex flex-column justify-content-center">
+                    <div class="home-hero-content">
+                        <h1 class="home-hero-title">Spot247 - Cửa hàng tiện lợi mỗi ngày</h1>
+                        <p class="home-hero-text">
+                            Đặt mua nhanh đồ uống, bánh kẹo, gia vị, gia dụng... giao hàng tận nơi chỉ trong vài bước.
+                        </p>
+                        <button class="btn btn-light btn-lg" @onclick="ScrollToProducts">
+                            <i class="bi bi-bag-check"></i> Bắt đầu mua sắm
+                        </button>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-6">
-                <div class="hero-image">
-                    <div class="feature-cards">
-                        <div class="feature-card">
-                            <i class="bi bi-cup-hot"></i>
-                            <h4>Đồ uống</h4>
-                            <p>Coca Cola, Pepsi, Trà xanh, Cà phê...</p>
-                        </div>
-                        <div class="feature-card">
-                            <i class="bi bi-cake"></i>
-                            <h4>Bánh kẹo</h4>
-                            <p>Oreo, Chocopie, Kẹo, Socola...</p>
-                        </div>
-                        <div class="feature-card">
-                            <i class="bi bi-shop"></i>
-                            <h4>Gia vị</h4>
-                            <p>Nước mắm, Tương, Muối, Bột ngọt...</p>
-                        </div>
-                        <div class="feature-card">
-                            <i class="bi bi-house-gear"></i>
-                            <h4>Gia dụng</h4>
-                            <p>Nồi cơm, Ấm siêu tốc, Quạt máy...</p>
-                        </div>
+            <div class="carousel-item home-hero-slide home-hero-slide-2">
+                <div class="container h-100 d-flex flex-column justify-content-center">
+                    <div class="home-hero-content">
+                        <h2 class="home-hero-title">Ưu đãi mỗi ngày</h2>
+                        <p class="home-hero-text">
+                            Hàng chục sản phẩm khuyến mãi, hỗ trợ khách quen, phù hợp cho cửa hàng nhỏ và hộ gia đình.
+                        </p>
                     </div>
                 </div>
             </div>
         </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#homeCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#homeCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+        </button>
+    </div>
+</section>
+
+<div class="products-section" id="products">
+    <div class="container">
+        <div class="section-header d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h2 class="section-title">Sản phẩm nổi bật</h2>
+                <p class="section-subtitle mb-0">
+                    Chọn sản phẩm và thêm vào giỏ hàng để đặt mua.
+                </p>
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Đang tải sản phẩm...</span>
+                </div>
+            </div>
+        }
+        else if (loadError is not null)
+        {
+            <div class="alert alert-danger">
+                @loadError
+            </div>
+        }
+        else if (products is null || !products.Any())
+        {
+            <div class="alert alert-info">
+                Hiện chưa có sản phẩm nào.
+            </div>
+        }
+        else
+        {
+            <div class="row g-4">
+                @foreach (var product in products)
+                {
+                    <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                        <div class="product-card h-100 d-flex flex-column" id="@($"product-{product.Id}")">
+                            <div class="product-image-wrapper">
+                                @if (!string.IsNullOrEmpty(product.ImagePath))
+                                {
+                                    <img class="product-image" src="@GetImageUrl(product.ImagePath)" alt="@product.ProductName" />
+                                }
+                                else
+                                {
+                                    <div class="product-image product-image-placeholder">
+                                        <i class="bi bi-image"></i>
+                                    </div>
+                                }
+                            </div>
+                            <div class="product-body flex-grow-1 d-flex flex-column">
+                                <h5 class="product-name">@product.ProductName</h5>
+                                <p class="product-price">@ProductService.FormatPrice(product.Price)</p>
+                                <p class="product-unit text-muted mb-2">@product.Unit</p>
+                                <button class="btn btn-sm btn-primary mt-auto" @onclick="() => AddToCart(product, product.Id)">
+                                    <i class="bi bi-cart-plus"></i> Thêm vào giỏ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
     </div>
 </div>
 
@@ -80,84 +145,190 @@
     </div>
 </div>
 
+@code {
+    private List<ProductDto>? products;
+    private bool isLoading = true;
+    private string? loadError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthService.InitializeAsync();
+        await LoadProductsAsync();
+    }
+
+    private async Task LoadProductsAsync()
+    {
+        try
+        {
+            isLoading = true;
+            loadError = null;
+
+            // Lấy tất cả sản phẩm đang hoạt động, bỏ giới hạn 20
+            var response = await ProductService.GetProductsAsync(page: 1, pageSize: 1000, status: true);
+            if (response?.StatusCode == 200 && response.Data is not null)
+            {
+                products = response.Data.Products;
+            }
+            else
+            {
+                loadError = response?.Message ?? "Không thể tải danh sách sản phẩm.";
+            }
+        }
+        catch (Exception ex)
+        {
+            loadError = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task AddToCart(ProductDto product, string productId)
+    {
+        var elementId = $"product-{productId}";
+        CartService.AddToCart(product);
+        
+        // Tạo hiệu ứng bay vào giỏ hàng
+        await AnimateToCart(elementId);
+        
+        // Cập nhật UI
+        StateHasChanged();
+    }
+
+    private async Task AnimateToCart(string elementId)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("animateProductToCart", elementId);
+        }
+        catch
+        {
+            // Ignore JS errors
+        }
+    }
+
+    private string GetImageUrl(string imagePath)
+        => $"http://localhost:4040/{imagePath.TrimStart('/')}";
+
+    private void ScrollToProducts()
+    {
+        NavigationManager.NavigateTo("#products");
+    }
+}
+
 <style>
-    .hero-section {
-        min-height: 80vh;
+    .home-hero {
+        height: 260px;
+        margin-bottom: 1.5rem;
+    }
+
+    .home-hero .carousel,
+    .home-hero .carousel-inner,
+    .home-hero .carousel-item,
+    .home-hero-slide {
+        height: 100%;
+    }
+
+    .home-hero-slide-1 {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        display: flex;
-        align-items: center;
-        padding: 4rem 0;
+        color: #ffffff;
     }
-    
-    .hero-content {
-        text-align: left;
+
+    .home-hero-slide-2 {
+        background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+        color: #ffffff;
     }
-    
-    .hero-title {
-        font-size: 3rem;
+
+    .home-hero-title {
+        font-size: 1.8rem;
         font-weight: 700;
+        margin-bottom: 0.75rem;
+    }
+
+    .home-hero-text {
+        max-width: 520px;
+        font-size: 0.98rem;
         margin-bottom: 1rem;
-        color: white;
+        opacity: 0.95;
+    }
+
+    .home-hero-content {
+        max-width: 520px;
+        margin-left: 7.5rem; /* đẩy nội dung vào trong một chút để tránh nút prev */
     }
     
-    .hero-subtitle {
-        font-size: 1.25rem;
-        margin-bottom: 2rem;
-        color: rgba(255, 255, 255, 0.9);
+    .products-section {
+        padding: 3rem 0;
+        background-color: #ffffff;
     }
-    
-    .hero-actions .btn {
+
+    .section-title {
+        font-size: 1.5rem;
         font-weight: 600;
-        padding: 0.75rem 2rem;
+        color: #1f2933;
     }
-    
-    .hero-image {
-        display: flex;
-        justify-content: center;
-        align-items: center;
+
+    .section-subtitle {
+        color: #6b7280;
+        font-size: 0.95rem;
     }
-    
-    .feature-cards {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1.5rem;
-        max-width: 500px;
-    }
-    
-    .feature-card {
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
+
+    .product-card {
+        background: #ffffff;
         border-radius: 12px;
-        padding: 1.5rem;
-        text-align: center;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        transition: transform 0.3s ease;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+        overflow: hidden;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    
-    .feature-card:hover {
-        transform: translateY(-5px);
+
+    .product-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
     }
-    
-    .feature-card i {
+
+    .product-image-wrapper {
+        height: 180px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .product-image {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+
+    .product-image-placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
         font-size: 2rem;
-        color: #e74c3c;
-        margin-bottom: 1rem;
+        color: #9ca3af;
     }
-    
-    .feature-card h4 {
-        font-size: 1.1rem;
+
+    .product-body {
+        padding: 1rem;
+    }
+
+    .product-name {
+        font-size: 1rem;
         font-weight: 600;
-        margin-bottom: 0.5rem;
-        color: white;
+        margin-bottom: 0.25rem;
+        color: #111827;
     }
-    
-    .feature-card p {
-        font-size: 0.9rem;
-        color: rgba(255, 255, 255, 0.8);
-        margin: 0;
+
+    .product-price {
+        font-weight: 700;
+        color: #ef4444;
+        margin-bottom: 0;
     }
-    
+
+    .product-unit {
+        font-size: 0.85rem;
+    }
+
     .stats-section {
         padding: 4rem 0;
         background-color: #f8f9fa;

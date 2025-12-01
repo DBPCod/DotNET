@@ -1,0 +1,20 @@
+-- 1. Gán ảnh cho tất cả sản phẩm có file .jpg trùng với tên
+UPDATE products
+SET image_path = CONCAT('/uploads/products/', product_name, '.jpg')
+WHERE image_path IS NULL
+  AND product_name NOT IN (
+    'Kem đánh răng P/S',
+    'Trà sữa đóng chai'
+  );
+
+-- 2. Trường hợp đặc biệt: Kem đánh răng P/S -> file "Kem đánh răng PS.jpg"
+UPDATE products
+SET image_path = '/uploads/products/Kem đánh răng PS.jpg'
+WHERE image_path IS NULL
+  AND product_name = 'Kem đánh răng P/S';
+
+-- 3. Trường hợp đặc biệt: Trà sữa đóng chai -> file .png
+UPDATE products
+SET image_path = '/uploads/products/trà sữa đóng chai.png'
+WHERE image_path IS NULL
+  AND product_name = 'Trà sữa đóng chai';

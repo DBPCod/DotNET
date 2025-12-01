@@ -1,0 +1,97 @@
+@page "/orders"
+@using Frontend.Services
+@inject CartService CartService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Đặt hàng</PageTitle>
+
+<div class="order-page">
+    <h2>Thông tin đơn hàng</h2>
+
+    @if (CartService.Items == null || !CartService.Items.Any())
+    {
+        <div class="alert alert-info mt-4">
+            Giỏ hàng đang trống. Vui lòng quay lại <a href="/">trang chủ</a> để chọn sản phẩm.
+        </div>
+    }
+    else
+    {
+        <div class="row mt-4 g-4">
+            <div class="col-md-7">
+                <h5>Sản phẩm</h5>
+                <ul class="list-group">
+                    @foreach (var item in CartService.Items)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold">@item.ProductName</div>
+                                <small class="text-muted">Số lượng: @item.Quantity</small>
+                            </div>
+                            <span>@item.Total.ToString("N0") VNĐ</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+
+            <div class="col-md-5">
+                <h5>Thông tin khách hàng (demo)</h5>
+                <div class="mb-3">
+                    <label class="form-label">Họ và tên</label>
+                    <input class="form-control" placeholder="Nhập họ tên của bạn" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Số điện thoại</label>
+                    <input class="form-control" placeholder="Nhập số điện thoại" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Địa chỉ giao hàng</label>
+                    <textarea class="form-control" rows="3" placeholder="Nhập địa chỉ cụ thể"></textarea>
+                </div>
+
+                <div class="order-summary">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Tổng tiền hàng</span>
+                        <span>@CartService.GetTotal().ToString("N0") VNĐ</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Phí vận chuyển</span>
+                        <span>0 VNĐ</span>
+                    </div>
+                    <div class="d-flex justify-content-between fw-semibold border-top pt-2">
+                        <span>Thành tiền</span>
+                        <span class="text-danger">@CartService.GetTotal().ToString("N0") VNĐ</span>
+                    </div>
+
+                    <button class="btn btn-primary w-100 mt-3" @onclick="ConfirmOrder">
+                        Xác nhận đặt hàng
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private void ConfirmOrder()
+    {
+        // Ở đây có thể gọi OrderService để tạo đơn hàng thực tế.
+        // Hiện tại chỉ demo flow giao diện.
+        NavigationManager.NavigateTo("/bill");
+    }
+}
+
+<style>
+    .order-page h2 {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .order-summary {
+        padding: 1rem;
+        border-radius: 8px;
+        background-color: #f9fafb;
+        border: 1px solid #e5e7eb;
+    }
+</style>
+
+
