@@ -87,6 +87,62 @@
                         </EditForm>
                     </div>
                 </div>
+
+                <!-- Form đổi mật khẩu -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Đổi mật khẩu</h5>
+                    </div>
+                    <div class="card-body">
+                        <EditForm Model="@changePasswordForm" OnValidSubmit="@HandleChangePassword">
+                            <DataAnnotationsValidator />
+                            
+                            @if (!string.IsNullOrEmpty(passwordErrorMessage))
+                            {
+                                <div class="alert alert-danger">
+                                    @passwordErrorMessage
+                                </div>
+                            }
+
+                            <div class="mb-3">
+                                <label class="form-label" for="oldPassword">Mật khẩu hiện tại</label>
+                                <InputText id="oldPassword" type="password" class="form-control" @bind-Value="changePasswordForm.OldPassword" />
+                                <ValidationMessage For="@(() => changePasswordForm.OldPassword)" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="newPassword">Mật khẩu mới</label>
+                                <InputText id="newPassword" type="password" class="form-control" @bind-Value="changePasswordForm.NewPassword" />
+                                <ValidationMessage For="@(() => changePasswordForm.NewPassword)" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="confirmPassword">Xác nhận mật khẩu mới</label>
+                                <InputText id="confirmPassword" type="password" class="form-control" @bind-Value="changePasswordForm.ConfirmPassword" />
+                                <ValidationMessage For="@(() => changePasswordForm.ConfirmPassword)" />
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary" disabled="@isChangingPassword">
+                                    @if (isChangingPassword)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                        <span>Đang đổi...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-key me-2"></i>
+                                        <span>Đổi mật khẩu</span>
+                                    }
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" @onclick="ResetPasswordForm" disabled="@isChangingPassword">
+                                    <i class="bi bi-arrow-counterclockwise me-2"></i>
+                                    Đặt lại
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
             </div>
 
             <div class="col-lg-4">
@@ -128,9 +184,12 @@
 
 @code {
     private ProfileForm profileForm = new();
+    private ChangePasswordForm changePasswordForm = new();
     private bool isLoading = false;
     private bool isSubmitting = false;
+    private bool isChangingPassword = false;
     private string errorMessage = "";
+    private string passwordErrorMessage = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -217,6 +276,76 @@
         StateHasChanged();
     }
 
+    private async Task HandleChangePassword()
+    {
+        if (AuthService.CurrentUser == null)
+        {
+            passwordErrorMessage = "Vui lòng đăng nhập để đổi mật khẩu";
+            return;
+        }
+
+        if (isChangingPassword) return;
+
+        // Validate passwords match
+        if (changePasswordForm.NewPassword != changePasswordForm.ConfirmPassword)
+        {
+            passwordErrorMessage = "Mật khẩu mới và xác nhận mật khẩu không khớp";
+            ToastService.ShowError(passwordErrorMessage);
+            return;
+        }
+
+        // Validate old password is different from new password
+        if (changePasswordForm.OldPassword == changePasswordForm.NewPassword)
+        {
+            passwordErrorMessage = "Mật khẩu mới phải khác mật khẩu hiện tại";
+            ToastService.ShowError(passwordErrorMessage);
+            return;
+        }
+
+        isChangingPassword = true;
+        passwordErrorMessage = "";
+        StateHasChanged();
+
+        try
+        {
+            var response = await AuthService.ChangePasswordAsync(
+                AuthService.CurrentUser.Email,
+                changePasswordForm.OldPassword,
+                changePasswordForm.NewPassword,
+                changePasswordForm.ConfirmPassword
+            );
+
+            if (response != null && response.StatusCode == 200)
+            {
+                ToastService.ShowSuccess("Đổi mật khẩu thành công!");
+                ResetPasswordForm();
+            }
+            else
+            {
+                passwordErrorMessage = response?.Message ?? "Có lỗi xảy ra khi đổi mật khẩu";
+                ToastService.ShowError(passwordErrorMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            passwordErrorMessage = $"Lỗi: {ex.Message}";
+            ToastService.ShowError(passwordErrorMessage);
+            Console.WriteLine($"Error changing password: {ex}");
+        }
+        finally
+        {
+            isChangingPassword = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ResetPasswordForm()
+    {
+        changePasswordForm = new ChangePasswordForm();
+        passwordErrorMessage = "";
+        StateHasChanged();
+    }
+
     private string GetRoleText(string role)
     {
         return role?.ToUpper() switch
@@ -274,6 +403,20 @@
 
         [StringLength(255, ErrorMessage = "Họ và tên không được vượt quá 255 ký tự")]
         public string FullName { get; set; } = "";
+    }
+
+    private class ChangePasswordForm
+    {
+        [Required(ErrorMessage = "Mật khẩu hiện tại là bắt buộc")]
+        public string OldPassword { get; set; } = "";
+
+        [Required(ErrorMessage = "Mật khẩu mới là bắt buộc")]
+        [StringLength(255, MinimumLength = 6, ErrorMessage = "Mật khẩu phải có từ 6 đến 255 ký tự")]
+        public string NewPassword { get; set; } = "";
+
+        [Required(ErrorMessage = "Xác nhận mật khẩu là bắt buộc")]
+        [StringLength(255, MinimumLength = 6, ErrorMessage = "Xác nhận mật khẩu phải có từ 6 đến 255 ký tự")]
+        public string ConfirmPassword { get; set; } = "";
     }
 }
 
