@@ -2,12 +2,13 @@ namespace Backend.Services.Apis;
 using Backend.Dtos.Requests.Order;
 using Backend.Dtos.Responses;
 
-public class OrderService(OrderRepository orderRepository, CustomerRepository customerRepository, UserRepository userRepository, PromotionRepository promotionRepository)
+public class OrderService(OrderRepository orderRepository, CustomerRepository customerRepository, UserRepository userRepository, PromotionRepository promotionRepository, CustomerService customerService)
 {
     private readonly OrderRepository _orderRepository = orderRepository;
     private readonly CustomerRepository _customerRepository = customerRepository;
     private readonly UserRepository _userRepository = userRepository;
     private readonly PromotionRepository _promotionRepository = promotionRepository;
+    private readonly CustomerService _customerService = customerService;
 
     public async Task<List<Order>> HandleGetAllOrder()
     {
@@ -59,20 +60,69 @@ public class OrderService(OrderRepository orderRepository, CustomerRepository cu
 
     public async Task<Order> HandleCreateOrder(CreateOrderRequest request)
     {
-        var customer = await _customerRepository.GetByIdAsync(request.CustomerId);
-        if (customer == null)
-            throw new Exception("Customer not found");
-
         var user = await _userRepository.HandleGetUserById(request.UserId);
         if (user == null)
             throw new Exception("User not found");
 
-        if (request.DiscountAmount > request.TotalAmount)
+        // Xử lý Customer:
+        // - Nếu có CustomerId (admin tạo đơn) → dùng CustomerId đó
+        // - Nếu không có CustomerId (user đặt hàng) → tự động lấy Customer từ User email
+        Customer customer;
+        if (request.CustomerId.HasValue && request.CustomerId.Value != Guid.Empty)
+        {
+            // Admin tạo đơn: dùng CustomerId được chọn
+            customer = await _customerRepository.GetByIdAsync(request.CustomerId.Value);
+            if (customer == null)
+                throw new Exception("Customer not found");
+        }
+        else
+        {
+            // User đặt hàng: tự động lấy Customer từ User email (đã được tạo khi đăng ký)
+            customer = await _customerRepository.GetByEmailAsync(user.Email);
+            if (customer == null)
+            {
+                // Nếu không tìm thấy (trường hợp User cũ chưa có Customer), tạo mới
+                var customerName = request.CustomerName ?? user.FullName ?? user.Username;
+                customer = await _customerService.GetOrCreateCustomerByEmail(
+                    user.Email,
+                    customerName,
+                    request.CustomerPhone,
+                    request.CustomerAddress
+                );
+            }
+            else
+            {
+                // Cập nhật thông tin Customer nếu có (phone, address, name) - cho phép user cập nhật khi đặt hàng
+                bool needUpdate = false;
+                if (!string.IsNullOrEmpty(request.CustomerPhone) && customer.Phone != request.CustomerPhone)
+                {
+                    customer.Phone = request.CustomerPhone;
+                    needUpdate = true;
+                }
+                if (!string.IsNullOrEmpty(request.CustomerAddress) && customer.Address != request.CustomerAddress)
+                {
+                    customer.Address = request.CustomerAddress;
+                    needUpdate = true;
+                }
+                if (!string.IsNullOrEmpty(request.CustomerName) && customer.Name != request.CustomerName)
+                {
+                    customer.Name = request.CustomerName;
+                    needUpdate = true;
+                }
+                
+                if (needUpdate)
+                {
+                    await _customerRepository.UpdateAsync(customer);
+                }
+            }
+        }
+
+        if (request.DiscountAmount > (request.TotalAmount ?? 0))
             throw new Exception("Discount cannot exceed total amount");
 
         var order = new Order
         {
-            CustomerId = request.CustomerId,
+            CustomerId = customer.Id,
             UserId = request.UserId,
             PromoId = request.PromoId,
             TotalAmount = request.TotalAmount,

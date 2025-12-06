@@ -1,7 +1,16 @@
 @page "/orders"
 @using Frontend.Services
+@using Frontend.Models.Order
+@using Frontend.Models.OrderItem
+@using Frontend.Models.Customer
+@using System.ComponentModel.DataAnnotations
 @inject CartService CartService
 @inject NavigationManager NavigationManager
+@inject OrderService OrderService
+@inject OrderItemService OrderItemService
+@inject AuthService AuthService
+@inject CustomerService CustomerService
+@inject Blazored.Toast.Services.IToastService ToastService
 
 <PageTitle>Đặt hàng</PageTitle>
 
@@ -12,6 +21,12 @@
     {
         <div class="alert alert-info mt-4">
             Giỏ hàng đang trống. Vui lòng quay lại <a href="/">trang chủ</a> để chọn sản phẩm.
+        </div>
+    }
+    else if (AuthService.CurrentUser == null)
+    {
+        <div class="alert alert-warning mt-4">
+            Vui lòng <a href="/auth/login">đăng nhập</a> để đặt hàng.
         </div>
     }
     else
@@ -34,49 +49,241 @@
             </div>
 
             <div class="col-md-5">
-                <h5>Thông tin khách hàng (demo)</h5>
-                <div class="mb-3">
-                    <label class="form-label">Họ và tên</label>
-                    <input class="form-control" placeholder="Nhập họ tên của bạn" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Số điện thoại</label>
-                    <input class="form-control" placeholder="Nhập số điện thoại" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Địa chỉ giao hàng</label>
-                    <textarea class="form-control" rows="3" placeholder="Nhập địa chỉ cụ thể"></textarea>
-                </div>
-
-                <div class="order-summary">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Tổng tiền hàng</span>
-                        <span>@CartService.GetTotal().ToString("N0") VNĐ</span>
+                <h5>Thông tin giao hàng</h5>
+                <EditForm Model="@orderForm" OnValidSubmit="@HandleSubmit">
+                    <DataAnnotationsValidator />
+                    <div class="mb-3">
+                        <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
+                        <InputText class="form-control" 
+                                   placeholder="Nhập họ tên của bạn" 
+                                   @bind-Value="orderForm.CustomerName" />
+                        <ValidationMessage For="@(() => orderForm.CustomerName)" />
                     </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Phí vận chuyển</span>
-                        <span>0 VNĐ</span>
+                    <div class="mb-3">
+                        <label class="form-label">Số điện thoại</label>
+                        <InputText class="form-control" 
+                                   placeholder="Nhập số điện thoại" 
+                                   @bind-Value="orderForm.CustomerPhone" />
                     </div>
-                    <div class="d-flex justify-content-between fw-semibold border-top pt-2">
-                        <span>Thành tiền</span>
-                        <span class="text-danger">@CartService.GetTotal().ToString("N0") VNĐ</span>
+                    <div class="mb-3">
+                        <label class="form-label">Địa chỉ giao hàng</label>
+                        <InputTextArea class="form-control" 
+                                      rows="3" 
+                                      placeholder="Nhập địa chỉ cụ thể" 
+                                      @bind-Value="orderForm.CustomerAddress" />
                     </div>
 
-                    <button class="btn btn-primary w-100 mt-3" @onclick="ConfirmOrder">
-                        Xác nhận đặt hàng
-                    </button>
-                </div>
+                    <div class="order-summary">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Tổng tiền hàng</span>
+                            <span>@CartService.GetTotal().ToString("N0") VNĐ</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Phí vận chuyển</span>
+                            <span>0 VNĐ</span>
+                        </div>
+                        <div class="d-flex justify-content-between fw-semibold border-top pt-2">
+                            <span>Thành tiền</span>
+                            <span class="text-danger">@CartService.GetTotal().ToString("N0") VNĐ</span>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger mt-3 mb-0">
+                                @errorMessage
+                            </div>
+                        }
+
+                        <button type="submit" class="btn btn-primary w-100 mt-3" disabled="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>Đang xử lý...</span>
+                            }
+                            else
+                            {
+                                <span>Xác nhận đặt hàng</span>
+                            }
+                        </button>
+                    </div>
+                </EditForm>
             </div>
         </div>
     }
 </div>
 
 @code {
-    private void ConfirmOrder()
+    private OrderForm orderForm = new();
+    private bool isSubmitting = false;
+    private string errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
     {
-        // Ở đây có thể gọi OrderService để tạo đơn hàng thực tế.
-        // Hiện tại chỉ demo flow giao diện.
-        NavigationManager.NavigateTo("/bill");
+        await AuthService.InitializeAsync();
+        
+        // Pre-fill form với thông tin user nếu có
+        if (AuthService.CurrentUser != null)
+        {
+            orderForm.CustomerName = AuthService.CurrentUser.FullName ?? AuthService.CurrentUser.Username ?? "";
+            
+            // Load thông tin Customer từ database (phone, address) nếu có
+            await LoadCustomerInfo();
+        }
+    }
+
+    private async Task LoadCustomerInfo()
+    {
+        if (AuthService.CurrentUser == null || string.IsNullOrEmpty(AuthService.CurrentUser.Email))
+            return;
+
+        try
+        {
+            // Tìm Customer theo email bằng cách search
+            var response = await CustomerService.GetCustomersAsync(page: 1, pageSize: 1, q: AuthService.CurrentUser.Email);
+            if (response != null && response.StatusCode == 200 && response.Data?.Customers != null && response.Data.Customers.Any())
+            {
+                var customer = response.Data.Customers.FirstOrDefault(c => 
+                    !string.IsNullOrEmpty(c.Email) && 
+                    c.Email.Equals(AuthService.CurrentUser.Email, StringComparison.OrdinalIgnoreCase));
+                
+                if (customer != null)
+                {
+                    // Pre-fill phone và address nếu có
+                    if (!string.IsNullOrEmpty(customer.Phone))
+                        orderForm.CustomerPhone = customer.Phone;
+                    if (!string.IsNullOrEmpty(customer.Address))
+                        orderForm.CustomerAddress = customer.Address;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading customer info: {ex.Message}");
+            // Không hiển thị lỗi cho user, chỉ log
+        }
+    }
+
+
+    private async Task HandleSubmit()
+    {
+        if (isSubmitting) return;
+
+        // Validate
+        if (AuthService.CurrentUser == null)
+        {
+            ToastService.ShowError("Vui lòng đăng nhập để đặt hàng");
+            NavigationManager.NavigateTo("/auth/login");
+            return;
+        }
+
+        if (CartService.Items == null || !CartService.Items.Any())
+        {
+            ToastService.ShowError("Giỏ hàng đang trống");
+            return;
+        }
+
+        isSubmitting = true;
+        errorMessage = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            // Bước 1: Tạo Order
+            var totalAmount = CartService.GetTotal();
+            
+            if (!Guid.TryParse(AuthService.CurrentUser.Id, out var userId))
+            {
+                errorMessage = "Lỗi: User ID không hợp lệ";
+                ToastService.ShowError(errorMessage);
+                return;
+            }
+            
+            var orderRequest = new CreateOrderRequest
+            {
+                CustomerId = null, // Sẽ tự động lấy từ User email
+                UserId = userId,
+                PromoId = null, // Có thể thêm promo code sau
+                TotalAmount = totalAmount,
+                DiscountAmount = 0,
+                CustomerName = orderForm.CustomerName,
+                CustomerPhone = orderForm.CustomerPhone,
+                CustomerAddress = orderForm.CustomerAddress
+            };
+
+            var orderResponse = await OrderService.CreateOrderAsync(orderRequest);
+            
+            if (orderResponse == null || (orderResponse.StatusCode != 200 && orderResponse.StatusCode != 201) || orderResponse.Data == null)
+            {
+                errorMessage = $"Lỗi tạo đơn hàng: {orderResponse?.Message ?? "Unknown error"}";
+                ToastService.ShowError(errorMessage);
+                return;
+            }
+
+            var orderIdStr = orderResponse.Data.order?.Id;
+            if (string.IsNullOrEmpty(orderIdStr) || !Guid.TryParse(orderIdStr, out var newOrderId))
+            {
+                errorMessage = "Lỗi: Mã đơn hàng không hợp lệ";
+                ToastService.ShowError(errorMessage);
+                return;
+            }
+
+            // Bước 2: Tạo Order Items
+            var orderItems = CartService.Items.Select(item => new OrderItemInput
+            {
+                ProductId = Guid.Parse(item.ProductId),
+                Quantity = item.Quantity
+            }).ToList();
+
+            var itemsRequest = new CreateOrderItemsRequest
+            {
+                OrderId = newOrderId,
+                Items = orderItems
+            };
+
+            var itemsResponse = await OrderItemService.CreateOrderItemsAsync(itemsRequest);
+            
+            if (itemsResponse == null || (itemsResponse.StatusCode != 200 && itemsResponse.StatusCode != 201))
+            {
+                errorMessage = $"Lỗi tạo chi tiết đơn hàng: {itemsResponse?.Message ?? "Unknown error"}";
+                ToastService.ShowError(errorMessage);
+                return;
+            }
+            
+            // Kiểm tra xem có order items được tạo không
+            if (itemsResponse.Data?.OrderItems == null || !itemsResponse.Data.OrderItems.Any())
+            {
+                errorMessage = "Không thể tạo chi tiết đơn hàng";
+                ToastService.ShowError(errorMessage);
+                return;
+            }
+
+            // Thành công: Clear cart và redirect
+            CartService.Clear();
+            ToastService.ShowSuccess("Đặt hàng thành công!");
+            NavigationManager.NavigateTo($"/bill?orderId={newOrderId}");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Lỗi: {ex.Message}";
+            ToastService.ShowError(errorMessage);
+            Console.WriteLine($"Error creating order: {ex}");
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+
+    public class OrderForm
+    {
+        [Required(ErrorMessage = "Họ và tên là bắt buộc")]
+        [MinLength(2, ErrorMessage = "Họ và tên phải có ít nhất 2 ký tự")]
+        public string CustomerName { get; set; } = string.Empty;
+
+        public string? CustomerPhone { get; set; }
+
+        public string? CustomerAddress { get; set; }
     }
 }
 

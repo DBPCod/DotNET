@@ -70,7 +70,7 @@ public class OrderItemService
     }
 
     // POST - Tạo order items mới
-    public async Task<ApiResponse<List<OrderItemDto>>?> CreateOrderItemsAsync(CreateOrderItemsRequest request)
+    public async Task<ApiResponse<CreateOrderItemsResponse>?> CreateOrderItemsAsync(CreateOrderItemsRequest request)
     {
         try
         {
@@ -80,20 +80,20 @@ public class OrderItemService
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"Error response: {errorContent}");
-                return new ApiResponse<List<OrderItemDto>>
+                return new ApiResponse<CreateOrderItemsResponse>
                 {
                     Message = $"HTTP {response.StatusCode}: {errorContent}",
                     StatusCode = (int)response.StatusCode
                 };
             }
-            var result = await response.Content.ReadFromJsonAsync<ApiResponse<List<OrderItemDto>>>();
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<CreateOrderItemsResponse>>();
             Console.WriteLine("Order items created successfully.");
             return result;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error creating order items: {ex.Message}");
-            return new ApiResponse<List<OrderItemDto>>
+            return new ApiResponse<CreateOrderItemsResponse>
             {
                 Message = ex.Message,
                 StatusCode = 500

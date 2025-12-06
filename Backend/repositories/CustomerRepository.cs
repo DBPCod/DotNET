@@ -72,6 +72,15 @@ public class CustomerRepository(AppDbContext context)
             .FirstOrDefaultAsync();
     }
 
+    public async Task<Customer?> GetByEmailAsync(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return null;
+            
+        return await _context.Customer
+            .FirstOrDefaultAsync(c => c.Email != null && c.Email.ToLower() == email.ToLower());
+    }
+
     public async Task AddAsync(Customer customer)
     {
         await _context.Customer.AddAsync(customer);
