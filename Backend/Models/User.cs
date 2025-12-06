@@ -31,7 +31,7 @@ public class User
     public string FullName { get; set; } = "";
 
     [Column("role")]
-    public UserRole Role { get; set; } = UserRole.STAFF;
+    public UserRole Role { get; set; } = UserRole.USER;
 
     [Column("status")]
     public UserStatus Status { get; set; } = UserStatus.PENDING;
@@ -46,7 +46,8 @@ public class User
 public enum UserRole
 {
     ADMIN,
-    STAFF
+    STAFF,
+    USER
 }
 
 public enum UserStatus

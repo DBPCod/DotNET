@@ -1,0 +1,333 @@
+@page "/profile"
+@using Frontend.Services
+@using Frontend.Models.User
+@using Frontend.Models.User.Requests
+@using System.ComponentModel.DataAnnotations
+@inject AuthService AuthService
+@inject UserService UserService
+@inject NavigationManager NavigationManager
+@inject Blazored.Toast.Services.IToastService ToastService
+
+<PageTitle>Thông tin cá nhân</PageTitle>
+
+<div class="profile-page">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Thông tin cá nhân</h2>
+    </div>
+
+    @if (AuthService.CurrentUser == null)
+    {
+        <div class="alert alert-warning">
+            Vui lòng <a href="/auth/login">đăng nhập</a> để xem thông tin cá nhân.
+        </div>
+    }
+    else if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Chỉnh sửa thông tin</h5>
+                    </div>
+                    <div class="card-body">
+                        <EditForm Model="@profileForm" OnValidSubmit="@HandleSubmit">
+                            <DataAnnotationsValidator />
+                            
+                            @if (!string.IsNullOrEmpty(errorMessage))
+                            {
+                                <div class="alert alert-danger">
+                                    @errorMessage
+                                </div>
+                            }
+
+                            <div class="mb-3">
+                                <label class="form-label" for="username">Tên đăng nhập</label>
+                                <InputText id="username" class="form-control" @bind-Value="profileForm.Username" />
+                                <ValidationMessage For="@(() => profileForm.Username)" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="email">Email</label>
+                                <InputText id="email" type="email" class="form-control" @bind-Value="profileForm.Email" />
+                                <ValidationMessage For="@(() => profileForm.Email)" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="fullName">Họ và tên</label>
+                                <InputText id="fullName" class="form-control" @bind-Value="profileForm.FullName" />
+                                <ValidationMessage For="@(() => profileForm.FullName)" />
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                                    @if (isSubmitting)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                        <span>Đang lưu...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-save me-2"></i>
+                                        <span>Lưu thay đổi</span>
+                                    }
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" @onclick="ResetForm" disabled="@isSubmitting">
+                                    <i class="bi bi-arrow-counterclockwise me-2"></i>
+                                    Đặt lại
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Thông tin tài khoản</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label text-muted small">Mã người dùng</label>
+                            <div class="fw-semibold">@(AuthService.CurrentUser.Id.Substring(0, Math.Min(8, AuthService.CurrentUser.Id.Length)).ToUpper())</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted small">Vai trò</label>
+                            <div>
+                                <span class="badge @GetRoleBadgeClass(AuthService.CurrentUser.Role)">
+                                    @GetRoleText(AuthService.CurrentUser.Role)
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted small">Trạng thái</label>
+                            <div>
+                                <span class="badge @GetStatusBadgeClass(AuthService.CurrentUser.Status)">
+                                    @GetStatusText(AuthService.CurrentUser.Status)
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted small">Ngày tạo</label>
+                            <div>@AuthService.CurrentUser.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private ProfileForm profileForm = new();
+    private bool isLoading = false;
+    private bool isSubmitting = false;
+    private string errorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthService.InitializeAsync();
+        
+        if (AuthService.CurrentUser != null)
+        {
+            LoadUserData();
+        }
+    }
+
+    private void LoadUserData()
+    {
+        if (AuthService.CurrentUser == null) return;
+
+        profileForm = new ProfileForm
+        {
+            Username = AuthService.CurrentUser.Username,
+            Email = AuthService.CurrentUser.Email,
+            FullName = AuthService.CurrentUser.FullName
+        };
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (AuthService.CurrentUser == null)
+        {
+            errorMessage = "Vui lòng đăng nhập để cập nhật thông tin";
+            return;
+        }
+
+        if (isSubmitting) return;
+
+        isSubmitting = true;
+        errorMessage = "";
+        StateHasChanged();
+
+        try
+        {
+            var updateRequest = new UpdateUserRequest
+            {
+                Username = profileForm.Username,
+                Email = profileForm.Email,
+                FullName = profileForm.FullName
+                // Không gửi Password, Role, Status - chỉ cho phép user chỉnh sửa thông tin cơ bản
+            };
+
+            var response = await UserService.UpdateUserAsync(AuthService.CurrentUser.Id, updateRequest);
+
+            if (response != null && (response.StatusCode == 200 || response.StatusCode == 201))
+            {
+                // Cập nhật thông tin user trong AuthService
+                if (response.Data?.User != null)
+                {
+                    await AuthService.SetUserAsync(response.Data.User);
+                }
+
+                ToastService.ShowSuccess("Cập nhật thông tin thành công!");
+                errorMessage = "";
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Có lỗi xảy ra khi cập nhật thông tin";
+                ToastService.ShowError(errorMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Lỗi: {ex.Message}";
+            ToastService.ShowError(errorMessage);
+            Console.WriteLine($"Error updating profile: {ex}");
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ResetForm()
+    {
+        LoadUserData();
+        errorMessage = "";
+        StateHasChanged();
+    }
+
+    private string GetRoleText(string role)
+    {
+        return role?.ToUpper() switch
+        {
+            "ADMIN" => "Quản trị viên",
+            "STAFF" => "Nhân viên",
+            "USER" => "Người dùng",
+            _ => role ?? "Không xác định"
+        };
+    }
+
+    private string GetRoleBadgeClass(string role)
+    {
+        return role?.ToUpper() switch
+        {
+            "ADMIN" => "bg-danger",
+            "STAFF" => "bg-primary",
+            "USER" => "bg-success",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetStatusText(string status)
+    {
+        return status?.ToUpper() switch
+        {
+            "ACTIVE" => "Hoạt động",
+            "PENDING" => "Chờ kích hoạt",
+            "INACTIVE" => "Vô hiệu hóa",
+            _ => status ?? "Không xác định"
+        };
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status?.ToUpper() switch
+        {
+            "ACTIVE" => "bg-success",
+            "PENDING" => "bg-warning",
+            "INACTIVE" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private class ProfileForm
+    {
+        [Required(ErrorMessage = "Tên đăng nhập là bắt buộc")]
+        [StringLength(50, ErrorMessage = "Tên đăng nhập không được vượt quá 50 ký tự")]
+        public string Username { get; set; } = "";
+
+        [Required(ErrorMessage = "Email là bắt buộc")]
+        [EmailAddress(ErrorMessage = "Email không hợp lệ")]
+        [StringLength(50, ErrorMessage = "Email không được vượt quá 50 ký tự")]
+        public string Email { get; set; } = "";
+
+        [StringLength(255, ErrorMessage = "Họ và tên không được vượt quá 255 ký tự")]
+        public string FullName { get; set; } = "";
+    }
+}
+
+<style>
+    .profile-page {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .card {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+        background-color: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 1rem 1.5rem;
+        border-radius: 8px 8px 0 0;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: #374151;
+    }
+
+    .form-control {
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .form-control:focus {
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    .btn {
+        border-radius: 6px;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+    }
+
+    .badge {
+        padding: 0.35rem 0.65rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+</style>
+

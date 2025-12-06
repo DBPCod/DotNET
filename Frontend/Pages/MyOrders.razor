@@ -1,0 +1,466 @@
+@page "/my-orders"
+@using Frontend.Services
+@using Frontend.Models
+@using Frontend.Models.Order.Responses
+@using Frontend.Models.Customer
+@using Frontend.Models.Common
+@inject OrderService OrderService
+@inject CustomerService CustomerService
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+@inject Blazored.Toast.Services.IToastService ToastService
+
+<PageTitle>Đơn hàng của tôi</PageTitle>
+
+<div class="my-orders-page">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Đơn hàng của tôi</h2>
+        @if (AuthService.CurrentUser == null)
+        {
+            <div class="alert alert-warning mb-0">
+                Vui lòng <a href="/auth/login">đăng nhập</a> để xem đơn hàng.
+            </div>
+        }
+    </div>
+
+    @if (AuthService.CurrentUser == null)
+    {
+        <div class="text-center py-5">
+            <p class="text-muted">Bạn cần đăng nhập để xem đơn hàng của mình.</p>
+            <button class="btn btn-primary" @onclick="NavigateToLogin">
+                Đăng nhập ngay
+            </button>
+        </div>
+    }
+    else
+    {
+        <!-- Filter -->
+        <div class="order-filters mb-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Trạng thái</label>
+                    <select class="form-select" @bind="statusFilter" @bind:event="onchange" @bind:after="OnFilterChanged">
+                        <option value="">Tất cả</option>
+                        <option value="pending">Chờ xử lý</option>
+                        <option value="paid">Đã thanh toán</option>
+                        <option value="canceled">Đã hủy</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Từ ngày</label>
+                    <input type="date" class="form-control" @bind="fromDate" @bind:event="onchange" @bind:after="OnFilterChanged" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Đến ngày</label>
+                    <input type="date" class="form-control" @bind="toDate" @bind:event="onchange" @bind:after="OnFilterChanged" />
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="btn btn-outline-secondary w-100" @onclick="ResetFilters">
+                        <i class="bi bi-arrow-clockwise"></i> Đặt lại
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Đang tải...</span>
+                </div>
+            </div>
+        }
+        else if (orders == null || !orders.Any())
+        {
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> Bạn chưa có đơn hàng nào.
+            </div>
+        }
+        else
+        {
+            <!-- Orders List -->
+            <div class="orders-list">
+                @foreach (var order in orders)
+                {
+                    <div class="order-card">
+                        <div class="order-card-header">
+                            <div class="order-info">
+                                <div class="order-id">
+                                    <strong>Mã đơn:</strong> 
+                                    <a href="/bill?orderId=@order.Id" class="order-link">
+                                        #@GetOrderIdDisplay(order.Id)
+                                    </a>
+                                </div>
+                                <div class="order-date">
+                                    <i class="bi bi-calendar"></i> 
+                                    @order.OrderDate.ToString("dd/MM/yyyy HH:mm")
+                                </div>
+                            </div>
+                            <div class="order-status">
+                                <span class="badge @GetStatusBadgeClass(order.Status)">
+                                    @GetStatusText(order.Status)
+                                </span>
+                            </div>
+                        </div>
+                        <div class="order-card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="order-detail-item">
+                                        <span class="detail-label">Tổng tiền:</span>
+                                        <span class="detail-value">@(order.TotalAmount?.ToString("N0") ?? "0") VNĐ</span>
+                                    </div>
+                                    @if (order.DiscountAmount > 0)
+                                    {
+                                        <div class="order-detail-item text-success">
+                                            <span class="detail-label">Giảm giá:</span>
+                                            <span class="detail-value">-@order.DiscountAmount.ToString("N0") VNĐ</span>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="col-md-6 text-md-end">
+                                    <div class="order-total">
+                                        <span class="total-label">Thành tiền:</span>
+                                        <span class="total-value">
+                                            @(((order.TotalAmount ?? 0) - order.DiscountAmount).ToString("N0")) VNĐ
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="order-card-footer">
+                            <a href="/bill?orderId=@order.Id" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> Xem chi tiết
+                            </a>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Pagination -->
+            @if (pagination != null && pagination.TotalPages > 1)
+            {
+                <nav aria-label="Order pagination" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item @(pagination.CurrentPage == 1 ? "disabled" : "")">
+                            <button class="page-link" @onclick="() => ChangePage(pagination.CurrentPage - 1)" disabled="@(pagination.CurrentPage == 1)">
+                                Trước
+                            </button>
+                        </li>
+                        @for (int i = Math.Max(1, pagination.CurrentPage - 2); i <= Math.Min(pagination.TotalPages, pagination.CurrentPage + 2); i++)
+                        {
+                            var pageNum = i;
+                            <li class="page-item @(pagination.CurrentPage == pageNum ? "active" : "")">
+                                <button class="page-link" @onclick="() => ChangePage(pageNum)">
+                                    @pageNum
+                                </button>
+                            </li>
+                        }
+                        <li class="page-item @(pagination.CurrentPage == pagination.TotalPages ? "disabled" : "")">
+                            <button class="page-link" @onclick="() => ChangePage(pagination.CurrentPage + 1)" disabled="@(pagination.CurrentPage == pagination.TotalPages)">
+                                Sau
+                            </button>
+                        </li>
+                    </ul>
+                    <div class="text-center text-muted mt-2">
+                        Trang @pagination.CurrentPage / @pagination.TotalPages 
+                        (@pagination.TotalCount đơn hàng)
+                    </div>
+                </nav>
+            }
+        }
+    }
+</div>
+
+@code {
+    private List<OrderDto> orders = new();
+    private PaginationInfo? pagination;
+    private bool isLoading = false;
+    private string statusFilter = "";
+    private DateTime? fromDate = null;
+    private DateTime? toDate = null;
+    private Guid? customerId = null;
+    private int currentPage = 1;
+    private const int pageSize = 10;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthService.InitializeAsync();
+        
+        if (AuthService.CurrentUser != null)
+        {
+            await LoadCustomerId();
+            await LoadOrders();
+        }
+    }
+
+    private void NavigateToLogin()
+    {
+        NavigationManager.NavigateTo("/auth/login");
+    }
+
+    private async Task LoadCustomerId()
+    {
+        if (AuthService.CurrentUser == null || string.IsNullOrEmpty(AuthService.CurrentUser.Email))
+            return;
+
+        try
+        {
+            // Tìm Customer theo email
+            var response = await CustomerService.GetCustomersAsync(page: 1, pageSize: 1, q: AuthService.CurrentUser.Email);
+            if (response != null && response.StatusCode == 200 && response.Data?.Customers != null && response.Data.Customers.Any())
+            {
+                var customer = response.Data.Customers.FirstOrDefault(c => 
+                    !string.IsNullOrEmpty(c.Email) && 
+                    c.Email.Equals(AuthService.CurrentUser.Email, StringComparison.OrdinalIgnoreCase));
+                
+                if (customer != null && Guid.TryParse(customer.Id, out var parsedCustomerId))
+                {
+                    customerId = parsedCustomerId;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading customer ID: {ex.Message}");
+        }
+    }
+
+    private async Task LoadOrders()
+    {
+        if (AuthService.CurrentUser == null || !customerId.HasValue)
+        {
+            orders = new();
+            return;
+        }
+
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await OrderService.GetOrdersAsync(
+                page: currentPage,
+                pageSize: pageSize,
+                status: string.IsNullOrEmpty(statusFilter) ? null : statusFilter,
+                fromDate: fromDate,
+                toDate: toDate,
+                customerId: customerId
+            );
+
+            if (response != null && response.StatusCode == 200 && response.Data != null)
+            {
+                orders = response.Data.Orders ?? new();
+                pagination = response.Data.Pagination;
+                currentPage = pagination?.CurrentPage ?? 1;
+            }
+            else
+            {
+                orders = new();
+                pagination = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading orders: {ex.Message}");
+            ToastService.ShowError($"Lỗi khi tải đơn hàng: {ex.Message}");
+            orders = new();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnFilterChanged()
+    {
+        currentPage = 1;
+        await LoadOrders();
+    }
+
+    private async Task ResetFilters()
+    {
+        statusFilter = "";
+        fromDate = null;
+        toDate = null;
+        currentPage = 1;
+        await LoadOrders();
+    }
+
+    private async Task ChangePage(int page)
+    {
+        if (page < 1 || (pagination != null && page > pagination.TotalPages))
+            return;
+
+        currentPage = page;
+        await LoadOrders();
+    }
+
+    private string GetOrderIdDisplay(string orderId)
+    {
+        if (string.IsNullOrEmpty(orderId) || orderId.Length < 8)
+            return orderId;
+        return orderId.Substring(0, 8).ToUpper();
+    }
+
+    private string GetStatusText(string status)
+    {
+        return status?.ToLower() switch
+        {
+            "pending" => "Chờ xử lý",
+            "paid" => "Đã thanh toán",
+            "canceled" => "Đã hủy",
+            _ => status ?? "Không xác định"
+        };
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status?.ToLower() switch
+        {
+            "pending" => "bg-warning",
+            "paid" => "bg-success",
+            "canceled" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+}
+
+<style>
+    .my-orders-page {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .order-filters {
+        background-color: #ffffff;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .orders-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .order-card {
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: box-shadow 0.2s ease;
+    }
+
+    .order-card:hover {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .order-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        background-color: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .order-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .order-id {
+        font-size: 1rem;
+    }
+
+    .order-link {
+        color: #4f46e5;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .order-link:hover {
+        text-decoration: underline;
+    }
+
+    .order-date {
+        font-size: 0.875rem;
+        color: #6b7280;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .order-status {
+        display: flex;
+        align-items: center;
+    }
+
+    .order-card-body {
+        padding: 1.5rem;
+    }
+
+    .order-detail-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+
+    .detail-label {
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
+
+    .detail-value {
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .order-total {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.25rem;
+    }
+
+    .total-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .total-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #dc2626;
+    }
+
+    .order-card-footer {
+        padding: 1rem 1.5rem;
+        background-color: #f9fafb;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    @@media (max-width: 768px) {
+        .order-card-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .order-status {
+            align-self: flex-end;
+        }
+
+        .order-total {
+            align-items: flex-start;
+            margin-top: 1rem;
+        }
+    }
+</style>
+
+
