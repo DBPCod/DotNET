@@ -3,6 +3,7 @@
 @using Frontend.Models.Order
 @using Frontend.Models.OrderItem
 @using Frontend.Models.Customer
+@using Frontend.Models.Promotions.Responses
 @using System.ComponentModel.DataAnnotations
 @inject CartService CartService
 @inject NavigationManager NavigationManager
@@ -10,6 +11,7 @@
 @inject OrderItemService OrderItemService
 @inject AuthService AuthService
 @inject CustomerService CustomerService
+@inject PromotionService PromotionService
 @inject Blazored.Toast.Services.IToastService ToastService
 
 <PageTitle>Đặt hàng</PageTitle>
@@ -73,18 +75,81 @@
                                       @bind-Value="orderForm.CustomerAddress" />
                     </div>
 
+                    <!-- Mã giảm giá -->
+                    <div class="mb-3">
+                        <label class="form-label">Mã giảm giá</label>
+                        <div class="input-group">
+                            <input type="text" 
+                                   class="form-control" 
+                                   placeholder="Nhập mã giảm giá" 
+                                   value="@promoCode"
+                                   @oninput="@(e => { promoCode = e.Value?.ToString() ?? ""; StateHasChanged(); })"
+                                   disabled="@isValidatingPromo"
+                                   @onkeypress="@(async (e) => { if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(promoCode) && !isValidatingPromo) await ValidatePromoCode(); })" />
+                            <button type="button" 
+                                    class="btn btn-outline-primary" 
+                                    @onclick="ValidatePromoCode"
+                                    disabled="@(isValidatingPromo || string.IsNullOrWhiteSpace(promoCode))">
+                                @if (isValidatingPromo)
+                                {
+                                    <span class="spinner-border spinner-border-sm" role="status"></span>
+                                }
+                                else
+                                {
+                                    <span>Áp dụng</span>
+                                }
+                            </button>
+                        </div>
+                        @if (!string.IsNullOrEmpty(promoMessage))
+                        {
+                            <div class="mt-2">
+                                @if (promoValidationResult?.Valid == true)
+                                {
+                                    <div class="alert alert-success mb-0 py-2">
+                                        <i class="bi bi-check-circle me-2"></i>
+                                        @promoMessage
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-danger mb-0 py-2">
+                                        <i class="bi bi-x-circle me-2"></i>
+                                        @promoMessage
+                                    </div>
+                                }
+                            </div>
+                        }
+                        @if (appliedPromoId != null && promoValidationResult?.Valid == true)
+                        {
+                            <div class="mt-2">
+                                <button type="button" 
+                                        class="btn btn-sm btn-outline-danger" 
+                                        @onclick="RemovePromoCode">
+                                    <i class="bi bi-x me-1"></i> Xóa mã
+                                </button>
+                            </div>
+                        }
+                    </div>
+
                     <div class="order-summary">
                         <div class="d-flex justify-content-between mb-2">
                             <span>Tổng tiền hàng</span>
                             <span>@CartService.GetTotal().ToString("N0") VNĐ</span>
                         </div>
+                        @if (appliedDiscountAmount > 0)
+                        {
+                            <div class="d-flex justify-content-between mb-2 text-success">
+                                <span>Giảm giá</span>
+                                <span>-@appliedDiscountAmount.ToString("N0") VNĐ</span>
+                            </div>
+                        }
                         <div class="d-flex justify-content-between mb-2">
                             <span>Phí vận chuyển</span>
                             <span>0 VNĐ</span>
                         </div>
                         <div class="d-flex justify-content-between fw-semibold border-top pt-2">
                             <span>Thành tiền</span>
-                            <span class="text-danger">@CartService.GetTotal().ToString("N0") VNĐ</span>
+                            <span class="text-danger">@GetFinalTotal().ToString("N0") VNĐ</span>
                         </div>
 
                         @if (!string.IsNullOrEmpty(errorMessage))
@@ -116,6 +181,14 @@
     private OrderForm orderForm = new();
     private bool isSubmitting = false;
     private string errorMessage = string.Empty;
+    
+    // Promotion code
+    private string promoCode = "";
+    private bool isValidatingPromo = false;
+    private string promoMessage = "";
+    private ValidatePromotionResponse? promoValidationResult = null;
+    private Guid? appliedPromoId = null;
+    private decimal appliedDiscountAmount = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -202,9 +275,9 @@
             {
                 CustomerId = null, // Sẽ tự động lấy từ User email
                 UserId = userId,
-                PromoId = null, // Có thể thêm promo code sau
+                PromoId = appliedPromoId, // Sử dụng mã giảm giá đã áp dụng
                 TotalAmount = totalAmount,
-                DiscountAmount = 0,
+                DiscountAmount = appliedDiscountAmount, // Số tiền giảm giá
                 CustomerName = orderForm.CustomerName,
                 CustomerPhone = orderForm.CustomerPhone,
                 CustomerAddress = orderForm.CustomerAddress
@@ -273,6 +346,101 @@
             isSubmitting = false;
             StateHasChanged();
         }
+    }
+
+    private async Task ValidatePromoCode()
+    {
+        if (string.IsNullOrWhiteSpace(promoCode))
+        {
+            promoMessage = "Vui lòng nhập mã giảm giá";
+            return;
+        }
+
+        isValidatingPromo = true;
+        promoMessage = "";
+        StateHasChanged();
+
+        try
+        {
+            var totalAmount = CartService.GetTotal();
+            var validationResult = await PromotionService.ValidatePromotionAsync(promoCode.Trim().ToUpper(), totalAmount);
+
+            if (validationResult != null && validationResult.Valid && !string.IsNullOrEmpty(validationResult.PromotionId))
+            {
+                if (Guid.TryParse(validationResult.PromotionId, out var promoId))
+                {
+                    appliedPromoId = promoId;
+                }
+                else
+                {
+                    promoMessage = "Lỗi: Mã giảm giá không hợp lệ";
+                    ToastService.ShowError(promoMessage);
+                    return;
+                }
+                
+                appliedDiscountAmount = validationResult.DiscountAmount;
+                promoValidationResult = validationResult;
+                
+                var discountText = validationResult.DiscountType switch
+                {
+                    "percent" => $"{validationResult.DiscountAmount:N0} VNĐ",
+                    "fixed" => $"{validationResult.DiscountAmount:N0} VNĐ",
+                    "free_shipping" => "Miễn phí vận chuyển",
+                    _ => $"{validationResult.DiscountAmount:N0} VNĐ"
+                };
+                
+                promoMessage = $"Áp dụng mã giảm giá thành công! Giảm: {discountText}";
+                ToastService.ShowSuccess("Áp dụng mã giảm giá thành công!");
+            }
+            else
+            {
+                appliedPromoId = null;
+                appliedDiscountAmount = 0;
+                promoValidationResult = validationResult;
+                
+                var reasonText = validationResult?.Reason switch
+                {
+                    "not_found" => "Mã giảm giá không tồn tại",
+                    "inactive" => "Mã giảm giá đã bị vô hiệu hóa",
+                    "expired" => "Mã giảm giá đã hết hạn hoặc chưa có hiệu lực",
+                    "min_order" => "Đơn hàng chưa đạt giá trị tối thiểu",
+                    "usage_limit" => "Mã giảm giá đã hết lượt sử dụng",
+                    _ => "Mã giảm giá không hợp lệ"
+                };
+                
+                promoMessage = reasonText;
+                ToastService.ShowError(reasonText);
+            }
+        }
+        catch (Exception ex)
+        {
+            promoMessage = $"Lỗi khi kiểm tra mã giảm giá: {ex.Message}";
+            ToastService.ShowError(promoMessage);
+            appliedPromoId = null;
+            appliedDiscountAmount = 0;
+            promoValidationResult = null;
+        }
+        finally
+        {
+            isValidatingPromo = false;
+            StateHasChanged();
+        }
+    }
+
+    private void RemovePromoCode()
+    {
+        promoCode = "";
+        appliedPromoId = null;
+        appliedDiscountAmount = 0;
+        promoValidationResult = null;
+        promoMessage = "";
+        StateHasChanged();
+    }
+
+    private decimal GetFinalTotal()
+    {
+        var total = CartService.GetTotal();
+        return Math.Max(0, total - appliedDiscountAmount);
     }
 
     public class OrderForm
