@@ -42,6 +42,7 @@ public class UserService(UserRepository userRepository)
             Email = email,
             Password = hashedPassword,
             Role = string.IsNullOrEmpty(role) ? UserRole.STAFF : Enum.Parse<UserRole>(role),
+            Status = UserStatus.ACTIVE // Tự động kích hoạt khi đăng ký (không cần OTP)
         };
 
         return await _userRepository.HandleCreateUser(newUser);
