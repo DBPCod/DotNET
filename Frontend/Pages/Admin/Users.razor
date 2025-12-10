@@ -35,6 +35,7 @@
                         <option value="">Vai trò</option>
                         <option value="ADMIN">Admin</option>
                         <option value="STAFF">Staff</option>
+                        <option value="USER">Người dùng</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -230,6 +231,7 @@
                     <div class="mb-3">
                         <label class="form-label">Vai trò <span class="text-danger">*</span></label>
                         <select class="form-select" @bind="formData.Role">
+                            <option value="USER">Người dùng</option>
                             <option value="STAFF">Staff</option>
                             <option value="ADMIN">Admin</option>
                         </select>
@@ -627,8 +629,9 @@
 
     private string GetRoleBadgeClass(string role) => role switch
     {
-        "ADMIN" => "bg-primary",
-        "STAFF" => "bg-info",
+        "ADMIN" => "bg-danger",
+        "STAFF" => "bg-primary",
+        "USER" => "bg-success",
         _ => "bg-secondary"
     };
 
@@ -646,7 +649,7 @@
         public string Email { get; set; } = "";
         public string Password { get; set; } = "";
         public string FullName { get; set; } = "";
-        public string Role { get; set; } = "STAFF";
+        public string Role { get; set; } = "USER";
         public string Status { get; set; } = "ACTIVE";
     }
 }

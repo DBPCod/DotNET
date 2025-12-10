@@ -3,6 +3,7 @@
 @using Frontend.Services
 @using Frontend.Models.Auth
 @inject AuthService AuthService
+@inject CartService CartService
 @inject NavigationManager Navigation
 @inject Blazored.Toast.Services.IToastService ToastService
 
@@ -85,10 +86,10 @@
     </button>
 </form>
 
-@* <div class="auth-link">
+<div class="auth-link">
     Chưa có tài khoản?
     <a href="/auth/register">Đăng ký ngay</a>
-</div> *@
+</div>
 
 @code {
     private class FormData
@@ -178,6 +179,9 @@
 
         if (response.StatusCode == 200)
         {
+            // Force reload giỏ hàng của user mới sau khi đăng nhập thành công
+            // Sử dụng ForceReload để đảm bảo load lại ngay cả khi đã initialized
+            await CartService.ForceReloadFromLocalStorageAsync();
             ToastService.ShowSuccess("Đăng nhập thành công!");
             Navigation.NavigateTo("/");
             return;

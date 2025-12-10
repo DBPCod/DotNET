@@ -234,11 +234,11 @@ public class AuthService(HttpClient httpClient, IJSRuntime jsRuntime)
             var formData = new MultipartFormDataContent
             {
                 { new StringContent(oldPassword), "OldPassword" },
-                { new StringContent(newPassword), "NewPassword" },
+                { new StringContent(newPassword), "Password" }, // Backend expects "Password" not "NewPassword"
                 { new StringContent(confirmPassword), "ConfirmPassword" }
             };
 
-            var request = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/auth/change-password/{email}")
+            var request = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/auth/change-password/{Uri.EscapeDataString(email)}")
             {
                 Content = formData
             };

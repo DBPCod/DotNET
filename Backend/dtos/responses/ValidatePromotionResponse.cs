@@ -6,5 +6,6 @@ public class ValidatePromotionResponse
     public string Reason { get; set; } = ""; // expired|inactive|min_order|usage_limit|not_found|ok
     public decimal DiscountAmount { get; set; }
     public string DiscountType { get; set; } = ""; // percent|fixed
+    public Guid? PromotionId { get; set; } // ID của promotion nếu hợp lệ
 }
 

@@ -1,10 +1,14 @@
 using Backend.Dtos.Requests.User;
+using Backend.Repositories;
+using Backend.Contexts;
 
 namespace Backend.Services.Apis;
 
-public class UserService(UserRepository userRepository)
+public class UserService(UserRepository userRepository, CustomerRepository customerRepository, AppDbContext context)
 {
     private readonly UserRepository _userRepository = userRepository;
+    private readonly CustomerRepository _customerRepository = customerRepository;
+    private readonly AppDbContext _context = context;
 
     public async Task<User?> HandleGetUserById(Guid id)
     {
@@ -41,10 +45,56 @@ public class UserService(UserRepository userRepository)
             FullName = fullName ?? "",
             Email = email,
             Password = hashedPassword,
-            Role = string.IsNullOrEmpty(role) ? UserRole.STAFF : Enum.Parse<UserRole>(role),
+            Role = string.IsNullOrEmpty(role) ? UserRole.USER : Enum.Parse<UserRole>(role),
+            Status = UserStatus.ACTIVE // Tự động kích hoạt khi đăng ký (không cần OTP)
         };
 
-        return await _userRepository.HandleCreateUser(newUser);
+        // Sử dụng transaction để đảm bảo tạo User và Customer cùng lúc
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            // Tạo User
+            var createdUser = await _userRepository.HandleCreateUser(newUser);
+
+            // Tự động tạo Customer tương ứng (nếu chưa có)
+            var existingCustomer = await _customerRepository.GetByEmailAsync(email);
+            if (existingCustomer == null)
+            {
+                var lastCustomer = await _customerRepository.GetLastCustomerAsync();
+                var nextNumber = 1;
+                
+                if (lastCustomer?.CustomerId != null && lastCustomer.CustomerId.StartsWith("CUS"))
+                {
+                    var numberPart = lastCustomer.CustomerId.Substring(3);
+                    if (int.TryParse(numberPart, out int lastNumber))
+                    {
+                        nextNumber = lastNumber + 1;
+                    }
+                }
+                
+                var customerId = $"CUS{nextNumber:D3}";
+                
+                var newCustomer = new Customer
+                {
+                    CustomerId = customerId,
+                    Name = fullName ?? username,
+                    Email = email,
+                    Phone = null,
+                    Address = null,
+                    Status = "ACTIVE"
+                };
+                
+                await _customerRepository.AddAsync(newCustomer);
+            }
+
+            await transaction.CommitAsync();
+            return createdUser;
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
     // Method mới nhận CreateUserRequest (FormData)
@@ -72,7 +122,52 @@ public class UserService(UserRepository userRepository)
             Status = Enum.Parse<UserStatus>(request.Status)
         };
 
-        return await _userRepository.HandleCreateUser(newUser);
+        // Sử dụng transaction để đảm bảo tạo User và Customer cùng lúc
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            // Tạo User
+            var createdUser = await _userRepository.HandleCreateUser(newUser);
+
+            // Tự động tạo Customer tương ứng (nếu chưa có)
+            var existingCustomer = await _customerRepository.GetByEmailAsync(request.Email);
+            if (existingCustomer == null)
+            {
+                var lastCustomer = await _customerRepository.GetLastCustomerAsync();
+                var nextNumber = 1;
+                
+                if (lastCustomer?.CustomerId != null && lastCustomer.CustomerId.StartsWith("CUS"))
+                {
+                    var numberPart = lastCustomer.CustomerId.Substring(3);
+                    if (int.TryParse(numberPart, out int lastNumber))
+                    {
+                        nextNumber = lastNumber + 1;
+                    }
+                }
+                
+                var customerId = $"CUS{nextNumber:D3}";
+                
+                var newCustomer = new Customer
+                {
+                    CustomerId = customerId,
+                    Name = request.FullName?.Trim() ?? request.Username.Trim(),
+                    Email = request.Email.Trim().ToLower(),
+                    Phone = null,
+                    Address = null,
+                    Status = "ACTIVE"
+                };
+                
+                await _customerRepository.AddAsync(newCustomer);
+            }
+
+            await transaction.CommitAsync();
+            return createdUser;
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
     public async Task<User?> HandleUpdateUser(Guid id, UpdateUserRequest request)

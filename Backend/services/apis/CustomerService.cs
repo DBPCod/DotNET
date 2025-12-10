@@ -165,4 +165,46 @@ public class CustomerService
         response.Message = "Deleted";
         return response;
     }
+
+    // Tìm hoặc tạo Customer từ email (dùng khi User đặt hàng)
+    public async Task<Customer> GetOrCreateCustomerByEmail(string email, string name, string? phone = null, string? address = null)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            throw new Exception("Email is required");
+
+        // Tìm Customer theo email
+        var existingCustomer = await _repo.GetByEmailAsync(email);
+        if (existingCustomer != null)
+        {
+            return existingCustomer;
+        }
+
+        // Nếu không tìm thấy, tạo Customer mới
+        var lastCustomer = await _repo.GetLastCustomerAsync();
+        var nextNumber = 1;
+        
+        if (lastCustomer?.CustomerId != null && lastCustomer.CustomerId.StartsWith("CUS"))
+        {
+            var numberPart = lastCustomer.CustomerId.Substring(3);
+            if (int.TryParse(numberPart, out int lastNumber))
+            {
+                nextNumber = lastNumber + 1;
+            }
+        }
+        
+        var customerId = $"CUS{nextNumber:D3}";
+        
+        var newCustomer = new Customer
+        {
+            CustomerId = customerId,
+            Name = name,
+            Phone = phone,
+            Email = email,
+            Address = address,
+            Status = "ACTIVE"
+        };
+        
+        await _repo.AddAsync(newCustomer);
+        return newCustomer;
+    }
 }

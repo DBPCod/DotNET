@@ -22,12 +22,15 @@
                         <span class="cart-badge">@cartItemCount</span>
                     }
                 </NavLink>
-                <NavLink class="nav-link" href="/orders">
-                    Đặt hàng
-                </NavLink>
-                <NavLink class="nav-link" href="/bill">
-                    Thanh toán
-                </NavLink>
+                @if (AuthService.CurrentUser != null)
+                {
+                    <NavLink class="nav-link" href="/my-orders">
+                        Đơn hàng của tôi
+                    </NavLink>
+                    <NavLink class="nav-link" href="/profile">
+                        Thông tin cá nhân
+                    </NavLink>
+                }
             </nav>
 
             <div class="user-auth-actions">
@@ -88,6 +91,7 @@
     protected override async Task OnInitializedAsync()
     {
         await AuthService.InitializeAsync();
+        await CartService.LoadFromLocalStorageAsync(); // Load giỏ hàng từ localStorage
         CartService.OnChange += UpdateCartCount;
         UpdateCartCount();
         StateHasChanged();
@@ -106,6 +110,8 @@
 
     private async Task Logout()
     {
+        // Xóa giỏ hàng trước khi đăng xuất
+        await CartService.ClearCartOnLogout();
         await AuthService.LogoutAsync();
         StateHasChanged();
         NavigationManager.NavigateTo("/");

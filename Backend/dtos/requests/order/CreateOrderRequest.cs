@@ -5,8 +5,8 @@ namespace Backend.Dtos.Requests.Order
 {
     public class CreateOrderRequest
     {
-        [Required(ErrorMessage = "CustomerId is required")]
-        public Guid CustomerId { get; set; }
+        // CustomerId có thể null - nếu null sẽ tự động tìm/tạo từ User email
+        public Guid? CustomerId { get; set; }
 
         [Required(ErrorMessage = "UserId is required")]
         public Guid UserId { get; set; }
@@ -18,5 +18,11 @@ namespace Backend.Dtos.Requests.Order
 
         [Range(0, 999999999.99, ErrorMessage = "DiscountAmount must be >= 0")]
         public decimal DiscountAmount { get; set; } = 0;
+
+        // Thông tin Customer để tạo mới (nếu CustomerId null)
+        public string? CustomerName { get; set; }
+        public string? CustomerPhone { get; set; }
+        public string? CustomerEmail { get; set; }
+        public string? CustomerAddress { get; set; }
     }
 }

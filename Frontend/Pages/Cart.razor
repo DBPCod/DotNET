@@ -17,38 +17,45 @@
     }
     else
     {
-        <div class="table-responsive mt-4">
-            <table class="table align-middle">
+        <div class="table-responsive mt-4 cart-table-wrapper">
+            <table class="table align-middle cart-table">
                 <thead>
                     <tr>
-                        <th>Sản phẩm</th>
-                        <th class="text-end">Đơn giá</th>
-                        <th class="text-center">Số lượng</th>
-                        <th class="text-end">Thành tiền</th>
-                        <th></th>
+                        <th class="cart-col-image">Ảnh</th>
+                        <th class="cart-col-product">Sản phẩm</th>
+                        <th class="cart-col-price text-end">Đơn giá</th>
+                        <th class="cart-col-quantity text-center">Số lượng</th>
+                        <th class="cart-col-total text-end">Thành tiền</th>
+                        <th class="cart-col-action"></th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var item in CartService.Items)
                     {
                         <tr>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    @if (!string.IsNullOrEmpty(item.ImagePath))
-                                    {
-                                        <img class="cart-item-image me-2" src="@GetImageUrl(item.ImagePath)" alt="@item.ProductName" />
-                                    }
-                                    <span>@item.ProductName</span>
-                                </div>
+                            <td class="cart-col-image">
+                                @if (!string.IsNullOrEmpty(item.ImagePath))
+                                {
+                                    <img class="cart-item-image" src="@GetImageUrl(item.ImagePath)" alt="@item.ProductName" />
+                                }
+                                else
+                                {
+                                    <div class="cart-item-image-placeholder">
+                                        <i class="bi bi-image"></i>
+                                    </div>
+                                }
                             </td>
-                            <td class="text-end">@item.UnitPrice.ToString("N0") VNĐ</td>
-                            <td class="text-center">
+                            <td class="cart-col-product">
+                                <span class="fw-semibold">@item.ProductName</span>
+                            </td>
+                            <td class="cart-col-price text-end">@item.UnitPrice.ToString("N0") VNĐ</td>
+                            <td class="cart-col-quantity text-center">
                                 <input type="number" min="1" class="form-control form-control-sm quantity-input"
                                        value="@item.Quantity"
                                        @onchange="(e => OnQuantityChanged(item.ProductId, e.Value?.ToString()))" />
                             </td>
-                            <td class="text-end">@item.Total.ToString("N0") VNĐ</td>
-                            <td class="text-end">
+                            <td class="cart-col-total text-end fw-semibold">@item.Total.ToString("N0") VNĐ</td>
+                            <td class="cart-col-action text-end">
                                 <button class="btn btn-sm btn-outline-danger" @onclick="@(() => Remove(item.ProductId))">
                                     <i class="bi bi-x"></i>
                                 </button>
@@ -107,15 +114,84 @@
         margin-bottom: 0.5rem;
     }
 
+    .cart-table-wrapper {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .cart-table {
+        margin-bottom: 0;
+    }
+
+    .cart-table thead {
+        background-color: #f9fafb;
+    }
+
+    .cart-table thead th {
+        border-bottom: 2px solid #e5e7eb;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        white-space: nowrap;
+    }
+
+    .cart-table tbody td {
+        padding: 1rem 0.75rem;
+        vertical-align: middle;
+    }
+
+    .cart-col-image {
+        width: 80px;
+        min-width: 80px;
+    }
+
+    .cart-col-product {
+        min-width: 200px;
+    }
+
+    .cart-col-price {
+        width: 120px;
+        min-width: 120px;
+    }
+
+    .cart-col-quantity {
+        width: 120px;
+        min-width: 120px;
+    }
+
+    .cart-col-total {
+        width: 140px;
+        min-width: 140px;
+    }
+
+    .cart-col-action {
+        width: 60px;
+        min-width: 60px;
+    }
+
     .cart-item-image {
-        width: 40px;
-        height: 40px;
+        width: 60px;
+        height: 60px;
         object-fit: cover;
         border-radius: 6px;
+        border: 1px solid #e5e7eb;
+    }
+
+    .cart-item-image-placeholder {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f3f4f6;
+        border-radius: 6px;
+        border: 1px solid #e5e7eb;
+        color: #9ca3af;
+        font-size: 1.5rem;
     }
 
     .quantity-input {
-        max-width: 80px;
+        max-width: 100px;
         margin: 0 auto;
         text-align: center;
     }
@@ -123,6 +199,16 @@
     .cart-summary {
         padding-top: 1rem;
         border-top: 1px solid #e5e7eb;
+    }
+
+    @@media (max-width: 768px) {
+        .cart-table-wrapper {
+            overflow-x: auto;
+        }
+
+        .cart-table {
+            min-width: 700px;
+        }
     }
 </style>
 

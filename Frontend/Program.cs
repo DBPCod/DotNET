@@ -5,6 +5,7 @@ using Frontend.Services;
 using Blazored.Toast;
 using Blazored.Modal;
 using System.Net.Http;
+using Microsoft.JSInterop;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -26,7 +27,9 @@ builder.Services.AddScoped(sp => {
 // Đăng ký services dùng chung
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<AuthService>();
-builder.Services.AddScoped<CartService>();
+// CartService cần AuthService, nên đăng ký sau AuthService
+builder.Services.AddScoped<CartService>(sp => 
+    new CartService(sp.GetRequiredService<IJSRuntime>(), sp.GetRequiredService<AuthService>()));
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<CustomerService>();
 builder.Services.AddScoped<PromotionService>();

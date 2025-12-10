@@ -213,6 +213,7 @@ public class PromotionService(PromotionRepository promotionRepository, OrderRepo
         response.Reason = "ok";
         response.DiscountAmount = discountAmount;
         response.DiscountType = promotion.DiscountType.ToString().ToLower();
+        response.PromotionId = promotion.Id;
 
         return response;
     }

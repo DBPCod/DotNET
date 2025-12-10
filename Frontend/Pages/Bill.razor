@@ -1,7 +1,16 @@
 @page "/bill"
 @using Frontend.Services
+@using Frontend.Models.Order
+@using Frontend.Models.Order.Responses
+@using Frontend.Models.OrderItem
+@using Frontend.Models.OrderItem.Responses
+@using Frontend.Models
 @inject CartService CartService
 @inject NavigationManager NavigationManager
+@inject OrderService OrderService
+@inject OrderItemService OrderItemService
+@inject ProductService ProductService
+@inject Blazored.Toast.Services.IToastService ToastService
 
 <PageTitle>Thông tin thanh toán</PageTitle>
 
@@ -15,15 +24,106 @@
             Đơn hàng của bạn đã được tiếp nhận. Nhân viên sẽ liên hệ xác nhận và giao hàng trong thời gian sớm nhất.
         </p>
 
-        <div class="bill-summary text-start">
-            <div class="d-flex justify-content-between mb-2">
-                <span>Tổng tiền đơn hàng</span>
-                <span class="fw-semibold text-danger">@CartService.GetTotal().ToString("N0") VNĐ</span>
+        @if (isLoading)
+        {
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Đang tải...</span>
+                </div>
             </div>
-            <div class="small text-muted">
-                (Chi tiết sản phẩm vui lòng xem lại trong email hoặc lịch sử mua hàng khi tính năng hoàn thiện)
+        }
+        else if (orderInfo != null)
+        {
+            <div class="bill-details">
+                <!-- Thông tin đơn hàng -->
+                <div class="bill-section">
+                    <h5 class="bill-section-title">Thông tin đơn hàng</h5>
+                    <div class="bill-info-row">
+                        <span class="bill-label">Mã đơn hàng:</span>
+                        <span class="bill-value">#@GetOrderIdDisplay(orderInfo.order?.Id ?? "")</span>
+                    </div>
+                    <div class="bill-info-row">
+                        <span class="bill-label">Ngày đặt:</span>
+                        <span class="bill-value">@orderInfo.order?.OrderDate.ToString("dd/MM/yyyy HH:mm")</span>
+                    </div>
+                    <div class="bill-info-row">
+                        <span class="bill-label">Trạng thái:</span>
+                        <span class="badge @GetStatusBadgeClass(orderInfo.order?.Status ?? "")">
+                            @GetStatusText(orderInfo.order?.Status ?? "")
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Danh sách sản phẩm -->
+                @if (orderItems != null && orderItems.Any())
+                {
+                    <div class="bill-section">
+                        <h5 class="bill-section-title">Sản phẩm đã đặt</h5>
+                        <div class="bill-products">
+                            @foreach (var item in orderItems)
+                            {
+                                <div class="bill-product-item">
+                                    <div class="bill-product-info">
+                                        <div class="bill-product-name">
+                                            @GetProductName(item.ProductId)
+                                        </div>
+                                        <div class="bill-product-details">
+                                            <span>Số lượng: @item.Quantity</span>
+                                            <span>×</span>
+                                            <span>@item.Price.ToString("N0") VNĐ</span>
+                                        </div>
+                                    </div>
+                                    <div class="bill-product-total">
+                                        @item.Subtotal.ToString("N0") VNĐ
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else if (isLoadingItems)
+                {
+                    <div class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Đang tải...</span>
+                        </div>
+                    </div>
+                }
+
+                <!-- Tổng kết -->
+                <div class="bill-section bill-summary">
+                    <div class="bill-summary-row">
+                        <span>Tổng tiền hàng</span>
+                        <span>@(orderInfo.order?.TotalAmount?.ToString("N0") ?? "0") VNĐ</span>
+                    </div>
+                    @if (orderInfo.order?.DiscountAmount > 0)
+                    {
+                        <div class="bill-summary-row text-success">
+                            <span>Giảm giá</span>
+                            <span>-@orderInfo.order.DiscountAmount.ToString("N0") VNĐ</span>
+                        </div>
+                    }
+                    <div class="bill-summary-row bill-total">
+                        <span>Thành tiền</span>
+                        <span class="fw-bold text-danger">
+                            @(((orderInfo.order?.TotalAmount ?? 0) - (orderInfo.order?.DiscountAmount ?? 0)).ToString("N0")) VNĐ
+                        </span>
+                    </div>
+                </div>
             </div>
-        </div>
+        }
+        else
+        {
+            <div class="bill-summary text-start">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Tổng tiền đơn hàng</span>
+                    <span class="fw-semibold text-danger">@CartService.GetTotal().ToString("N0") VNĐ</span>
+                </div>
+                <div class="small text-muted">
+                    (Chi tiết sản phẩm vui lòng xem lại trong email hoặc lịch sử mua hàng khi tính năng hoàn thiện)
+                </div>
+            </div>
+        }
 
         <div class="mt-4 d-flex gap-2 justify-content-center">
             <button class="btn btn-outline-secondary" @onclick="BackToHome">
@@ -37,6 +137,155 @@
 </div>
 
 @code {
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? orderId { get; set; }
+
+    private OrderDetailResponse? orderInfo;
+    private List<OrderItemDto> orderItems = new();
+    private Dictionary<string, string> productNames = new();
+    private bool isLoading = false;
+    private bool isLoadingItems = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Lấy orderId từ query string
+        if (!string.IsNullOrEmpty(orderId) && Guid.TryParse(orderId, out var parsedOrderId))
+        {
+            await LoadOrderInfo(parsedOrderId);
+        }
+        else
+        {
+            ToastService.ShowWarning("Không tìm thấy mã đơn hàng");
+        }
+    }
+
+    private async Task LoadOrderInfo(Guid orderIdGuid)
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            // Load order info
+            var response = await OrderService.GetOrderByIdAsync(orderIdGuid);
+            if (response != null && response.StatusCode == 200 && response.Data != null)
+            {
+                orderInfo = response.Data;
+                
+                // Load order items
+                await LoadOrderItems(orderIdGuid);
+            }
+            else
+            {
+                ToastService.ShowError(response?.Message ?? "Không thể tải thông tin đơn hàng");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading order info: {ex.Message}");
+            ToastService.ShowError($"Lỗi: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadOrderItems(Guid orderId)
+    {
+        isLoadingItems = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await OrderItemService.GetOrderItemsByOrderIdAsync(orderId, page: 1, pageSize: 100);
+            if (response != null && response.StatusCode == 200 && response.Data != null)
+            {
+                orderItems = response.Data.orderItems ?? new();
+                
+                // Load product names
+                await LoadProductNames();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading order items: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingItems = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadProductNames()
+    {
+        var uniqueProductIds = orderItems.Select(item => item.ProductId).Distinct().ToList();
+        
+        foreach (var productId in uniqueProductIds)
+        {
+            if (string.IsNullOrEmpty(productId) || productNames.ContainsKey(productId))
+                continue;
+
+            try
+            {
+                if (Guid.TryParse(productId, out var parsedId))
+                {
+                    var response = await ProductService.GetProductByIdAsync(productId);
+                    if (response != null && response.StatusCode == 200 && response.Data?.Product != null)
+                    {
+                        productNames[productId] = response.Data.Product.ProductName;
+                    }
+                    else
+                    {
+                        productNames[productId] = "Sản phẩm không xác định";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading product {productId}: {ex.Message}");
+                productNames[productId] = "Sản phẩm không xác định";
+            }
+        }
+    }
+
+    private string GetProductName(string productId)
+    {
+        return productNames.TryGetValue(productId, out var name) ? name : "Đang tải...";
+    }
+
+    private string GetOrderIdDisplay(string orderId)
+    {
+        if (string.IsNullOrEmpty(orderId) || orderId.Length < 8)
+            return orderId;
+        return orderId.Substring(0, 8).ToUpper();
+    }
+
+    private string GetStatusText(string status)
+    {
+        return status?.ToLower() switch
+        {
+            "pending" => "Chờ xử lý",
+            "paid" => "Đã thanh toán",
+            "canceled" => "Đã hủy",
+            _ => status ?? "Không xác định"
+        };
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status?.ToLower() switch
+        {
+            "pending" => "bg-warning",
+            "paid" => "bg-success",
+            "canceled" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
     private void BackToHome()
     {
         NavigationManager.NavigateTo("/");
@@ -83,6 +332,101 @@
         border-radius: 8px;
         background-color: #f9fafb;
         border: 1px solid #e5e7eb;
+    }
+
+    .bill-details {
+        text-align: left;
+    }
+
+    .bill-section {
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        border-radius: 8px;
+        background-color: #f9fafb;
+        border: 1px solid #e5e7eb;
+    }
+
+    .bill-section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #1f2937;
+        border-bottom: 2px solid #e5e7eb;
+        padding-bottom: 0.5rem;
+    }
+
+    .bill-info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .bill-info-row:last-child {
+        border-bottom: none;
+    }
+
+    .bill-label {
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .bill-value {
+        color: #1f2937;
+        font-weight: 600;
+    }
+
+    .bill-products {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .bill-product-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 0.75rem;
+        background-color: #ffffff;
+        border-radius: 6px;
+        border: 1px solid #e5e7eb;
+    }
+
+    .bill-product-info {
+        flex: 1;
+    }
+
+    .bill-product-name {
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.25rem;
+    }
+
+    .bill-product-details {
+        display: flex;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .bill-product-total {
+        font-weight: 600;
+        color: #dc2626;
+        font-size: 1rem;
+    }
+
+    .bill-summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+    }
+
+    .bill-total {
+        border-top: 2px solid #e5e7eb;
+        margin-top: 0.5rem;
+        padding-top: 0.75rem;
+        font-size: 1.1rem;
     }
 </style>
 
