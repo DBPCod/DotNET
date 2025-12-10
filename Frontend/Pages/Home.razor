@@ -7,6 +7,8 @@
 @inject AuthService AuthService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject InventoryService InventoryService
+@inject Blazored.Toast.Services.IToastService ToastService
 
 <PageTitle>Spot247 - Cửa hàng bán lẻ</PageTitle>
 
@@ -101,10 +103,28 @@
                             <div class="product-body flex-grow-1 d-flex flex-column">
                                 <h5 class="product-name">@product.ProductName</h5>
                                 <p class="product-price">@ProductService.FormatPrice(product.Price)</p>
-                                <p class="product-unit text-muted mb-2">@product.Unit</p>
-                                <button class="btn btn-sm btn-primary mt-auto" @onclick="() => AddToCart(product, product.Id)">
-                                    <i class="bi bi-cart-plus"></i> Thêm vào giỏ
-                                </button>
+                                <p class="product-unit text-muted mb-1">@product.Unit</p>
+                                @{
+                                    var stockQuantity = GetInventoryQuantity(product.Id);
+                                }
+                                @if (stockQuantity > 0)
+                                {
+                                    <p class="product-stock text-success mb-2">
+                                        <i class="bi bi-check-circle"></i> Còn @stockQuantity sản phẩm
+                                    </p>
+                                    <button class="btn btn-sm btn-primary mt-auto" @onclick="() => AddToCart(product, product.Id)">
+                                        <i class="bi bi-cart-plus"></i> Thêm vào giỏ
+                                    </button>
+                                }
+                                else
+                                {
+                                    <p class="product-stock text-danger mb-2">
+                                        <i class="bi bi-x-circle"></i> Hết hàng
+                                    </p>
+                                    <button class="btn btn-sm btn-secondary mt-auto" disabled>
+                                        <i class="bi bi-cart-x"></i> Hết hàng
+                                    </button>
+                                }
                             </div>
                         </div>
                     </div>
@@ -147,6 +167,7 @@
 
 @code {
     private List<ProductDto>? products;
+    private Dictionary<string, int> productInventories = new(); // Lưu số lượng tồn kho theo ProductId
     private bool isLoading = true;
     private string? loadError;
 
@@ -168,6 +189,9 @@
             if (response?.StatusCode == 200 && response.Data is not null)
             {
                 products = response.Data.Products;
+                
+                // Load số lượng tồn kho cho từng sản phẩm
+                await LoadInventories();
             }
             else
             {
@@ -184,16 +208,82 @@
         }
     }
 
+    private async Task LoadInventories()
+    {
+        if (products == null || !products.Any()) return;
+
+        foreach (var product in products)
+        {
+            try
+            {
+                var inventoryResponse = await InventoryService.GetInventoryByProductIdAsync(product.Id);
+                if (inventoryResponse?.StatusCode == 200 && inventoryResponse.Data?.Inventory != null)
+                {
+                    productInventories[product.Id] = inventoryResponse.Data.Inventory.Quantity;
+                }
+                else
+                {
+                    productInventories[product.Id] = 0;
+                }
+            }
+            catch
+            {
+                productInventories[product.Id] = 0;
+            }
+        }
+    }
+
+    private int GetInventoryQuantity(string productId)
+    {
+        return productInventories.TryGetValue(productId, out var quantity) ? quantity : 0;
+    }
+
     private async Task AddToCart(ProductDto product, string productId)
     {
-        var elementId = $"product-{productId}";
-        CartService.AddToCart(product);
-        
-        // Tạo hiệu ứng bay vào giỏ hàng
-        await AnimateToCart(elementId);
-        
-        // Cập nhật UI
-        StateHasChanged();
+        try
+        {
+            // Kiểm tra số lượng tồn kho
+            var inventoryResponse = await InventoryService.GetInventoryByProductIdAsync(productId);
+            
+            if (inventoryResponse == null || inventoryResponse.StatusCode != 200 || inventoryResponse.Data?.Inventory == null)
+            {
+                ToastService.ShowWarning("Không thể kiểm tra tồn kho của sản phẩm này");
+                return;
+            }
+            
+            var inventory = inventoryResponse.Data.Inventory;
+            
+            // Kiểm tra hết hàng
+            if (inventory.Quantity <= 0)
+            {
+                ToastService.ShowError($"Sản phẩm '{product.ProductName}' đã hết hàng!");
+                return;
+            }
+            
+            // Thêm vào giỏ hàng với kiểm tra số lượng tồn
+            bool added = CartService.AddToCart(product, 1, inventory.Quantity);
+            
+            if (added)
+            {
+                ToastService.ShowSuccess($"Đã thêm '{product.ProductName}' vào giỏ hàng");
+                
+                // Tạo hiệu ứng bay vào giỏ hàng
+                var elementId = $"product-{productId}";
+                await AnimateToCart(elementId);
+                
+                // Cập nhật UI
+                StateHasChanged();
+            }
+            else
+            {
+                ToastService.ShowError($"Không thể thêm sản phẩm. Chỉ còn {inventory.Quantity} sản phẩm trong kho!");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error adding to cart: {ex.Message}");
+            ToastService.ShowError("Có lỗi xảy ra khi thêm sản phẩm vào giỏ hàng");
+        }
     }
 
     private async Task AnimateToCart(string elementId)
@@ -327,6 +417,11 @@
 
     .product-unit {
         font-size: 0.85rem;
+    }
+
+    .product-stock {
+        font-size: 0.85rem;
+        font-weight: 500;
     }
 
     .stats-section {

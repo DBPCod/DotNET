@@ -3,6 +3,9 @@
 @using Frontend.Models.Common
 @inject CartService CartService
 @inject NavigationManager NavigationManager
+@inject InventoryService InventoryService
+@inject Blazored.Toast.Services.IToastService ToastService
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Giỏ hàng</PageTitle>
 
@@ -47,12 +50,48 @@
                             </td>
                             <td class="cart-col-product">
                                 <span class="fw-semibold">@item.ProductName</span>
+                                <br />
+                                @{
+                                    var stock = GetStock(item.ProductId);
+                                }
+                                @if (stock > 0)
+                                {
+                                    <small class="text-success">
+                                        <i class="bi bi-check-circle"></i> Còn @stock sản phẩm
+                                    </small>
+                                }
+                                else
+                                {
+                                    <small class="text-muted">Đang kiểm tra tồn kho...</small>
+                                }
                             </td>
                             <td class="cart-col-price text-end">@item.UnitPrice.ToString("N0") VNĐ</td>
                             <td class="cart-col-quantity text-center">
-                                <input type="number" min="1" class="form-control form-control-sm quantity-input"
-                                       value="@item.Quantity"
-                                       @onchange="(e => OnQuantityChanged(item.ProductId, e.Value?.ToString()))" />
+                                <div class="quantity-controls">
+                                    <button class="btn btn-sm btn-outline-secondary quantity-btn" 
+                                            @onclick="() => DecreaseQuantity(item.ProductId)"
+                                            disabled="@(item.Quantity <= 1)">
+                                        <i class="bi bi-dash"></i>
+                                    </button>
+                                    <input type="number" 
+                                           class="quantity-input" 
+                                           min="1" 
+                                           max="@GetStock(item.ProductId)"
+                                           value="@item.Quantity"
+                                           @oninput="(e => OnQuantityInputChanged(item.ProductId, e.Value?.ToString()))"
+                                           @onblur="(e => OnQuantityBlur(item.ProductId))" />
+                                    <button class="btn btn-sm btn-outline-secondary quantity-btn" 
+                                            @onclick="() => IncreaseQuantity(item.ProductId)"
+                                            disabled="@(GetStock(item.ProductId) > 0 && item.Quantity >= GetStock(item.ProductId))">
+                                        <i class="bi bi-plus"></i>
+                                    </button>
+                                </div>
+                                @if (!string.IsNullOrEmpty(GetQuantityError(item.ProductId)))
+                                {
+                                    <small class="text-danger d-block mt-1">
+                                        <i class="bi bi-exclamation-circle"></i> @GetQuantityError(item.ProductId)
+                                    </small>
+                                }
                             </td>
                             <td class="cart-col-total text-end fw-semibold">@item.Total.ToString("N0") VNĐ</td>
                             <td class="cart-col-action text-end">
@@ -85,10 +124,43 @@
 </div>
 
 @code {
-    protected override void OnInitialized()
+    private Dictionary<string, int> productInventories = new();
+    private Dictionary<string, string> quantityErrors = new();
+
+    protected override async Task OnInitializedAsync()
     {
         CartService.OnChange += StateHasChanged;
+        await LoadInventories();
     }
+
+    private async Task LoadInventories()
+    {
+        if (CartService.Items == null || !CartService.Items.Any())
+            return;
+
+        foreach (var item in CartService.Items)
+        {
+            try
+            {
+                var inventoryResponse = await InventoryService.GetInventoryByProductIdAsync(item.ProductId);
+                if (inventoryResponse?.StatusCode == 200 && inventoryResponse.Data?.Inventory != null)
+                {
+                    productInventories[item.ProductId] = inventoryResponse.Data.Inventory.Quantity;
+                }
+                else
+                {
+                    productInventories[item.ProductId] = 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading inventory for {item.ProductId}: {ex.Message}");
+                productInventories[item.ProductId] = 0;
+            }
+        }
+        StateHasChanged();
+    }
+
 
     private void Remove(string productId) => CartService.Remove(productId);
 
@@ -96,11 +168,116 @@
 
     private void GoToOrder() => NavigationManager.NavigateTo("/orders");
 
-    private void OnQuantityChanged(string productId, string? value)
+    private int GetStock(string productId)
     {
-        if (int.TryParse(value, out var quantity))
+        return productInventories.TryGetValue(productId, out var stock) ? stock : 0;
+    }
+
+    private string GetQuantityError(string productId)
+    {
+        return quantityErrors.TryGetValue(productId, out var error) ? error : "";
+    }
+
+    private void OnQuantityInputChanged(string productId, string? value)
+    {
+        quantityErrors.Remove(productId);
+        
+        // Validation 1: Kiểm tra có phải số không
+        if (string.IsNullOrWhiteSpace(value) || !int.TryParse(value, out var quantity))
         {
-            CartService.UpdateQuantity(productId, quantity);
+            // Chưa nhập xong, chỉ hiển thị cảnh báo nhẹ
+            quantityErrors[productId] = "Vui lòng nhập số";
+            StateHasChanged();
+            return;
+        }
+
+        // Validation 2: Kiểm tra số dương
+        if (quantity <= 0)
+        {
+            quantityErrors[productId] = "Số lượng phải lớn hơn 0";
+            StateHasChanged();
+            return;
+        }
+
+        // Validation 3: Kiểm tra tồn kho
+        var stock = GetStock(productId);
+        if (stock > 0 && quantity > stock)
+        {
+            quantityErrors[productId] = $"Chỉ còn {stock} sản phẩm trong kho!";
+            StateHasChanged();
+            return;
+        }
+
+        // Validation OK - Xóa lỗi và cập nhật số lượng
+        quantityErrors.Remove(productId);
+        CartService.UpdateQuantity(productId, quantity, stock > 0 ? stock : null);
+        StateHasChanged();
+    }
+
+    private void OnQuantityBlur(string productId)
+    {
+        var item = CartService.Items.FirstOrDefault(x => x.ProductId == productId);
+        if (item == null) return;
+
+        var stock = GetStock(productId);
+        
+        // Khi blur, kiểm tra và tự động sửa giá trị không hợp lệ
+        if (item.Quantity <= 0)
+        {
+            ToastService.ShowError("Số lượng phải lớn hơn 0. Đã tự động đặt về 1.");
+            CartService.UpdateQuantity(productId, 1);
+            quantityErrors.Remove(productId);
+            StateHasChanged();
+        }
+        else if (stock > 0 && item.Quantity > stock)
+        {
+            ToastService.ShowError($"Số lượng vượt quá tồn kho! Chỉ còn {stock} sản phẩm. Đã tự động điều chỉnh.");
+            CartService.UpdateQuantity(productId, stock);
+            quantityErrors.Remove(productId);
+            StateHasChanged();
+        }
+        else
+        {
+            // Giá trị hợp lệ, xóa lỗi
+            quantityErrors.Remove(productId);
+            StateHasChanged();
+        }
+    }
+
+    private async void IncreaseQuantity(string productId)
+    {
+        quantityErrors.Remove(productId);
+        var item = CartService.Items.FirstOrDefault(x => x.ProductId == productId);
+        if (item == null) return;
+
+        var stock = GetStock(productId);
+        if (stock > 0 && item.Quantity >= stock)
+        {
+            quantityErrors[productId] = $"Đạt tối đa {stock}";
+            ToastService.ShowWarning($"Không thể thêm. Chỉ còn {stock} sản phẩm trong kho!");
+            StateHasChanged();
+            return;
+        }
+
+        bool updated = CartService.UpdateQuantity(productId, item.Quantity + 1, stock > 0 ? stock : null);
+        if (!updated)
+        {
+            quantityErrors[productId] = $"Tồn kho: {stock}";
+            ToastService.ShowError($"Không thể tăng số lượng. Tồn kho: {stock}");
+        }
+        StateHasChanged();
+    }
+
+    private void DecreaseQuantity(string productId)
+    {
+        quantityErrors.Remove(productId);
+        var item = CartService.Items.FirstOrDefault(x => x.ProductId == productId);
+        if (item == null) return;
+
+        if (item.Quantity > 1)
+        {
+            CartService.UpdateQuantity(productId, item.Quantity - 1);
+            StateHasChanged();
         }
     }
 
@@ -190,10 +367,68 @@
         font-size: 1.5rem;
     }
 
+    .quantity-controls {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .quantity-btn {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+
+    .quantity-btn:not(:disabled):hover {
+        background-color: #667eea;
+        border-color: #667eea;
+        color: white;
+        transform: scale(1.1);
+    }
+
+    .quantity-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
     .quantity-input {
-        max-width: 100px;
-        margin: 0 auto;
+        width: 60px;
         text-align: center;
+        font-weight: 600;
+        font-size: 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 0.35rem 0.25rem;
+        background-color: #ffffff;
+        transition: all 0.2s;
+        outline: none;
+    }
+
+    .quantity-input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .quantity-input::-webkit-inner-spin-button,
+    .quantity-input::-webkit-outer-spin-button {
+        opacity: 1;
+        height: 24px;
+    }
+
+    /* Firefox */
+    .quantity-input[type="number"] {
+        -moz-appearance: textfield;
+    }
+
+    .quantity-input:hover::-webkit-inner-spin-button,
+    .quantity-input:hover::-webkit-outer-spin-button {
+        opacity: 1;
     }
 
     .cart-summary {
