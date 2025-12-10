@@ -64,11 +64,11 @@
         }
     </div>
 
-    @* <div style="display: flex; justify-content: flex-end;">
+    <div style="display: flex; justify-content: flex-end;">
         <a href="/auth/forgot-password" style="font-size: 0.875rem; color: #4f46e5; text-decoration: none;">
             Quên mật khẩu?
         </a>
-    </div> *@
+    </div>
 
     <button type="submit" class="btn btn-primary" disabled="@AuthService.IsLoading">
         @if (AuthService.IsLoading)
