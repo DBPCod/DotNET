@@ -35,11 +35,25 @@ public class CartService
         return $"cart_items_{userId}";
     }
 
-    public void AddToCart(ProductDto product, int quantity = 1)
+    public bool AddToCart(ProductDto product, int quantity = 1, int? maxQuantity = null)
     {
         if (quantity <= 0) quantity = 1;
 
         var existing = _items.FirstOrDefault(x => x.ProductId == product.Id);
+        
+        // Kiểm tra số lượng tồn kho nếu có
+        if (maxQuantity.HasValue)
+        {
+            int currentQuantityInCart = existing?.Quantity ?? 0;
+            int totalQuantity = currentQuantityInCart + quantity;
+            
+            if (totalQuantity > maxQuantity.Value)
+            {
+                // Không thêm được, vượt quá số lượng tồn
+                return false;
+            }
+        }
+        
         if (existing is null)
         {
             _items.Add(new CartItem
@@ -58,6 +72,7 @@ public class CartService
 
         NotifyStateChanged();
         _ = SaveToLocalStorageAsync(); // Fire-and-forget
+        return true;
     }
 
     public void Remove(string productId)
@@ -71,10 +86,16 @@ public class CartService
         }
     }
 
-    public void UpdateQuantity(string productId, int quantity)
+    public bool UpdateQuantity(string productId, int quantity, int? maxQuantity = null)
     {
         var item = _items.FirstOrDefault(x => x.ProductId == productId);
-        if (item is null) return;
+        if (item is null) return false;
+
+        // Kiểm tra số lượng tồn kho nếu có
+        if (maxQuantity.HasValue && quantity > maxQuantity.Value)
+        {
+            return false; // Không cho phép cập nhật
+        }
 
         if (quantity <= 0)
         {
@@ -87,6 +108,7 @@ public class CartService
 
         NotifyStateChanged();
         _ = SaveToLocalStorageAsync(); // Fire-and-forget
+        return true;
     }
 
     public void Clear()

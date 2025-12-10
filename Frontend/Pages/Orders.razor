@@ -62,17 +62,19 @@
                         <ValidationMessage For="@(() => orderForm.CustomerName)" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Số điện thoại</label>
+                        <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
                         <InputText class="form-control" 
                                    placeholder="Nhập số điện thoại" 
                                    @bind-Value="orderForm.CustomerPhone" />
+                        <ValidationMessage For="@(() => orderForm.CustomerPhone)" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Địa chỉ giao hàng</label>
+                        <label class="form-label">Địa chỉ giao hàng <span class="text-danger">*</span></label>
                         <InputTextArea class="form-control" 
                                       rows="3" 
                                       placeholder="Nhập địa chỉ cụ thể" 
                                       @bind-Value="orderForm.CustomerAddress" />
+                        <ValidationMessage For="@(() => orderForm.CustomerAddress)" />
                     </div>
 
                     <!-- Mã giảm giá -->
@@ -224,8 +226,13 @@
                     // Pre-fill phone và address nếu có
                     if (!string.IsNullOrEmpty(customer.Phone))
                         orderForm.CustomerPhone = customer.Phone;
+                    else
+                        orderForm.CustomerPhone = "";
+                        
                     if (!string.IsNullOrEmpty(customer.Address))
                         orderForm.CustomerAddress = customer.Address;
+                    else
+                        orderForm.CustomerAddress = "";
                 }
             }
         }
@@ -447,11 +454,17 @@
     {
         [Required(ErrorMessage = "Họ và tên là bắt buộc")]
         [MinLength(2, ErrorMessage = "Họ và tên phải có ít nhất 2 ký tự")]
+        [MaxLength(100, ErrorMessage = "Họ và tên không được vượt quá 100 ký tự")]
         public string CustomerName { get; set; } = string.Empty;
 
-        public string? CustomerPhone { get; set; }
+        [Required(ErrorMessage = "Số điện thoại là bắt buộc")]
+        [RegularExpression(@"^(0|\+84)(3|5|7|8|9)[0-9]{8}$", ErrorMessage = "Số điện thoại không hợp lệ (VD: 0912345678)")]
+        public string CustomerPhone { get; set; } = string.Empty;
 
-        public string? CustomerAddress { get; set; }
+        [Required(ErrorMessage = "Địa chỉ giao hàng là bắt buộc")]
+        [MinLength(10, ErrorMessage = "Địa chỉ phải có ít nhất 10 ký tự")]
+        [MaxLength(500, ErrorMessage = "Địa chỉ không được vượt quá 500 ký tự")]
+        public string CustomerAddress { get; set; } = string.Empty;
     }
 }
 
