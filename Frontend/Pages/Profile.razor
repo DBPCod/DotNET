@@ -2,10 +2,12 @@
 @using Frontend.Services
 @using Frontend.Models.User
 @using Frontend.Models.User.Requests
+@using Frontend.Models.Customer.Requests
 @using System.ComponentModel.DataAnnotations
 @inject AuthService AuthService
 @inject UserService UserService
 @inject NavigationManager NavigationManager
+@inject CustomerService CustomerService
 @inject Blazored.Toast.Services.IToastService ToastService
 
 <PageTitle>Thông tin cá nhân</PageTitle>
@@ -50,7 +52,8 @@
 
                             <div class="mb-3">
                                 <label class="form-label" for="username">Tên đăng nhập</label>
-                                <InputText id="username" class="form-control" @bind-Value="profileForm.Username" />
+                                <InputText id="username" class="form-control" @bind-Value="profileForm.Username" readonly />
+                                <small class="text-muted">Không thể thay đổi tên đăng nhập</small>
                                 <ValidationMessage For="@(() => profileForm.Username)" />
                             </div>
 
@@ -64,6 +67,18 @@
                                 <label class="form-label" for="fullName">Họ và tên</label>
                                 <InputText id="fullName" class="form-control" @bind-Value="profileForm.FullName" />
                                 <ValidationMessage For="@(() => profileForm.FullName)" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="phone">Số điện thoại</label>
+                                <InputText id="phone" class="form-control" @bind-Value="profileForm.Phone" />
+                                <ValidationMessage For="@(() => profileForm.Phone)" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="address">Địa chỉ</label>
+                                <InputText id="address" class="form-control" @bind-Value="profileForm.Address" />
+                                <ValidationMessage For="@(() => profileForm.Address)" />
                             </div>
 
                             <div class="d-flex gap-2">
@@ -184,6 +199,7 @@
 
 @code {
     private ProfileForm profileForm = new();
+    private string? customerId;
     private ChangePasswordForm changePasswordForm = new();
     private bool isLoading = false;
     private bool isSubmitting = false;
@@ -198,6 +214,7 @@
         if (AuthService.CurrentUser != null)
         {
             LoadUserData();
+            await LoadCustomerData();
         }
     }
 
@@ -209,8 +226,33 @@
         {
             Username = AuthService.CurrentUser.Username,
             Email = AuthService.CurrentUser.Email,
-            FullName = AuthService.CurrentUser.FullName
+            FullName = AuthService.CurrentUser.FullName,
+            Phone = "",
+            Address = ""
         };
+    }
+
+    private async Task LoadCustomerData()
+    {
+        try
+        {
+            var response = await CustomerService.GetCustomersAsync(page: 1, pageSize: 1, q: AuthService.CurrentUser?.Email);
+            var customer = response?.Data?.Customers?.FirstOrDefault();
+            if (customer != null)
+            {
+                customerId = customer.Id;
+                profileForm.Phone = customer.Phone ?? "";
+                profileForm.Address = customer.Address ?? "";
+                if (string.IsNullOrWhiteSpace(profileForm.FullName))
+                {
+                    profileForm.FullName = customer.Name;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading customer: {ex.Message}");
+        }
     }
 
     private async Task HandleSubmit()
@@ -245,6 +287,36 @@
                 if (response.Data?.User != null)
                 {
                     await AuthService.SetUserAsync(response.Data.User);
+                }
+
+                // Đồng bộ phone/address sang bảng khách hàng
+                if (!string.IsNullOrEmpty(customerId))
+                {
+                    var updateCustomerReq = new UpdateCustomerRequest
+                    {
+                        Name = profileForm.FullName,
+                        Phone = profileForm.Phone,
+                        Email = profileForm.Email,
+                        Address = profileForm.Address,
+                        Status = null
+                    };
+                    await CustomerService.UpdateCustomerAsync(customerId, updateCustomerReq);
+                }
+                else
+                {
+                    var createReq = new CreateCustomerRequest
+                    {
+                        Name = profileForm.FullName,
+                        Phone = profileForm.Phone,
+                        Email = profileForm.Email,
+                        Address = profileForm.Address,
+                        Status = "ACTIVE"
+                    };
+                    var createRes = await CustomerService.CreateCustomerAsync(createReq);
+                    if (createRes?.Data?.Customer != null)
+                    {
+                        customerId = createRes.Data.Customer.Id;
+                    }
                 }
 
                 ToastService.ShowSuccess("Cập nhật thông tin thành công!");
@@ -403,6 +475,12 @@
 
         [StringLength(255, ErrorMessage = "Họ và tên không được vượt quá 255 ký tự")]
         public string FullName { get; set; } = "";
+
+        [StringLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự")]
+        public string Phone { get; set; } = "";
+
+        [StringLength(255, ErrorMessage = "Địa chỉ tối đa 255 ký tự")]
+        public string Address { get; set; } = "";
     }
 
     private class ChangePasswordForm
