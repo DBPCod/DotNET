@@ -8,29 +8,20 @@
     <header class="user-header">
         <div class="container-fluid user-header-inner">
             <div class="user-brand" @onclick="@(() => NavigationManager.NavigateTo("/"))">
+                <img src="favspot247.png" alt="Spot247" class="user-logo-img" />
                 <span class="user-title">Spot247</span>
             </div>
 
             <nav class="user-nav">
-                <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
+                @* <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
                     Trang chủ
-                </NavLink>
-                <NavLink class="nav-link cart-nav-link" href="/cart">
-                    Giỏ hàng
-                    @if (cartItemCount > 0)
-                    {
-                        <span class="cart-badge">@cartItemCount</span>
-                    }
-                </NavLink>
-                @if (AuthService.CurrentUser != null)
+                </NavLink> *@
+                @* @if (AuthService.CurrentUser != null)
                 {
-                    <NavLink class="nav-link" href="/my-orders">
-                        Đơn hàng của tôi
-                    </NavLink>
                     <NavLink class="nav-link" href="/profile">
                         Thông tin cá nhân
                     </NavLink>
-                }
+                } *@
             </nav>
 
             <div class="user-auth-actions">
@@ -42,13 +33,41 @@
                 }
                 else
                 {
-                    <span class="user-welcome">
-                        Xin chào, @(string.IsNullOrWhiteSpace(AuthService.CurrentUser.FullName)
-                            ? AuthService.CurrentUser.Username
-                            : AuthService.CurrentUser.FullName)
-                    </span>
-                    <button class="btn btn-outline-light btn-sm" @onclick="Logout">
-                        Đăng xuất
+                    <div class="dropdown user-dropdown">
+                        <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle"></i>
+                            Xin chào, @(string.IsNullOrWhiteSpace(AuthService.CurrentUser.FullName)
+                                ? AuthService.CurrentUser.Username
+                                : AuthService.CurrentUser.FullName)
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><h6 class="dropdown-header">Tài khoản</h6></li>
+                            <li>
+                                <button class="dropdown-item" @onclick="NavigateToProfile">
+                                    <i class="bi bi-person-lines-fill me-2"></i>Thông tin cá nhân
+                                </button>
+                            </li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li><h6 class="dropdown-header">Đơn hàng</h6></li>
+                            <li>
+                                <button class="dropdown-item" @onclick='() => NavigateToOrders("all")'>
+                                    <i class="bi bi-list-ul me-2"></i>Tất cả đơn hàng
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <NavLink class="nav-link cart-nav-link nav-icon-link" href="/cart">
+                        <i class="bi bi-cart3 me-2"></i>
+                        Giỏ hàng
+                        @if (cartItemCount > 0)
+                        {
+                            <span class="cart-badge">@cartItemCount</span>
+                        }
+                    </NavLink>
+
+                    <button class="btn btn-outline-light btn-sm btn-logout" type="button" @onclick="Logout">
+                        <i class="bi bi-box-arrow-right"></i>
                     </button>
                 }
             </div>
@@ -108,13 +127,25 @@
         NavigationManager.NavigateTo("/auth/login");
     }
 
+    private void NavigateToOrders(string status)
+    {
+        var url = status == "all" ? "/my-orders" : $"/my-orders?status={status}";
+        NavigationManager.NavigateTo(url);
+    }
+
+    private void NavigateToProfile()
+    {
+        NavigationManager.NavigateTo("/profile");
+    }
+
     private async Task Logout()
     {
         // Xóa giỏ hàng trước khi đăng xuất
         await CartService.ClearCartOnLogout();
         await AuthService.LogoutAsync();
         StateHasChanged();
-        NavigationManager.NavigateTo("/");
+        // Điều hướng kèm forceLoad để refresh trạng thái đăng nhập
+        NavigationManager.NavigateTo("/auth/login", true);
     }
 }
 
