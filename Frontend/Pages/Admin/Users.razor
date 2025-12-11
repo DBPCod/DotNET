@@ -7,6 +7,8 @@
 @using Frontend.Services
 @using Frontend.Components
 @inject UserService UserService
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
 @inject IJSRuntime JS
 @inject Blazored.Toast.Services.IToastService Toast
 @inject Blazored.Modal.Services.IModalService Modal
@@ -341,6 +343,14 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Kiểm tra quyền ADMIN
+        if (AuthService.CurrentUser?.Role != "ADMIN")
+        {
+            // Chỉ ADMIN mới được truy cập trang này
+            NavigationManager.NavigateTo("/unauthorized", true);
+            return;
+        }
+        
         await LoadUsers();
     }
 

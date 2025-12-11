@@ -1,5 +1,8 @@
 @page "/admin/roles"
 @layout AdminLayout
+@using Frontend.Services
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
 
 <div class="admin-page">
     <div class="page-header">
@@ -202,3 +205,16 @@
         margin-bottom: 0.5rem;
     }
 </style>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // Kiểm tra quyền ADMIN
+        if (AuthService.CurrentUser?.Role != "ADMIN")
+        {
+            // Chỉ ADMIN mới được truy cập trang này
+            NavigationManager.NavigateTo("/unauthorized", true);
+            return;
+        }
+    }
+}
