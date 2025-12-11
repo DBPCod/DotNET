@@ -102,8 +102,16 @@
                             </div>
                             <div class="product-body flex-grow-1 d-flex flex-column">
                                 <h5 class="product-name">@product.ProductName</h5>
-                                <p class="product-price">@ProductService.FormatPrice(product.Price)</p>
-                                <p class="product-unit text-muted mb-1">@product.Unit</p>
+                                <div class="product-price-row d-flex justify-content-between align-items-center mb-2">
+                                    <p class="product-price mb-0">@ProductService.FormatPrice(product.Price)</p>
+                                    <p class="product-unit text-muted mb-0">@product.Unit</p>
+                                </div>
+                                @if (!string.IsNullOrEmpty(product.CategoryName))
+                                {
+                                    <p class="product-category text-muted mb-2">
+                                        <i class="bi bi-tag"></i> @product.CategoryName
+                                    </p>
+                                }
                                 @{
                                     var stockQuantity = GetInventoryQuantity(product.Id);
                                 }
@@ -415,8 +423,17 @@
         margin-bottom: 0;
     }
 
+    .product-price-row {
+        margin-bottom: 0.5rem;
+    }
+
     .product-unit {
         font-size: 0.85rem;
+    }
+
+    .product-category {
+        font-size: 0.85rem;
+        font-style: italic;
     }
 
     .product-stock {
