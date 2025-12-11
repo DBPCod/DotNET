@@ -9,22 +9,25 @@
     </div>
     
     <nav class="admin-nav-menu">
-        <!-- Dashboard & Statistics -->
-        <div class="nav-section">
-            <div class="nav-section-title">Tổng quan</div>
-            <div class="nav-item">
-                <NavLink class="nav-link" href="/admin" Match="NavLinkMatch.All">
-                    <i class="bi bi-speedometer2"></i>
-                    <span>Dashboard</span>
-                </NavLink>
+        <!-- Dashboard & Statistics - Chỉ ADMIN mới thấy -->
+        @if (AuthService.CurrentUser?.Role == "ADMIN")
+        {
+            <div class="nav-section">
+                <div class="nav-section-title">Tổng quan</div>
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="/admin" Match="NavLinkMatch.All">
+                        <i class="bi bi-speedometer2"></i>
+                        <span>Dashboard</span>
+                    </NavLink>
+                </div>
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="/admin/statistics">
+                        <i class="bi bi-graph-up"></i>
+                        <span>Thống kê</span>
+                    </NavLink>
+                </div>
             </div>
-            <div class="nav-item">
-                <NavLink class="nav-link" href="/admin/statistics">
-                    <i class="bi bi-graph-up"></i>
-                    <span>Thống kê</span>
-                </NavLink>
-            </div>
-        </div>
+        }
 
         <!-- User Management - Chỉ ADMIN mới thấy -->
         @if (AuthService.CurrentUser?.Role == "ADMIN")
@@ -35,12 +38,6 @@
                     <NavLink class="nav-link" href="/admin/users">
                         <i class="bi bi-people"></i>
                         <span>Người dùng</span>
-                    </NavLink>
-                </div>
-                <div class="nav-item">
-                    <NavLink class="nav-link" href="/admin/roles">
-                        <i class="bi bi-shield-check"></i>
-                        <span>Phân quyền</span>
                     </NavLink>
                 </div>
             </div>
@@ -110,23 +107,6 @@
                 <NavLink class="nav-link" href="/admin/discount-codes">
                     <i class="bi bi-ticket-perforated"></i>
                     <span>Mã giảm giá</span>
-                </NavLink>
-            </div>
-        </div>
-
-        <!-- System Settings -->
-        <div class="nav-section">
-            <div class="nav-section-title">Hệ thống</div>
-            <div class="nav-item">
-                <NavLink class="nav-link" href="/admin/settings">
-                    <i class="bi bi-gear"></i>
-                    <span>Cài đặt</span>
-                </NavLink>
-            </div>
-            <div class="nav-item">
-                <NavLink class="nav-link" href="/admin/logs">
-                    <i class="bi bi-file-text"></i>
-                    <span>Nhật ký</span>
                 </NavLink>
             </div>
         </div>
