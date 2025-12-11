@@ -9,6 +9,8 @@
 @inject OrderService OrderService
 @inject CustomerService CustomerService
 @inject ProductService ProductService
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
 
 <div class="admin-dashboard">
     <div class="dashboard-header">
@@ -203,6 +205,22 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Kiểm tra quyền ADMIN
+        if (AuthService.CurrentUser?.Role != "ADMIN")
+        {
+            // STAFF không được xem Dashboard, chuyển đến trang sản phẩm
+            if (AuthService.CurrentUser?.Role == "STAFF")
+            {
+                NavigationManager.NavigateTo("/admin/products", true);
+            }
+            else
+            {
+                // User khác không có quyền
+                NavigationManager.NavigateTo("/unauthorized", true);
+            }
+            return;
+        }
+        
         await LoadDashboardData();
     }
 

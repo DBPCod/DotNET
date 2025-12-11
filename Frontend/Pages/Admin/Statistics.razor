@@ -9,6 +9,8 @@
 @inject OrderService OrderService
 @inject OrderItemService OrderItemService
 @inject ProductService ProductService
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 
 <div class="admin-page">
@@ -458,6 +460,14 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Kiểm tra quyền ADMIN
+        if (AuthService.CurrentUser?.Role != "ADMIN")
+        {
+            // Chỉ ADMIN mới được xem Thống kê
+            NavigationManager.NavigateTo("/unauthorized", true);
+            return;
+        }
+        
         // Set default date range to last 6 months
         toDate = DateTime.Now;
         fromDate = DateTime.Now.AddMonths(-6);
