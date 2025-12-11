@@ -1,0 +1,88 @@
+@page "/unauthorized"
+@inject NavigationManager NavigationManager
+
+<div class="unauthorized-page">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="unauthorized-card">
+                    <div class="unauthorized-icon">
+                        <i class="bi bi-shield-x"></i>
+                    </div>
+                    <h2>Không có quyền truy cập</h2>
+                    <p class="text-muted">
+                        Bạn không có quyền truy cập vào trang quản trị. 
+                        Chỉ những tài khoản có vai trò <strong>Admin</strong> hoặc <strong>Staff</strong> mới có thể truy cập.
+                    </p>
+                    <div class="unauthorized-actions">
+                        <button class="btn btn-primary" @onclick="NavigateToHome">
+                            <i class="bi bi-house-door"></i> Về trang chủ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .unauthorized-page {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        padding: 2rem 0;
+    }
+
+    .unauthorized-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        padding: 3rem;
+        text-align: center;
+    }
+
+    .unauthorized-icon {
+        width: 100px;
+        height: 100px;
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 2rem;
+        color: white;
+        font-size: 3rem;
+    }
+
+    .unauthorized-card h2 {
+        color: #2c3e50;
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    .unauthorized-card p {
+        color: #7f8c8d;
+        margin-bottom: 2rem;
+        line-height: 1.6;
+    }
+
+    .unauthorized-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    .unauthorized-actions .btn {
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+    }
+</style>
+
+@code {
+    private void NavigateToHome()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+}
+
