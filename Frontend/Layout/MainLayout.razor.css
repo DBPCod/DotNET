@@ -52,9 +52,9 @@
 }
 
 .user-nav {
-    display: flex;
-    align-items: center;
-    gap: 1.1rem;
+    display: flex !important;
+    align-items: center !important;
+    gap: 3.5rem !important;
 }
 
 .user-nav ::deep .nav-link {
@@ -84,22 +84,32 @@
 }
 
 .user-nav ::deep .cart-nav-link {
-    position: relative;
+    position: relative !important;
 }
 
-.user-nav ::deep .cart-badge {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background-color: #ef4444;
-    color: white;
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 0.15rem 0.4rem;
-    border-radius: 10px;
-    min-width: 18px;
-    text-align: center;
-    line-height: 1.2;
+.user-nav ::deep .cart-nav-link .cart-badge,
+.user-nav ::deep .nav-icon-link .cart-badge,
+.cart-badge {
+    position: absolute !important;
+    top: -10px !important;
+    right: -15px !important;
+    background-color: #dc2626 !important;
+    color: white !important;
+    font-size: 0.65rem !important;
+    font-weight: 700 !important;
+    padding: 0.25rem 0.5rem !important;
+    border-radius: 12px !important;
+    min-width: 20px !important;
+    height: 20px !important;
+    text-align: center !important;
+    line-height: 1 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.5) !important;
+    border: 2px solid white !important;
+    z-index: 100 !important;
+    white-space: nowrap !important;
 }
 
 .user-auth-actions {
@@ -133,6 +143,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
+    margin-right: 1rem;
 }
 
 .user-dropdown .dropdown-menu {
@@ -151,6 +162,8 @@
     background-color: rgba(255, 255, 255, 0.08);
     color: #ffffff;
     line-height: 1;
+    margin-left: 1rem;
+    margin-right: 1rem;
 }
 
 .user-nav ::deep .nav-icon-link:hover {
@@ -160,6 +173,7 @@
 
 .btn-logout {
     padding: 0.45rem 0.65rem;
+    margin-left: 1rem;
 }
 
 .nav-icon-link i,
