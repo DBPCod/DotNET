@@ -270,6 +270,7 @@ public class AuthService(HttpClient httpClient, IJSRuntime jsRuntime)
     {
         IsLoading = true;
         
+        var success = false;
         try
         {
             var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/logout");
@@ -277,24 +278,22 @@ public class AuthService(HttpClient httpClient, IJSRuntime jsRuntime)
 
             var response = await _httpClient.SendAsync(request);
             
-            if (response.IsSuccessStatusCode)
-            {
-                CurrentUser = null;
-                await RemoveUserAsync();
-                await RemoveTokenAsync();
-                return true;
-            }
-            
-            return false;
+            success = response.IsSuccessStatusCode;
         }
         catch
         {
-            return false;
+            success = false;
         }
         finally
         {
+            // Dù backend có trả 401/403 (mất token cookie) vẫn dọn local state để tránh kẹt đăng xuất
+            CurrentUser = null;
+            await RemoveUserAsync();
+            await RemoveTokenAsync();
             IsLoading = false;
         }
+
+        return success;
     }
 
     // Refresh Token
@@ -397,6 +396,7 @@ public class AuthService(HttpClient httpClient, IJSRuntime jsRuntime)
     // Initialize user from storage
     public async Task InitializeAsync()
     {
+        // Backend lưu token trong HttpOnly cookie; chỉ khôi phục user đã lưu
         CurrentUser = await GetUserAsync();
     }
 }

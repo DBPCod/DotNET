@@ -67,12 +67,13 @@
                         </ul>
                     </div>
 
-                    <NavLink class="nav-link cart-nav-link nav-icon-link" href="/cart">
+                    <NavLink class="nav-link cart-nav-link nav-icon-link" href="/cart" style="position: relative;">
+                        @* Giỏ hàng *@
                         <i class="bi bi-cart3 me-2"></i>
-                        Giỏ hàng
+                        
                         @if (cartItemCount > 0)
                         {
-                            <span class="cart-badge">@cartItemCount</span>
+                            <span class="cart-badge" style="position: absolute; top: -10px; right: -10px; background-color: #dc2626; color: white; font-size: 0.65rem; font-weight: 700; padding: 0.25rem 0.5rem; border-radius: 12px; min-width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.5); border: 2px solid white; z-index: 100; white-space: nowrap;">@cartItemCount</span>
                         }
                     </NavLink>
 
