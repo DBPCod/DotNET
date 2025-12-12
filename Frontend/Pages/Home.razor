@@ -2,12 +2,14 @@
 @using Frontend.Services
 @using Frontend.Models.Product
 @using Frontend.Models.Product.Responses
+@using Frontend.Models.Category
 @inject ProductService ProductService
 @inject CartService CartService
 @inject AuthService AuthService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject InventoryService InventoryService
+@inject CategoryService CategoryService
 @inject Blazored.Toast.Services.IToastService ToastService
 
 <PageTitle>Spot247 - Cửa hàng bán lẻ</PageTitle>
@@ -61,97 +63,202 @@
             </div>
         </div>
 
-        @if (isLoading)
-        {
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Đang tải sản phẩm...</span>
-                </div>
-            </div>
-        }
-        else if (loadError is not null)
-        {
-            <div class="alert alert-danger">
-                @loadError
-            </div>
-        }
-        else if (products is null || !products.Any())
-        {
-            <div class="alert alert-info">
-                Hiện chưa có sản phẩm nào.
-            </div>
-        }
-        else
-        {
-            <div class="row g-4">
-                @foreach (var product in products)
-                {
-                    <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                        <div class="product-card h-100 d-flex flex-column" id="@($"product-{product.Id}")">
-                            <div class="product-image-wrapper">
-                                @if (!string.IsNullOrEmpty(product.ImagePath))
+        <div class="row">
+            <!-- Phần danh mục bên trái -->
+            <div class="col-lg-2 col-md-3 mb-4">
+                <div class="category-sidebar">
+                    <div class="category-header">
+                        <i class="bi bi-list-ul"></i> DANH MỤC SẢN PHẨM
+                    </div>
+                    
+                    @if (categoriesLoading)
+                    {
+                        <div class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm" role="status">
+                                <span class="visually-hidden">Đang tải...</span>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="category-list">
+                            <!-- Tất cả sản phẩm -->
+                            <div class="category-item @(selectedCategoryId == null ? "active" : "")" 
+                                 @onclick="() => SelectCategory(null)">
+                                <span>Tất cả</span>
+                            </div>
+                            
+                            <!-- Danh sách các danh mục -->
+                            @if (categories != null && categories.Any())
+                            {
+                                @foreach (var category in categories)
                                 {
-                                    <img class="product-image" src="@GetImageUrl(product.ImagePath)" alt="@product.ProductName" />
-                                }
-                                else
-                                {
-                                    <div class="product-image product-image-placeholder">
-                                        <i class="bi bi-image"></i>
+                                    <div class="category-item @(selectedCategoryId == category.Id ? "active" : "")" 
+                                         @onclick="() => SelectCategory(category.Id)">
+                                        <span>@category.CategoryName</span>
                                     </div>
                                 }
-                            </div>
-                            <div class="product-body flex-grow-1 d-flex flex-column">
-                                <h5 class="product-name">@product.ProductName</h5>
-                                <div class="product-price-row d-flex justify-content-between align-items-center mb-2">
-                                    <p class="product-price mb-0">@ProductService.FormatPrice(product.Price)</p>
-                                    <p class="product-unit text-muted mb-0">@product.Unit</p>
-                                </div>
-                                @if (!string.IsNullOrEmpty(product.CategoryName))
-                                {
-                                    <p class="product-category text-muted mb-2">
-                                        <i class="bi bi-tag"></i> @product.CategoryName
-                                    </p>
-                                }
-                                @{
-                                    var stockQuantity = GetInventoryQuantity(product.Id);
-                                }
-                                @if (stockQuantity > 0)
-                                {
-                                    <p class="product-stock text-success mb-2">
-                                        <i class="bi bi-check-circle"></i> Còn @stockQuantity sản phẩm
-                                    </p>
-                                    <button class="btn btn-sm btn-primary mt-auto" @onclick="() => AddToCart(product, product.Id)">
-                                        <i class="bi bi-cart-plus"></i> Thêm vào giỏ
-                                    </button>
-                                }
-                                else
-                                {
-                                    <p class="product-stock text-danger mb-2">
-                                        <i class="bi bi-x-circle"></i> Hết hàng
-                                    </p>
-                                    <button class="btn btn-sm btn-secondary mt-auto" disabled>
-                                        <i class="bi bi-cart-x"></i> Hết hàng
-                                    </button>
-                                }
-                            </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Phần sản phẩm bên phải -->
+            <div class="col-lg-10 col-md-9">
+                @if (isLoading)
+                {
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Đang tải sản phẩm...</span>
                         </div>
                     </div>
                 }
+                else if (loadError is not null)
+                {
+                    <div class="alert alert-danger">
+                        @loadError
+                    </div>
+                }
+                else if (filteredProducts is null || !filteredProducts.Any())
+                {
+                    <div class="alert alert-info">
+                        @if (selectedCategoryId != null)
+                        {
+                            <text>Không có sản phẩm nào trong danh mục này.</text>
+                        }
+                        else
+                        {
+                            <text>Hiện chưa có sản phẩm nào.</text>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="row g-4">
+                        @foreach (var product in filteredProducts)
+                        {
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2_4">
+                                <div class="product-card h-100 d-flex flex-column" id="@($"product-{product.Id}")">
+                                    <div class="product-image-wrapper">
+                                        @if (!string.IsNullOrEmpty(product.ImagePath))
+                                        {
+                                            <img class="product-image" src="@GetImageUrl(product.ImagePath)" alt="@product.ProductName" />
+                                        }
+                                        else
+                                        {
+                                            <div class="product-image product-image-placeholder">
+                                                <i class="bi bi-image"></i>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="product-body flex-grow-1 d-flex flex-column">
+                                        <h5 class="product-name">@product.ProductName</h5>
+                                        <div class="product-price-row d-flex justify-content-between align-items-center mb-2">
+                                            <p class="product-price mb-0">@ProductService.FormatPrice(product.Price)</p>
+                                            <p class="product-unit text-muted mb-0">@product.Unit</p>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(product.CategoryName))
+                                        {
+                                            <p class="product-category text-muted mb-2">
+                                                <i class="bi bi-tag"></i> @product.CategoryName
+                                            </p>
+                                        }
+                                        @{
+                                            var stockQuantity = GetInventoryQuantity(product.Id);
+                                        }
+                                        @if (stockQuantity > 0)
+                                        {
+                                            <p class="product-stock text-success mb-2">
+                                                <i class="bi bi-check-circle"></i> Còn @stockQuantity sản phẩm
+                                            </p>
+                                            <button class="btn btn-sm btn-primary mt-auto" @onclick="() => AddToCart(product, product.Id)">
+                                                <i class="bi bi-cart-plus"></i> Thêm vào giỏ
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <p class="product-stock text-danger mb-2">
+                                                <i class="bi bi-x-circle"></i> Hết hàng
+                                            </p>
+                                            <button class="btn btn-sm btn-secondary mt-auto" disabled>
+                                                <i class="bi bi-cart-x"></i> Hết hàng
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
             </div>
-        }
+        </div>
     </div>
 </div>
 
 @code {
     private List<ProductDto>? products;
-    private Dictionary<string, int> productInventories = new(); // Lưu số lượng tồn kho theo ProductId
+    private List<ProductDto>? filteredProducts;
+    private List<CategoryDto>? categories;
+    private Dictionary<string, int> productInventories = new();
     private bool isLoading = true;
+    private bool categoriesLoading = true;
     private string? loadError;
+    private Guid? selectedCategoryId = null;
 
     protected override async Task OnInitializedAsync()
     {
         await AuthService.InitializeAsync();
-        await LoadProductsAsync();
+        await Task.WhenAll(LoadProductsAsync(), LoadCategoriesAsync());
+    }
+
+    private async Task LoadCategoriesAsync()
+    {
+        try
+        {
+            categoriesLoading = true;
+            
+            var response = await CategoryService.GetCategoriesAsync(page: 1, pageSize: 100);
+            Console.WriteLine($"Category response status: {response?.StatusCode}");
+            
+            if (response?.StatusCode == 200 && response.Data?.Categories != null)
+            {
+                Console.WriteLine($"Total categories from API: {response.Data.Categories.Count}");
+                // Status là "1" cho Active, "0" cho Deleted
+                categories = response.Data.Categories.Where(c => c.Status == "1").ToList();
+                Console.WriteLine($"Active categories (Status=1): {categories.Count}");
+                
+                // Đếm số lượng sản phẩm cho mỗi danh mục
+                if (products != null)
+                {
+                    Console.WriteLine($"Total products: {products.Count}");
+                    foreach (var category in categories)
+                    {
+                        var count = products.Count(p => 
+                            !string.IsNullOrEmpty(p.CategoryId) && 
+                            Guid.TryParse(p.CategoryId, out var catId) && 
+                            catId == category.Id);
+                        category.ProductCount = count;
+                        Console.WriteLine($"Category '{category.CategoryName}' has {count} products");
+                    }
+                }
+                
+                StateHasChanged(); // Force UI update
+            }
+            else
+            {
+                Console.WriteLine($"Failed to load categories: {response?.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading categories: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+        }
+        finally
+        {
+            categoriesLoading = false;
+        }
     }
 
     private async Task LoadProductsAsync()
@@ -161,14 +268,25 @@
             isLoading = true;
             loadError = null;
 
-            // Lấy tất cả sản phẩm đang hoạt động, bỏ giới hạn 20
             var response = await ProductService.GetProductsAsync(page: 1, pageSize: 1000, status: true);
             if (response?.StatusCode == 200 && response.Data is not null)
             {
                 products = response.Data.Products;
+                filteredProducts = products;
                 
-                // Load số lượng tồn kho cho từng sản phẩm
                 await LoadInventories();
+                
+                // Cập nhật số lượng sản phẩm cho danh mục sau khi load xong products
+                if (categories != null)
+                {
+                    foreach (var category in categories)
+                    {
+                        category.ProductCount = products.Count(p => 
+                            !string.IsNullOrEmpty(p.CategoryId) && 
+                            Guid.TryParse(p.CategoryId, out var catId) && 
+                            catId == category.Id);
+                    }
+                }
             }
             else
             {
@@ -183,6 +301,29 @@
         {
             isLoading = false;
         }
+    }
+
+    private void SelectCategory(Guid? categoryId)
+    {
+        selectedCategoryId = categoryId;
+        
+        if (products == null) return;
+        
+        if (categoryId == null)
+        {
+            // Hiển thị tất cả sản phẩm
+            filteredProducts = products;
+        }
+        else
+        {
+            // Lọc sản phẩm theo danh mục
+            filteredProducts = products.Where(p => 
+                !string.IsNullOrEmpty(p.CategoryId) && 
+                Guid.TryParse(p.CategoryId, out var catId) && 
+                catId == categoryId).ToList();
+        }
+        
+        StateHasChanged();
     }
 
     private async Task LoadInventories()
@@ -408,6 +549,96 @@
     .product-stock {
         font-size: 0.85rem;
         font-weight: 500;
+    }
+
+    /* Custom column for 5 items per row on large screens */
+    @@media (min-width: 1400px) {
+        .col-xl-2_4 {
+            flex: 0 0 auto;
+            width: 25%;
+        }
+    }
+
+    /* Category Sidebar Styles */
+    .category-sidebar {
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        overflow: visible;
+        position: sticky;
+        top: 80px;
+        max-height: calc(100vh - 100px);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .category-header {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        padding: 1rem 1.25rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .category-header i {
+        font-size: 1.1rem;
+    }
+
+    .category-list {
+        padding: 0.5rem 0;
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
+    }
+
+    .category-list::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .category-list::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    .category-list::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 3px;
+    }
+
+    .category-list::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+
+    .category-item {
+        padding: 0.85rem 1.25rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        border-left: 3px solid transparent;
+        color: #374151;
+        font-size: 0.95rem;
+    }
+
+    .category-item:hover {
+        background-color: #f3f4f6;
+        border-left-color: #9ca3af;
+    }
+
+    .category-item.active {
+        background-color: #e5e7eb;
+        border-left-color: #6b7280;
+        color: #1f2937;
+        font-weight: 600;
+    }
+
+    @@media (max-width: 991px) {
+        .category-sidebar {
+            position: relative;
+            top: 0;
+            margin-bottom: 2rem;
+        }
     }
     
     @@media (max-width: 768px) {
