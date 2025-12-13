@@ -54,15 +54,6 @@
 
 <div class="products-section" id="products">
     <div class="container">
-        <div class="section-header d-flex justify-content-between align-items-center mb-3">
-            <div>
-                <h2 class="section-title">Sản phẩm nổi bật</h2>
-                <p class="section-subtitle mb-0">
-                    Chọn sản phẩm và thêm vào giỏ hàng để đặt mua.
-                </p>
-            </div>
-        </div>
-
         <div class="row">
             <!-- Phần danh mục bên trái -->
             <div class="col-lg-2 col-md-3 mb-4">
@@ -106,6 +97,35 @@
 
             <!-- Phần sản phẩm bên phải -->
             <div class="col-lg-10 col-md-9">
+                <!-- Thanh tìm kiếm -->
+                <div class="search-bar-container mb-3">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" 
+                               class="form-control" 
+                               placeholder="Tìm kiếm sản phẩm theo tên..."
+                               @bind="searchQuery"
+                               @bind:event="oninput"
+                               @onkeyup="OnSearchQueryChanged" />
+                        @if (!string.IsNullOrWhiteSpace(searchQuery))
+                        {
+                            <button class="btn btn-outline-secondary" type="button" @onclick="ClearSearch">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                <!-- Header sản phẩm -->
+                <div class="products-header mb-4">
+                    <h2 class="section-title mb-2">Sản phẩm nổi bật</h2>
+                    <p class="section-subtitle mb-0">
+                        Chọn sản phẩm và thêm vào giỏ hàng để đặt mua.
+                    </p>
+                </div>
+
                 @if (isLoading)
                 {
                     <div class="text-center py-5">
@@ -125,7 +145,7 @@
                     <div class="alert alert-info">
                         @if (selectedCategoryId != null)
                         {
-                            <text>Không có sản phẩm nào trong danh mục này.</text>
+                            <text>Không tìm thấy sản phẩm nào trong danh mục này.</text>
                         }
                         else
                         {
@@ -205,6 +225,7 @@
     private bool categoriesLoading = true;
     private string? loadError;
     private Guid? selectedCategoryId = null;
+    private string searchQuery = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -306,23 +327,45 @@
     private void SelectCategory(Guid? categoryId)
     {
         selectedCategoryId = categoryId;
-        
+        FilterProducts();
+    }
+
+    private void OnSearchQueryChanged()
+    {
+        FilterProducts();
+    }
+
+    private void ClearSearch()
+    {
+        searchQuery = string.Empty;
+        FilterProducts();
+    }
+
+    private void FilterProducts()
+    {
         if (products == null) return;
         
-        if (categoryId == null)
+        // Bắt đầu với tất cả sản phẩm
+        var filtered = products.AsEnumerable();
+        
+        // Lọc theo danh mục nếu được chọn
+        if (selectedCategoryId != null)
         {
-            // Hiển thị tất cả sản phẩm
-            filteredProducts = products;
-        }
-        else
-        {
-            // Lọc sản phẩm theo danh mục
-            filteredProducts = products.Where(p => 
+            filtered = filtered.Where(p => 
                 !string.IsNullOrEmpty(p.CategoryId) && 
                 Guid.TryParse(p.CategoryId, out var catId) && 
-                catId == categoryId).ToList();
+                catId == selectedCategoryId);
         }
         
+        // Lọc theo từ khóa tìm kiếm nếu có (chỉ tìm theo tên sản phẩm)
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            var query = searchQuery.Trim().ToLower();
+            filtered = filtered.Where(p => 
+                p.ProductName?.ToLower().Contains(query) == true);
+        }
+        
+        filteredProducts = filtered.ToList();
         StateHasChanged();
     }
 
@@ -653,6 +696,72 @@
         
         .hero-content {
             text-align: center;
+        }
+    }
+
+    /* Search Bar Styles */
+    .search-bar-container .input-group {
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        background: white;
+    }
+
+    .search-bar-container .input-group-text {
+        border: 1px solid #e5e7eb;
+        border-right: none;
+        background: white;
+        color: #6b7280;
+    }
+
+    .search-bar-container .form-control {
+        border: 1px solid #e5e7eb;
+        border-left: none;
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+    }
+
+    .search-bar-container .form-control:focus {
+        border-color: #10b981;
+        box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.1);
+    }
+
+    .search-bar-container .btn-outline-secondary {
+        border: 1px solid #e5e7eb;
+        border-left: none;
+        background: white;
+        color: #6b7280;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .search-bar-container .btn-outline-secondary:hover {
+        background: #f3f4f6;
+        color: #374151;
+    }
+
+    /* Products Header Styles */
+    .products-header {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        padding: 1.25rem 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 0;
+    }
+
+    .section-subtitle {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.9rem;
+    }
+
+    @@media (max-width: 768px) {
+        .search-bar {
+            max-width: 100%;
         }
     }
 </style>
