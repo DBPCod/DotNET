@@ -8,15 +8,14 @@
 
     [Route("api/v1/orders")]
     [ApiController]
-    // [Authorize]
     public class OrderController(OrderService orderService, PromotionService promotionService) : ControllerBase
     {
         private readonly OrderService _orderService = orderService;
         private readonly PromotionService _promotionService = promotionService;
 
-        // POST /api/orders/{orderId}/apply-promo - Áp dụng mã khuyến mãi cho order
+        // POST /api/orders/{orderId}/apply-promo - Áp dụng mã khuyến mãi cho order (Staff & Admin)
         [HttpPost("{orderId}/apply-promo")]
-        [Authorize(Roles = "STAFF,ADMIN")] // Staff và Admin được áp promo
+        [Authorize(Roles = "STAFF,ADMIN")]
         public async Task<IActionResult> ApplyPromo(Guid orderId, [FromBody] ApplyPromoRequest request)
         {
             var response = new Response();
@@ -44,6 +43,7 @@
         }
 
         [HttpGet]
+        [Authorize] // Bất kỳ user đăng nhập (USER/STAFF/ADMIN) đều có thể xem danh sách theo filter
         public async Task<IActionResult> GetOrders([FromQuery] GetOrdersRequest request)
         {
             var response = new Response();
@@ -97,6 +97,7 @@
         // }
 
         [HttpGet("{id}")]
+        [Authorize] // User đăng nhập xem chi tiết đơn
         public async Task<IActionResult> GetOrderById(Guid id)
         {
             var response = new Response();
@@ -126,6 +127,7 @@
 
 
         [HttpPost]
+        [Authorize] // User đăng nhập mới được tạo đơn
         public async Task<IActionResult> HandleCreateOrder([FromBody] CreateOrderRequest order)
         {
             var response = new Response();
@@ -159,7 +161,7 @@
         }
 
         [HttpPatch("{id}/status")]
-        // [Authorize(Roles = "STAFF,ADMIN")]
+        [Authorize(Roles = "STAFF,ADMIN")]
         public async Task<IActionResult> HandleUpdateStatus(Guid id, [FromBody] UpdateStatusOrderRequest updateStatusOrderRequest)
         {
             var response = new Response();
@@ -185,6 +187,7 @@
         }
         
         [HttpDelete("{id}")]
+        [Authorize(Roles = "STAFF,ADMIN")]
         public async Task<IActionResult> HandleDeleteOrder(Guid id)
         {
             var result = await _orderService.HandleDeleteOrder(id);

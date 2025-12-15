@@ -9,14 +9,13 @@ namespace Backend.Controllers;
 
 [Route("api/promotions")]
 [ApiController]
-// [Authorize] // Tạm thời bỏ để test không cần đăng nhập
 public class PromotionController(PromotionService promotionService) : ControllerBase
 {
     private readonly PromotionService _promotionService = promotionService;
 
-    // POST /api/promotions - Tạo khuyến mãi mới
+    // POST /api/promotions - Tạo khuyến mãi mới (Staff & Admin)
     [HttpPost]
-    // [Authorize(Roles = "ADMIN")] // Tạm thời bỏ để test
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> CreatePromotion([FromBody] CreatePromotionRequest request)
     {
         var response = new Response();
@@ -50,8 +49,9 @@ public class PromotionController(PromotionService promotionService) : Controller
         return StatusCode(response.StatusCode, response);
     }
 
-    // GET /api/promotions - Lấy danh sách khuyến mãi với tìm kiếm/lọc
+    // GET /api/promotions - Lấy danh sách khuyến mãi với tìm kiếm/lọc (Staff & Admin)
     [HttpGet]
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> GetPromotions([FromQuery] GetPromotionsRequest request)
     {
         var response = new Response();
@@ -105,8 +105,9 @@ public class PromotionController(PromotionService promotionService) : Controller
         return StatusCode(response.StatusCode, response);
     }
 
-    // GET /api/promotions/{id} - Lấy khuyến mãi theo ID
+    // GET /api/promotions/{id} - Lấy khuyến mãi theo ID (Staff & Admin)
     [HttpGet("{id}")]
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> GetPromotion(Guid id)
     {
         var response = new Response();
@@ -144,9 +145,9 @@ public class PromotionController(PromotionService promotionService) : Controller
         return StatusCode(response.StatusCode, response);
     }
 
-    // PUT /api/promotions/{id} - Cập nhật khuyến mãi
+    // PUT /api/promotions/{id} - Cập nhật khuyến mãi (Staff & Admin)
     [HttpPut("{id}")]
-    // [Authorize(Roles = "ADMIN")] // Tạm thời bỏ để test
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> UpdatePromotion(Guid id, [FromBody] UpdatePromotionRequest request)
     {
         var response = new Response();
@@ -184,9 +185,9 @@ public class PromotionController(PromotionService promotionService) : Controller
         return StatusCode(response.StatusCode, response);
     }
 
-    // DELETE /api/promotions/{id} - Soft delete khuyến mãi (chuyển status = 'inactive')
+    // DELETE /api/promotions/{id} - Soft delete khuyến mãi (chuyển status = 'inactive') (Staff & Admin)
     [HttpDelete("{id}")]
-    // [Authorize(Roles = "ADMIN")] // Tạm thời bỏ để test
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> DeletePromotion(Guid id)
     {
         var response = new Response();
@@ -218,9 +219,9 @@ public class PromotionController(PromotionService promotionService) : Controller
         return StatusCode(response.StatusCode, response);
     }
 
-    // GET /api/promotions/validate - Validate mã khuyến mãi
+    // GET /api/promotions/validate - Validate mã khuyến mãi (public cho khách hàng dùng mã)
     [HttpGet("validate")]
-    // [Authorize(Roles = "STAFF,ADMIN")] // Tạm thời bỏ để test
+    [AllowAnonymous]
     public async Task<IActionResult> ValidatePromotion([FromQuery] ValidatePromotionRequest request)
     {
         var response = new Response();
