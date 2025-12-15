@@ -3,6 +3,7 @@
 @inject AuthService AuthService
 @inject CartService CartService
 @inject NavigationManager NavigationManager
+@inject SearchService SearchService
 
 <div class="user-layout">
     <header class="user-header">
@@ -10,6 +11,28 @@
             <div class="user-brand" @onclick="@(() => NavigationManager.NavigateTo("/"))">
                 <img src="favspot247.png" alt="Spot247" class="user-logo-img" />
                 <span class="user-title">Spot247</span>
+            </div>
+
+            <!-- Thanh tìm kiếm trong header -->
+            <div class="header-search-bar">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" 
+                           class="form-control" 
+                           placeholder="Tìm kiếm sản phẩm..."
+                           @bind="searchQuery"
+                           @bind:event="oninput"
+                           @onkeyup="OnSearchQueryChanged"
+                           @onfocus="() => NavigateToHomeIfNeeded()" />
+                    @if (!string.IsNullOrWhiteSpace(searchQuery))
+                    {
+                        <button class="btn btn-clear" type="button" @onclick="ClearSearch">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    }
+                </div>
             </div>
 
             <nav class="user-nav">
@@ -117,6 +140,7 @@
 
 @code {
     private int cartItemCount = 0;
+    private string searchQuery = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -125,6 +149,26 @@
         CartService.OnChange += UpdateCartCount;
         UpdateCartCount();
         StateHasChanged();
+    }
+
+    private void OnSearchQueryChanged()
+    {
+        SearchService.SearchQuery = searchQuery;
+    }
+
+    private void ClearSearch()
+    {
+        searchQuery = string.Empty;
+        SearchService.ClearSearch();
+    }
+
+    private void NavigateToHomeIfNeeded()
+    {
+        var currentPath = new Uri(NavigationManager.Uri).AbsolutePath;
+        if (currentPath != "/")
+        {
+            NavigationManager.NavigateTo("/");
+        }
     }
 
     private void UpdateCartCount()

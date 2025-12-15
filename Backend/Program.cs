@@ -14,7 +14,7 @@ builder.Services.AddScoped<FileUploadService>();
 
 WebApplication app = builder.Build();
 
-// Tắt seed data
+// Seed data
 // await SeedData.SeedAsync(app);
 
 // Configure the HTTP request pipeline - Swagger phải đặt TRƯỚC các middleware khác

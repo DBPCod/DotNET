@@ -40,6 +40,7 @@ builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<SupplierService>();
 builder.Services.AddScoped<PaymentService>();
 builder.Services.AddScoped<InventoryService>();
+builder.Services.AddScoped<SearchService>();
 
 // Đăng ký service cho toast và modal của blazored
 builder.Services.AddBlazoredToast();
