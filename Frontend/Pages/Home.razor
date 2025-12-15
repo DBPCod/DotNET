@@ -11,6 +11,8 @@
 @inject InventoryService InventoryService
 @inject CategoryService CategoryService
 @inject Blazored.Toast.Services.IToastService ToastService
+@inject SearchService SearchService
+@implements IDisposable
 
 <PageTitle>Spot247 - Cửa hàng bán lẻ</PageTitle>
 
@@ -97,27 +99,6 @@
 
             <!-- Phần sản phẩm bên phải -->
             <div class="col-lg-10 col-md-9">
-                <!-- Thanh tìm kiếm -->
-                <div class="search-bar-container mb-3">
-                    <div class="input-group">
-                        <span class="input-group-text bg-white">
-                            <i class="bi bi-search"></i>
-                        </span>
-                        <input type="text" 
-                               class="form-control" 
-                               placeholder="Tìm kiếm sản phẩm theo tên..."
-                               @bind="searchQuery"
-                               @bind:event="oninput"
-                               @onkeyup="OnSearchQueryChanged" />
-                        @if (!string.IsNullOrWhiteSpace(searchQuery))
-                        {
-                            <button class="btn btn-outline-secondary" type="button" @onclick="ClearSearch">
-                                <i class="bi bi-x-lg"></i>
-                            </button>
-                        }
-                    </div>
-                </div>
-
                 <!-- Header sản phẩm -->
                 <div class="products-header mb-4">
                     <h2 class="section-title mb-2">Sản phẩm nổi bật</h2>
@@ -225,12 +206,22 @@
     private bool categoriesLoading = true;
     private string? loadError;
     private Guid? selectedCategoryId = null;
-    private string searchQuery = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
         await AuthService.InitializeAsync();
+        SearchService.OnSearchChanged += OnSearchChanged;
         await Task.WhenAll(LoadProductsAsync(), LoadCategoriesAsync());
+    }
+
+    public void Dispose()
+    {
+        SearchService.OnSearchChanged -= OnSearchChanged;
+    }
+
+    private void OnSearchChanged()
+    {
+        FilterProducts();
     }
 
     private async Task LoadCategoriesAsync()
@@ -330,17 +321,6 @@
         FilterProducts();
     }
 
-    private void OnSearchQueryChanged()
-    {
-        FilterProducts();
-    }
-
-    private void ClearSearch()
-    {
-        searchQuery = string.Empty;
-        FilterProducts();
-    }
-
     private void FilterProducts()
     {
         if (products == null) return;
@@ -358,9 +338,9 @@
         }
         
         // Lọc theo từ khóa tìm kiếm nếu có (chỉ tìm theo tên sản phẩm)
-        if (!string.IsNullOrWhiteSpace(searchQuery))
+        if (!string.IsNullOrWhiteSpace(SearchService.SearchQuery))
         {
-            var query = searchQuery.Trim().ToLower();
+            var query = SearchService.SearchQuery.Trim().ToLower();
             filtered = filtered.Where(p => 
                 p.ProductName?.ToLower().Contains(query) == true);
         }
@@ -699,46 +679,6 @@
         }
     }
 
-    /* Search Bar Styles */
-    .search-bar-container .input-group {
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        overflow: hidden;
-        background: white;
-    }
-
-    .search-bar-container .input-group-text {
-        border: 1px solid #e5e7eb;
-        border-right: none;
-        background: white;
-        color: #6b7280;
-    }
-
-    .search-bar-container .form-control {
-        border: 1px solid #e5e7eb;
-        border-left: none;
-        padding: 0.75rem 1rem;
-        font-size: 0.95rem;
-    }
-
-    .search-bar-container .form-control:focus {
-        border-color: #10b981;
-        box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.1);
-    }
-
-    .search-bar-container .btn-outline-secondary {
-        border: 1px solid #e5e7eb;
-        border-left: none;
-        background: white;
-        color: #6b7280;
-        padding: 0.5rem 0.75rem;
-    }
-
-    .search-bar-container .btn-outline-secondary:hover {
-        background: #f3f4f6;
-        color: #374151;
-    }
-
     /* Products Header Styles */
     .products-header {
         background: linear-gradient(135deg, #10b981 0%, #059669 100%);
@@ -756,12 +696,5 @@
 
     .section-subtitle {
         color: rgba(255, 255, 255, 0.9);
-        font-size: 0.9rem;
-    }
-
-    @@media (max-width: 768px) {
-        .search-bar {
-            max-width: 100%;
-        }
-    }
+        font-size: 0.9rem;    }
 </style>
