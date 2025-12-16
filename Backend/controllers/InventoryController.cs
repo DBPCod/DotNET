@@ -2,6 +2,7 @@ using Backend.Dtos;
 using Backend.Dtos.Requests;
 using Backend.Services.Apis;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Backend.Controllers;
 
@@ -11,8 +12,9 @@ public class InventoryController(InventoryService inventoryService) : Controller
 {
     private readonly InventoryService _inventoryService = inventoryService;
 
-    // GET: api/v1/inventories - List with pagination and filters
+    // GET: api/v1/inventories - List with pagination and filters (Staff & Admin)
     [HttpGet]
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> GetInventories(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
@@ -51,8 +53,9 @@ public class InventoryController(InventoryService inventoryService) : Controller
         }
     }
 
-    // GET: api/v1/inventories/{id} - Get by ID
+    // GET: api/v1/inventories/{id} - Get by ID (Staff & Admin)
     [HttpGet("{id:guid}")]
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> GetInventoryById(Guid id)
     {
         try
@@ -74,8 +77,9 @@ public class InventoryController(InventoryService inventoryService) : Controller
         }
     }
 
-    // GET: api/v1/inventories/product/{productId} - Get by Product ID
+    // GET: api/v1/inventories/product/{productId} - Get by Product ID (public for frontend)
     [HttpGet("product/{productId:guid}")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetInventoryByProductId(Guid productId)
     {
         try
@@ -97,8 +101,9 @@ public class InventoryController(InventoryService inventoryService) : Controller
         }
     }
 
-    // POST: api/v1/inventories - Create new inventory
+    // POST: api/v1/inventories - Create new inventory (Staff & Admin)
     [HttpPost]
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> CreateInventory([FromBody] CreateInventoryRequest request)
     {
         if (!ModelState.IsValid)
@@ -122,8 +127,9 @@ public class InventoryController(InventoryService inventoryService) : Controller
         }
     }
 
-    // PUT: api/v1/inventories/{id} - Update inventory
+    // PUT: api/v1/inventories/{id} - Update inventory (Staff & Admin)
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> UpdateInventory(Guid id, [FromBody] UpdateInventoryRequest request)
     {
         if (!ModelState.IsValid)
@@ -145,8 +151,9 @@ public class InventoryController(InventoryService inventoryService) : Controller
         }
     }
 
-    // POST: api/v1/inventories/update (Legacy endpoint)
+    // POST: api/v1/inventories/update (Legacy endpoint) (Staff & Admin)
     [HttpPost("update")]
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> UpdateInventoryLegacy([FromBody] UpdateInventoryRequest request)
     {
         if (!ModelState.IsValid)
@@ -163,8 +170,9 @@ public class InventoryController(InventoryService inventoryService) : Controller
         }
     }
 
-    // DELETE: api/v1/inventories/{id} - Delete inventory
+    // DELETE: api/v1/inventories/{id} - Delete inventory (Staff & Admin)
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> DeleteInventory(Guid id)
     {
         try
@@ -185,8 +193,9 @@ public class InventoryController(InventoryService inventoryService) : Controller
         }
     }
 
-    // GET: api/v1/inventories/stats - Get inventory statistics
+    // GET: api/v1/inventories/stats - Get inventory statistics (Admin only)
     [HttpGet("stats")]
+    [Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> GetInventoryStats()
     {
         try

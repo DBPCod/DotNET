@@ -1,6 +1,7 @@
 using Backend.Dtos;
 using Backend.Services.Apis;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Backend.Controllers;
 
@@ -11,6 +12,7 @@ public class PaymentController(PaymentService paymentService) : ControllerBase
     private readonly PaymentService _paymentService = paymentService;
 
     [HttpPost]
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> CreatePayment([FromBody] CreatePaymentRequest dto)
     {
         try
@@ -30,6 +32,7 @@ public class PaymentController(PaymentService paymentService) : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> GetAllPayments()
     {
         var payments = await _paymentService.GetAllPaymentsAsync();
@@ -37,6 +40,7 @@ public class PaymentController(PaymentService paymentService) : ControllerBase
     }
 
     [HttpGet("order/{orderId:guid}")]
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> GetPaymentsByOrderId(Guid orderId)
     {
         var response = new Response();

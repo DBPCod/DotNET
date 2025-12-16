@@ -40,9 +40,9 @@
                 <p class="text-muted">Theo dõi và quản lý đơn hàng của khách hàng</p>
             </div>
             <div>
-                <button class="btn btn-outline-success me-2" @onclick="ExportReport">
+                @* <button class="btn btn-outline-success me-2" @onclick="ExportReport">
                     <i class="bi bi-download"></i> Xuất báo cáo
-                </button>
+                </button> *@
                 <button class="btn btn-primary" @onclick="@(async () => await ShowCreateOrderModal())">
                     <i class="bi bi-plus"></i> Tạo đơn hàng
                 </button>
@@ -78,9 +78,9 @@
             </div>
             <div class="col-md-2">
                 <button class="btn btn-outline-secondary me-2" @onclick="LoadOrders">Lọc</button>
-                <button class="btn btn-outline-primary" @onclick="ToggleAdvancedFilters">
+                @* <button class="btn btn-outline-primary" @onclick="ToggleAdvancedFilters">
                     <i class="bi bi-funnel"></i> Bộ lọc nâng cao
-                </button>
+                </button> *@
             </div>
         </div>
     </div>

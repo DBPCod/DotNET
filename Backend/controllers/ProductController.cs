@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Backend.Services.Apis;
 using Backend.Dtos.Requests;
 
@@ -31,6 +32,7 @@ public class ProductController(ProductService productService) : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> Create([FromForm] CreateProductRequest request)
     {
         var response = await _productService.CreateAsync(request);
@@ -38,6 +40,7 @@ public class ProductController(ProductService productService) : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromForm] UpdateProductRequest request)
     {
         var response = await _productService.UpdateAsync(id, request);
@@ -45,6 +48,7 @@ public class ProductController(ProductService productService) : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
         var response = await _productService.DeleteAsync(id);

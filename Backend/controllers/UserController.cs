@@ -9,15 +9,13 @@ namespace Backend.Controllers;
 
 [Route("api/v1/users")]
 [ApiController]
-// [Authorize]
+[Authorize(Roles = "ADMIN")]
 public class UserController(UserService userService) : ControllerBase
 {
     private readonly UserService _userService = userService;
 
     // GET /api/v1/users - Lấy danh sách users với phân trang và filter
     [HttpGet]
-    [Authorize(Roles = "ADMIN")]
-    // [Authorize()]
     public async Task<IActionResult> GetUsers([FromQuery] GetUsersRequest request)
     {
         var response = new Response();
@@ -62,7 +60,6 @@ public class UserController(UserService userService) : ControllerBase
 
     // GET /api/v1/users/{id} - Lấy user theo ID
     [HttpGet("{id}")]
-    // [Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> GetUser(Guid id)
     {
         var response = new Response();
@@ -98,7 +95,6 @@ public class UserController(UserService userService) : ControllerBase
 
     // POST /api/v1/users - Tạo user mới
     [HttpPost]
-    // [Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
     {
         var response = new Response();
@@ -134,7 +130,6 @@ public class UserController(UserService userService) : ControllerBase
 
     // PUT /api/v1/users/{id} - Cập nhật user
     [HttpPut("{id}")]
-    // [Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateUserRequest request)
     {
         var response = new Response();
@@ -170,7 +165,6 @@ public class UserController(UserService userService) : ControllerBase
 
     // DELETE /api/v1/users/{id} - Soft delete user
     [HttpDelete("{id}")]
-    // [Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> DeleteUser(Guid id)
     {
         var response = new Response();

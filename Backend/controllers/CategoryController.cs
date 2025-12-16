@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Backend.Services.Apis;
 using Backend.Dtos.Requests;
 
@@ -25,6 +26,7 @@ public class CategoryController(CategoryService categoryService) : ControllerBas
     }
 
     [HttpPost]
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> Create([FromBody] CreateCategoryRequest request)
     {
         var response = await _categoryService.CreateAsync(request);
@@ -32,6 +34,7 @@ public class CategoryController(CategoryService categoryService) : ControllerBas
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateCategoryRequest request)
     {
         var response = await _categoryService.UpdateAsync(id, request);
@@ -40,6 +43,7 @@ public class CategoryController(CategoryService categoryService) : ControllerBas
 
     // Soft Delete
     [HttpDelete("{id}")]
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
         var response = await _categoryService.DeleteAsync(id);
@@ -48,6 +52,7 @@ public class CategoryController(CategoryService categoryService) : ControllerBas
 
     // Restore Category (optional)
     [HttpPatch("{id}/restore")]
+    [Authorize(Roles = "STAFF,ADMIN")]
     public async Task<IActionResult> Restore([FromRoute] Guid id)
     {
         var response = await _categoryService.RestoreAsync(id);
