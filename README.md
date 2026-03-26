@@ -29,9 +29,10 @@ một cách **linh hoạt, thân thiện và hiện đại**.
 ## 🎨 3. Giao diện dự án
   ![Home User](./assets/anh_giao_dien_chinh_user.jpg)
   *Trang chủ dành cho người dùng sau khi đăng nhập*
-
+  
   ![Home Admin](./assets/anh_giao_dien_chinh_admin.jpg)
   *Trang chủ dành cho quản trị sau khi đăng nhập*
+  
 ---
 ## 4. Cách chạy dự án
 # Store Management System
