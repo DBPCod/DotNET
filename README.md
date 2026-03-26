@@ -26,8 +26,14 @@ một cách **linh hoạt, thân thiện và hiện đại**.
 | **IDE / CLI** | 🧑‍💻 Visual Studio / VS Code / dotnet CLI | Dùng để phát triển, build và chạy project |
 
 ---
+## 🎨 3. Giao diện dự án
+  ![Home User](./assets/anh_giao_dien_chinh_user.jpg)
+  *Trang chủ dành cho người dùng sau khi đăng nhập*
 
-3. Cách chạy dự án
+  ![Home Admin](./assets/anh_giao_dien_chinh_admin.jpg)
+  *Trang chủ dành cho quản trị sau khi đăng nhập*
+---
+## 4. Cách chạy dự án
 # Store Management System
 ## 📋 Yêu Cầu Hệ Thống
 
@@ -49,11 +55,11 @@ cd DotNet
 #### Sử dụng Laragon (Khuyến nghị)
 1. Tải và cài đặt [Laragon](https://laragon.org/)
 2. Khởi động Laragon
-3. Tạo database mới tên `store_management` trong phpMyAdmin
+3. Tạo database mới tên `spot247` trong phpMyAdmin
 
 #### Hoặc MySQL thủ công
 ```sql
-CREATE DATABASE store_management;
+CREATE DATABASE spot247;
 ```
 
 ### 3. Cấu Hình Connection String
@@ -63,7 +69,7 @@ Kiểm tra file `backend/appsettings.json`:
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Port=3306;Database=store_management;Uid=root;Pwd=;"
+    "DefaultConnection": "Server=localhost;Port=3306;Database=spot247t;Uid=root;Pwd=;"
   }
 }
 ```
@@ -105,7 +111,7 @@ dotnet run
 
 ### 6. Kiểm Tra Kết Quả
 
-Mở phpMyAdmin và kiểm tra database `store_management` có các bảng:
+Mở phpMyAdmin và kiểm tra database `spot247` có các bảng:
 - `users` (3 records)
 - `customers` (20 records) 
 - `categories` (5 records)
@@ -225,4 +231,4 @@ Nếu gặp vấn đề, hãy kiểm tra:
 2. MySQL server đang chạy
 3. Connection string đúng
 4. Port 3306 không bị chiếm dụng
-5. Database `store_management` đã tạo
+5. Database `spot247` đã tạo
